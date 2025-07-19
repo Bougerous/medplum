@@ -1,0 +1,339 @@
+<div class="test-ordering-container">
+  <h2>Test Ordering</h2>
+  
+  <!-- Order Success -->
+  <div class="alert alert-success" *ngIf="orderResult">
+    <h4>✅ Orders Created Successfully</h4>
+    <p>
+      <strong>{{ orderResult.orders.length }}</strong> test order(s) created<br>
+      <strong>Estimated Cost:</strong> ${{ orderResult.totalEstimatedCost?.toFixed(2) || '0.00' }}<br>
+      <strong>Estimated Turnaround:</strong> {{ formatTurnaroundTime(orderResult.estimatedTurnaroundTime || 0) }}
+    </p>
+    <div class="success-actions">
+      <button type="button" class="btn btn-primary" (click)="newOrderForPatient()" *ngIf="selectedPatient">
+        ➕ New Order for Patient
+      </button>
+      <button type="button" class="btn btn-outline" (click)="resetForm()">
+        🔄 Start Over
+      </button>
+    </div>
+  </div>
+  
+  <form [formGroup]="orderForm" (ngSubmit)="onSubmit()" class="order-form">
+    <div class="form-section">
+      <h3>Patient Information</h3>
+      
+      <div class="form-group">
+        <label for="patientSearch">Search Patient *</label>
+        <input 
+          id="patientSearch" 
+          type="text" 
+          formControlName="patientSearch" 
+          class="form-control"
+          [class.error]="hasFieldError('patientSearch')"
+          placeholder="Enter patient name or ID"
+          (input)="searchPatients($event)"
+          required>
+        <div class="error-message" *ngIf="hasFieldError('patientSearch')">
+          {{ getFieldError('patientSearch') }}
+        </div>
+        
+        <div class="patient-results" *ngIf="searchResults.length > 0">
+          <div 
+            class="patient-result" 
+            *ngFor="let patient of searchResults"
+            (click)="selectPatient(patient)">
+            <div class="patient-name">
+              {{ patient.name?.[0]?.given?.[0] }} {{ patient.name?.[0]?.family }}
+            </div>
+            <div class="patient-details">
+              DOB: {{ patient.birthDate }} | ID: {{ patient.id }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="selected-patient" *ngIf="selectedPatient">
+        <h4>✓ Selected Patient</h4>
+        <div class="patient-card">
+          <div class="patient-info">
+            <p><strong>Name:</strong> {{ selectedPatient.name?.[0]?.given?.[0] }} {{ selectedPatient.name?.[0]?.family }}</p>
+            <p><strong>DOB:</strong> {{ selectedPatient.birthDate }}</p>
+            <p><strong>ID:</strong> {{ selectedPatient.id }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Ordering Provider</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="providerName">Provider Name *</label>
+          <input 
+            id="providerName" 
+            type="text" 
+            formControlName="providerName" 
+            class="form-control"
+            [class.error]="hasFieldError('providerName')"
+            placeholder="Dr. John Smith"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('providerName')">
+            {{ getFieldError('providerName') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="providerId">Provider ID *</label>
+          <input 
+            id="providerId" 
+            type="text" 
+            formControlName="providerId" 
+            class="form-control"
+            [class.error]="hasFieldError('providerId')"
+            placeholder="Provider system ID"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('providerId')">
+            {{ getFieldError('providerId') }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="providerNPI">Provider NPI</label>
+        <input 
+          id="providerNPI" 
+          type="text" 
+          formControlName="providerNPI" 
+          class="form-control"
+          placeholder="1234567890">
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Test Selection</h3>
+      
+      <!-- Search Tests -->
+      <div class="test-search">
+        <input 
+          type="text" 
+          [(ngModel)]="searchQuery" 
+          class="form-control search-input"
+          placeholder="🔍 Search tests by name, code, or LOINC..."
+          [ngModelOptions]="{standalone: true}">
+      </div>
+      
+      <!-- Category Tabs -->
+      <div class="test-categories" *ngIf="!searchQuery.trim()">
+        <div class="category-tabs">
+          <button 
+            type="button" 
+            class="category-tab"
+            [class.active]="selectedCategory === category.key"
+            *ngFor="let category of testCategories"
+            (click)="selectCategory(category.key)">
+            {{ category.name }}
+            <span class="test-count">({{ category.tests.length }})</span>
+          </button>
+        </div>
+      </div>
+      
+      <!-- Available Tests -->
+      <div class="available-tests">
+        <div class="test-grid">
+          <div 
+            class="test-card"
+            [class.selected]="isTestSelected(test)"
+            *ngFor="let test of getFilteredTests()"
+            (click)="toggleTest(test)">
+            <div class="test-checkbox">
+              <input 
+                type="checkbox" 
+                [checked]="isTestSelected(test)"
+                (click)="$event.stopPropagation()">
+            </div>
+            <div class="test-info">
+              <h4>{{ test.name }}</h4>
+              <p>{{ test.description }}</p>
+              <div class="test-metadata">
+                <span class="test-code">{{ test.code }}</span>
+                <span class="loinc-code" *ngIf="test.loincCode">LOINC: {{ test.loincCode }}</span>
+                <span class="price" *ngIf="test.price">${{ test.price.toFixed(2) }}</span>
+                <span class="turnaround" *ngIf="test.turnaroundTime">{{ formatTurnaroundTime(test.turnaroundTime) }}</span>
+              </div>
+              <div class="specimen-types">
+                <span class="specimen-type" *ngFor="let type of test.specimenTypes">{{ type }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="no-tests" *ngIf="getFilteredTests().length === 0">
+          <p>No tests found matching your criteria.</p>
+        </div>
+      </div>
+      
+      <!-- Selected Tests Summary -->
+      <div class="selected-tests" *ngIf="selectedTests.length > 0">
+        <h4>Selected Tests ({{ selectedTests.length }})</h4>
+        <div class="selected-test-list">
+          <div 
+            class="selected-test"
+            *ngFor="let test of selectedTests">
+            <div class="test-details">
+              <span class="test-name">{{ test.name }}</span>
+              <span class="test-price" *ngIf="test.price">${{ test.price.toFixed(2) }}</span>
+            </div>
+            <button type="button" class="remove-test" (click)="removeTest(test)" title="Remove test">×</button>
+          </div>
+        </div>
+        
+        <!-- Order Summary -->
+        <div class="order-summary">
+          <div class="summary-row">
+            <span>Total Estimated Cost:</span>
+            <span class="cost">${{ getTotalEstimatedCost().toFixed(2) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Estimated Turnaround:</span>
+            <span class="turnaround">{{ formatTurnaroundTime(getEstimatedTurnaroundTime()) }}</span>
+          </div>
+          <div class="summary-row">
+            <span>Specimen Types Required:</span>
+            <span class="specimens">{{ getSpecimenRequirements().join(', ') }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Ask-on-Order-Entry -->
+    <div class="form-section" *ngIf="showAskOnOrderEntry">
+      <h3>Additional Information Required</h3>
+      <div class="ask-on-order-entry">
+        <div 
+          class="questionnaire-section"
+          *ngFor="let entry of askOnOrderEntryData | keyvalue">
+          <h4>{{ entry.value.questionnaire.title }} ({{ getTestById(entry.key)?.name }})</h4>
+          <div class="questionnaire-items">
+            <div 
+              class="questionnaire-item"
+              *ngFor="let item of entry.value.questionnaire.item">
+              <label [for]="'aoe-' + entry.key + '-' + item.linkId">
+                {{ item.text }}
+                <span *ngIf="item.required" class="required">*</span>
+              </label>
+              
+              <ng-container [ngSwitch]="item.type">
+                <input 
+                  *ngSwitchCase="'string'"
+                  [id]="'aoe-' + entry.key + '-' + item.linkId"
+                  type="text" 
+                  class="form-control">
+                
+                <input 
+                  *ngSwitchCase="'dateTime'"
+                  [id]="'aoe-' + entry.key + '-' + item.linkId"
+                  type="datetime-local" 
+                  class="form-control">
+                
+                <label *ngSwitchCase="'boolean'" class="checkbox-label">
+                  <input 
+                    [id]="'aoe-' + entry.key + '-' + item.linkId"
+                    type="checkbox">
+                  <span class="checkmark"></span>
+                </label>
+                
+                <textarea 
+                  *ngSwitchCase="'text'"
+                  [id]="'aoe-' + entry.key + '-' + item.linkId"
+                  class="form-control"
+                  rows="3"></textarea>
+              </ng-container>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Order Details</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="priority">Priority *</label>
+          <select 
+            id="priority" 
+            formControlName="priority" 
+            class="form-control"
+            [class.error]="hasFieldError('priority')"
+            required>
+            <option value="routine">Routine</option>
+            <option value="urgent">Urgent</option>
+            <option value="stat">STAT</option>
+          </select>
+          <div class="error-message" *ngIf="hasFieldError('priority')">
+            {{ getFieldError('priority') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="orderDate">Order Date & Time *</label>
+          <input 
+            id="orderDate" 
+            type="datetime-local" 
+            formControlName="orderDate" 
+            class="form-control"
+            [class.error]="hasFieldError('orderDate')"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('orderDate')">
+            {{ getFieldError('orderDate') }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group" *ngIf="orderForm.get('priority')?.value === 'urgent' || orderForm.get('priority')?.value === 'stat'">
+        <label for="urgentReason">Reason for {{ orderForm.get('priority')?.value?.toUpperCase() }} Priority</label>
+        <input 
+          id="urgentReason" 
+          type="text" 
+          formControlName="urgentReason" 
+          class="form-control"
+          placeholder="Explain why this order requires expedited processing">
+      </div>
+      
+      <div class="form-group">
+        <label for="clinicalInfo">Clinical Information</label>
+        <textarea 
+          id="clinicalInfo" 
+          formControlName="clinicalInfo" 
+          class="form-control"
+          rows="4"
+          placeholder="Enter relevant clinical information, symptoms, diagnosis, or reason for testing..."></textarea>
+      </div>
+      
+      <div class="advanced-options">
+        <button 
+          type="button" 
+          class="btn btn-link" 
+          (click)="showAdvancedOptions = !showAdvancedOptions">
+          {{ showAdvancedOptions ? 'Hide' : 'Show' }} Advanced Options
+        </button>
+        
+        <div class="advanced-fields" *ngIf="showAdvancedOptions">
+          <!-- Additional advanced options could go here -->
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" routerLink="/">Cancel</button>
+      <button 
+        type="submit" 
+        class="btn btn-primary" 
+        [disabled]="orderForm.invalid || isSubmitting || !selectedPatient || selectedTests.length === 0 || !areAskOnOrderEntryComplete()">
+        {{ isSubmitting ? 'Creating Orders...' : 'Create Orders' }}
+      </button>
+    </div>
+  </form>
+</div>

@@ -1,0 +1,291 @@
+<div class="reports-container">
+  <div class="page-header">
+    <h2>Laboratory Reports</h2>
+    <p>Generate and view laboratory reports and analytics</p>
+  </div>
+
+  <!-- Quick Report Actions -->
+  <div class="quick-reports-section">
+    <h3>Quick Reports</h3>
+    <div class="quick-reports-grid">
+      <div class="report-card" (click)="generateDailyReport()">
+        <div class="report-icon">📊</div>
+        <h4>Daily Summary</h4>
+        <p>Today's test volumes and metrics</p>
+      </div>
+      
+      <div class="report-card" (click)="generateTATReport()">
+        <div class="report-icon">⏱️</div>
+        <h4>TAT Analysis</h4>
+        <p>Turnaround time performance</p>
+      </div>
+      
+      <div class="report-card" (click)="generateQualityReport()">
+        <div class="report-icon">✅</div>
+        <h4>Quality Control</h4>
+        <p>QC results and compliance</p>
+      </div>
+      
+      <div class="report-card" (click)="generateWorkloadReport()">
+        <div class="report-icon">📈</div>
+        <h4>Workload Report</h4>
+        <p>Department productivity metrics</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Report Builder -->
+  <div class="report-builder-section">
+    <div class="section-header">
+      <h3>Custom Report Builder</h3>
+      <button class="btn btn-primary" (click)="toggleReportBuilder()" [class.active]="showReportBuilder">
+        {{showReportBuilder ? 'Hide Builder' : 'Show Builder'}}
+      </button>
+    </div>
+    
+    <div class="report-builder" *ngIf="showReportBuilder">
+      <form [formGroup]="reportForm" (ngSubmit)="generateCustomReport()">
+        <div class="builder-grid">
+          <div class="form-group">
+            <label for="reportType">Report Type</label>
+            <select id="reportType" formControlName="reportType" class="form-control">
+              <option value="">Select Report Type</option>
+              <option value="test-volume">Test Volume</option>
+              <option value="patient-demographics">Patient Demographics</option>
+              <option value="department-productivity">Department Productivity</option>
+              <option value="financial-summary">Financial Summary</option>
+              <option value="quality-metrics">Quality Metrics</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="dateRange">Date Range</label>
+            <select id="dateRange" formControlName="dateRange" class="form-control">
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="this-week">This Week</option>
+              <option value="last-week">Last Week</option>
+              <option value="this-month">This Month</option>
+              <option value="last-month">Last Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+          
+          <div class="form-group" *ngIf="reportForm.get('dateRange')?.value === 'custom'">
+            <label for="startDate">Start Date</label>
+            <input id="startDate" type="date" formControlName="startDate" class="form-control">
+          </div>
+          
+          <div class="form-group" *ngIf="reportForm.get('dateRange')?.value === 'custom'">
+            <label for="endDate">End Date</label>
+            <input id="endDate" type="date" formControlName="endDate" class="form-control">
+          </div>
+          
+          <div class="form-group">
+            <label for="department">Department</label>
+            <select id="department" formControlName="department" class="form-control">
+              <option value="">All Departments</option>
+              <option value="chemistry">Chemistry</option>
+              <option value="hematology">Hematology</option>
+              <option value="microbiology">Microbiology</option>
+              <option value="immunology">Immunology</option>
+              <option value="pathology">Pathology</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="format">Output Format</label>
+            <select id="format" formControlName="format" class="form-control">
+              <option value="pdf">PDF</option>
+              <option value="excel">Excel</option>
+              <option value="csv">CSV</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="builder-actions">
+          <button type="button" class="btn btn-secondary" (click)="resetForm()">Reset</button>
+          <button type="button" class="btn btn-info" (click)="previewReport()">Preview</button>
+          <button type="submit" class="btn btn-primary" [disabled]="!reportForm.valid">Generate Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Recent Reports -->
+  <div class="recent-reports-section">
+    <div class="section-header">
+      <h3>Recent Reports</h3>
+      <button class="btn btn-secondary" (click)="refreshReports()">🔄 Refresh</button>
+    </div>
+    
+    <div class="reports-table-card">
+      <div class="table-container">
+        <table class="reports-table">
+          <thead>
+            <tr>
+              <th>Report Name</th>
+              <th>Type</th>
+              <th>Generated</th>
+              <th>Generated By</th>
+              <th>Size</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let report of recentReports; trackBy: trackByReportId">
+              <td class="report-name">{{report.name}}</td>
+              <td>{{getReportTypeDisplay(report.type)}}</td>
+              <td>{{report.generatedDate | date:'MMM d, y HH:mm'}}</td>
+              <td>{{report.generatedBy}}</td>
+              <td class="file-size">{{report.fileSize}}</td>
+              <td>
+                <span class="status-badge" [class]="'status-' + report.status">
+                  {{getStatusDisplay(report.status)}}
+                </span>
+              </td>
+              <td class="action-buttons">
+                <button 
+                  class="btn btn-sm btn-primary" 
+                  (click)="downloadReport(report)"
+                  [disabled]="report.status !== 'completed'"
+                >
+                  📥 Download
+                </button>
+                <button 
+                  class="btn btn-sm btn-info" 
+                  (click)="viewReport(report)"
+                  [disabled]="report.status !== 'completed'"
+                >
+                  👁 View
+                </button>
+                <button 
+                  class="btn btn-sm btn-danger" 
+                  (click)="deleteReport(report)"
+                >
+                  🗑 Delete
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Templates -->
+  <div class="templates-section">
+    <div class="section-header">
+      <h3>Report Templates</h3>
+      <button class="btn btn-primary" (click)="createTemplate()">➕ New Template</button>
+    </div>
+    
+    <div class="templates-grid">
+      <div 
+        class="template-card" 
+        *ngFor="let template of reportTemplates"
+        (click)="useTemplate(template)"
+      >
+        <div class="template-icon">📋</div>
+        <h4>{{template.name}}</h4>
+        <p>{{template.description}}</p>
+        <div class="template-meta">
+          <span class="template-type">{{getReportTypeDisplay(template.type)}}</span>
+          <span class="template-usage">{{template.usageCount}} uses</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scheduled Reports -->
+  <div class="scheduled-reports-section">
+    <div class="section-header">
+      <h3>Scheduled Reports</h3>
+      <button class="btn btn-primary" (click)="scheduleReport()">📅 Schedule Report</button>
+    </div>
+    
+    <div class="scheduled-table-card">
+      <div class="table-container">
+        <table class="scheduled-table">
+          <thead>
+            <tr>
+              <th>Report Name</th>
+              <th>Schedule</th>
+              <th>Recipients</th>
+              <th>Last Generated</th>
+              <th>Next Run</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let scheduled of scheduledReports">
+              <td>{{scheduled.reportName}}</td>
+              <td>{{scheduled.schedule}}</td>
+              <td>{{scheduled.recipients.length}} recipients</td>
+              <td>{{scheduled.lastGenerated | date:'MMM d, y HH:mm'}}</td>
+              <td>{{scheduled.nextRun | date:'MMM d, y HH:mm'}}</td>
+              <td>
+                <span class="status-badge" [class]="'status-' + scheduled.status">
+                  {{getScheduleStatusDisplay(scheduled.status)}}
+                </span>
+              </td>
+              <td class="action-buttons">
+                <button class="btn btn-sm btn-info" (click)="editSchedule(scheduled)">✏️ Edit</button>
+                <button class="btn btn-sm btn-warning" (click)="pauseSchedule(scheduled)">⏸️ Pause</button>
+                <button class="btn btn-sm btn-danger" (click)="deleteSchedule(scheduled)">🗑 Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Report Preview Modal -->
+  <div class="modal-overlay" *ngIf="showPreviewModal" (click)="closePreviewModal()">
+    <div class="preview-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Report Preview</h3>
+        <button class="close-btn" (click)="closePreviewModal()">✕</button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="preview-content" *ngIf="previewData">
+          <h4>{{previewData.title}}</h4>
+          <div class="preview-meta">
+            <p><strong>Type:</strong> {{getReportTypeDisplay(previewData.type)}}</p>
+            <p><strong>Date Range:</strong> {{previewData.dateRange}}</p>
+            <p><strong>Department:</strong> {{previewData.department || 'All Departments'}}</p>
+          </div>
+          
+          <div class="preview-summary">
+            <h5>Summary Statistics</h5>
+            <div class="summary-grid">
+              <div class="summary-item" *ngFor="let item of previewData.summary">
+                <div class="summary-label">{{item.label}}</div>
+                <div class="summary-value">{{item.value}}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="preview-chart">
+            <h5>Data Visualization</h5>
+            <div class="mock-chart">
+              <div class="chart-placeholder">
+                <p>Chart preview would appear here</p>
+                <p class="chart-note">{{previewData.chartDescription}}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-actions">
+          <button class="btn btn-secondary" (click)="closePreviewModal()">Close</button>
+          <button class="btn btn-primary" (click)="generateFromPreview()">Generate Full Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

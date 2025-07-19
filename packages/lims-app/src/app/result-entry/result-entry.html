@@ -1,0 +1,245 @@
+<div class="result-entry-container">
+  <div class="page-header">
+    <h2>Result Entry</h2>
+    <p>Enter and verify test results for processed specimens</p>
+  </div>
+
+  <!-- Search Bar -->
+  <div class="search-section">
+    <div class="search-card">
+      <div class="search-group">
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          (input)="onSearch()" 
+          placeholder="Search by specimen ID, patient, or test type"
+          class="search-input"
+        />
+        <button class="search-btn" (click)="onSearch()">🔍</button>
+      </div>
+      
+      <div class="filter-group">
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()" class="filter-select">
+          <option value="">All Statuses</option>
+          <option value="ready">Ready for Results</option>
+          <option value="in-progress">In Progress</option>
+          <option value="pending-review">Pending Review</option>
+          <option value="completed">Completed</option>
+        </select>
+        
+        <select [(ngModel)]="selectedPriority" (change)="onFilterChange()" class="filter-select">
+          <option value="">All Priorities</option>
+          <option value="routine">Routine</option>
+          <option value="urgent">Urgent</option>
+          <option value="stat">STAT</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results Table -->
+  <div class="results-section">
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Test Results Queue ({{filteredResults.length}} items)</h3>
+        <div class="table-actions">
+          <button class="btn btn-primary" (click)="bulkVerify()" [disabled]="selectedResults.length === 0">
+            ✓ Bulk Verify ({{selectedResults.length}})
+          </button>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <th>
+                <input 
+                  type="checkbox" 
+                  [checked]="isAllSelected()" 
+                  [indeterminate]="isPartiallySelected()"
+                  (change)="toggleSelectAll()"
+                />
+              </th>
+              <th>Specimen ID</th>
+              <th>Patient</th>
+              <th>Test Type</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Collected</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let result of filteredResults; trackBy: trackBySpecimenId"
+              [class]="'priority-' + result.priority"
+            >
+              <td>
+                <input 
+                  type="checkbox" 
+                  [checked]="isSelected(result.specimenId)"
+                  (change)="toggleSelection(result.specimenId)"
+                />
+              </td>
+              <td class="specimen-id">{{result.specimenId}}</td>
+              <td>{{result.patientName}}</td>
+              <td>{{result.testType}}</td>
+              <td>
+                <span class="status-badge" [class]="'status-' + result.status">
+                  {{getStatusDisplay(result.status)}}
+                </span>
+              </td>
+              <td>
+                <span class="priority-badge" [class]="'priority-' + result.priority">
+                  {{result.priority.toUpperCase()}}
+                </span>
+              </td>
+              <td>{{result.collectedDate | date:'MMM d, y HH:mm'}}</td>
+              <td class="action-buttons">
+                <button 
+                  class="btn btn-sm btn-primary" 
+                  (click)="enterResults(result)"
+                  *ngIf="result.status === 'ready' || result.status === 'in-progress'"
+                >
+                  📝 Enter
+                </button>
+                <button 
+                  class="btn btn-sm btn-success" 
+                  (click)="reviewResults(result)"
+                  *ngIf="result.status === 'pending-review'"
+                >
+                  👁 Review
+                </button>
+                <button 
+                  class="btn btn-sm btn-secondary" 
+                  (click)="viewResults(result)"
+                  *ngIf="result.status === 'completed'"
+                >
+                  📄 View
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result Entry Modal -->
+  <div class="modal-overlay" *ngIf="showResultModal" (click)="closeModal()">
+    <div class="result-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Enter Results - {{currentResult?.specimenId}}</h3>
+        <button class="close-btn" (click)="closeModal()">✕</button>
+      </div>
+      
+      <div class="modal-content" *ngIf="currentResult">
+        <!-- Patient Info -->
+        <div class="patient-info-card">
+          <h4>Patient Information</h4>
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Name:</label>
+              <span>{{currentResult.patientName}}</span>
+            </div>
+            <div class="info-item">
+              <label>DOB:</label>
+              <span>{{currentResult.patientDOB | date:'MMM d, y'}}</span>
+            </div>
+            <div class="info-item">
+              <label>MRN:</label>
+              <span>{{currentResult.patientMRN}}</span>
+            </div>
+            <div class="info-item">
+              <label>Test Type:</label>
+              <span>{{currentResult.testType}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result Entry Form -->
+        <form [formGroup]="resultForm" (ngSubmit)="saveResults()">
+          <div class="form-section">
+            <h4>Test Results</h4>
+            
+            <div class="result-parameters" formArrayName="parameters">
+              <div 
+                *ngFor="let param of getParametersArray().controls; let i = index" 
+                [formGroupName]="i"
+                class="parameter-group"
+              >
+                <div class="parameter-info">
+                  <label>{{getParameterName(i)}}</label>
+                  <span class="reference-range">{{getParameterRange(i)}}</span>
+                </div>
+                
+                <div class="parameter-inputs">
+                  <div class="input-group">
+                    <input 
+                      type="text" 
+                      formControlName="value" 
+                      [placeholder]="getParameterUnit(i)"
+                      class="result-input"
+                      [class.abnormal]="isAbnormal(i)"
+                    />
+                    <select formControlName="flag" class="flag-select">
+                      <option value="">Normal</option>
+                      <option value="H">High</option>
+                      <option value="L">Low</option>
+                      <option value="C">Critical</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Comments -->
+            <div class="form-group">
+              <label for="comments">Comments</label>
+              <textarea 
+                id="comments"
+                formControlName="comments"
+                rows="3"
+                placeholder="Enter any additional comments or observations..."
+                class="form-control"
+              ></textarea>
+            </div>
+
+            <!-- Quality Control -->
+            <div class="qc-section">
+              <h4>Quality Control</h4>
+              <div class="qc-checks">
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="qcPassed" />
+                  QC checks passed
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="calibrationCurrent" />
+                  Calibration current
+                </label>
+                <label class="checkbox-label">
+                  <input type="checkbox" formControlName="controlsAcceptable" />
+                  Controls acceptable
+                </label>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="modal-actions">
+              <button type="button" class="btn btn-secondary" (click)="saveAsDraft()">
+                💾 Save Draft
+              </button>
+              <button type="button" class="btn btn-warning" (click)="saveForReview()">
+                📋 Send for Review
+              </button>
+              <button type="submit" class="btn btn-success" [disabled]="!resultForm.valid">
+                ✓ Verify & Complete
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>

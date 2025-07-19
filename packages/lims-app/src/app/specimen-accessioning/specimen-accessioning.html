@@ -1,0 +1,223 @@
+<div class="specimen-accessioning-container">
+  <h2>Specimen Accessioning</h2>
+  
+  <!-- Accessioning Success -->
+  <div class="alert alert-success" *ngIf="accessionResult">
+    <h4>✅ Specimen Accessioned Successfully</h4>
+    <p>
+      <strong>Accession Number:</strong> <code>{{ accessionResult.accessionNumber }}</code><br>
+      <strong>Patient:</strong> {{ accessionResult.labelData.patientName }}<br>
+      <strong>Specimen Type:</strong> {{ accessionResult.labelData.specimenType }}
+    </p>
+    <div class="success-actions">
+      <button type="button" class="btn btn-primary" (click)="printLabel()">
+        🖨️ Print Label
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="newSpecimenForPatient()" *ngIf="selectedPatient">
+        ➕ New Specimen for Patient
+      </button>
+      <button type="button" class="btn btn-outline" (click)="resetForm()">
+        🔄 Start Over
+      </button>
+    </div>
+  </div>
+  
+  <form [formGroup]="specimenForm" (ngSubmit)="onSubmit()" class="specimen-form">
+    <div class="form-section">
+      <h3>Patient Information</h3>
+      
+      <div class="form-group">
+        <label for="patientSearch">Search Patient *</label>
+        <input 
+          id="patientSearch" 
+          type="text" 
+          formControlName="patientSearch" 
+          class="form-control"
+          [class.error]="hasFieldError('patientSearch')"
+          placeholder="Enter patient name or ID"
+          (input)="searchPatients($event)"
+          required>
+        <div class="error-message" *ngIf="hasFieldError('patientSearch')">
+          {{ getFieldError('patientSearch') }}
+        </div>
+        
+        <div class="patient-results" *ngIf="searchResults.length > 0">
+          <div 
+            class="patient-result" 
+            *ngFor="let patient of searchResults"
+            (click)="selectPatient(patient)">
+            <div class="patient-name">
+              {{ patient.name?.[0]?.given?.[0] }} {{ patient.name?.[0]?.family }}
+            </div>
+            <div class="patient-details">
+              DOB: {{ patient.birthDate }} | ID: {{ patient.id }}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="selected-patient" *ngIf="selectedPatient">
+        <h4>✓ Selected Patient</h4>
+        <div class="patient-card">
+          <div class="patient-info">
+            <p><strong>Name:</strong> {{ selectedPatient.name?.[0]?.given?.[0] }} {{ selectedPatient.name?.[0]?.family }}</p>
+            <p><strong>DOB:</strong> {{ selectedPatient.birthDate }}</p>
+            <p><strong>ID:</strong> {{ selectedPatient.id }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Specimen Details</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="specimenType">Specimen Type *</label>
+          <select 
+            id="specimenType" 
+            formControlName="specimenType" 
+            class="form-control"
+            [class.error]="hasFieldError('specimenType')"
+            required>
+            <option value="">Select Specimen Type</option>
+            <option 
+              *ngFor="let type of availableSpecimenTypes" 
+              [value]="type.coding?.[0]?.code || type.text">
+              {{ type.text || type.coding?.[0]?.display }}
+            </option>
+          </select>
+          <div class="error-message" *ngIf="hasFieldError('specimenType')">
+            {{ getFieldError('specimenType') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="collectionDate">Collection Date & Time *</label>
+          <input 
+            id="collectionDate" 
+            type="datetime-local" 
+            formControlName="collectionDate" 
+            class="form-control"
+            [class.error]="hasFieldError('collectionDate')"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('collectionDate')">
+            {{ getFieldError('collectionDate') }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="collectionMethod">Collection Method</label>
+          <input 
+            id="collectionMethod" 
+            type="text" 
+            formControlName="collectionMethod" 
+            class="form-control"
+            placeholder="e.g., Venipuncture, Biopsy, Clean catch">
+        </div>
+        
+        <div class="form-group">
+          <label for="bodySite">Body Site</label>
+          <input 
+            id="bodySite" 
+            type="text" 
+            formControlName="bodySite" 
+            class="form-control"
+            placeholder="e.g., Left arm, Abdomen">
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="containerType">Container Type</label>
+          <select id="containerType" formControlName="containerType" class="form-control">
+            <option value="">Select Container</option>
+            <option 
+              *ngFor="let type of availableContainerTypes" 
+              [value]="type.coding?.[0]?.code || type.text">
+              {{ type.text || type.coding?.[0]?.display }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="priority">Priority</label>
+          <select id="priority" formControlName="priority" class="form-control">
+            <option value="routine">Routine</option>
+            <option value="urgent">Urgent</option>
+            <option value="stat">STAT</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="quantity">Quantity</label>
+          <div class="quantity-input">
+            <input 
+              id="quantity" 
+              type="number" 
+              formControlName="quantity" 
+              class="form-control quantity-field"
+              placeholder="0"
+              min="0"
+              step="0.1">
+            <select formControlName="quantityUnit" class="form-control unit-field">
+              <option value="mL">mL</option>
+              <option value="L">L</option>
+              <option value="g">g</option>
+              <option value="mg">mg</option>
+              <option value="pieces">pieces</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="notes">Collection Notes</label>
+        <textarea 
+          id="notes" 
+          formControlName="notes" 
+          class="form-control"
+          rows="3"
+          placeholder="Enter any relevant collection notes, special handling instructions, or observations..."></textarea>
+      </div>
+    </div>
+    
+    <!-- QR Code Display -->
+    <div class="qr-code-section" *ngIf="showQRCode && accessionResult">
+      <h3>QR Code & Label Information</h3>
+      <div class="qr-code-display">
+        <div class="qr-placeholder">
+          <div class="qr-code-text">
+            QR CODE<br>
+            <small>{{ accessionResult.accessionNumber }}</small>
+          </div>
+        </div>
+        <div class="label-preview">
+          <h4>Label Preview</h4>
+          <div class="label-content">
+            <div class="accession-number">{{ accessionResult.accessionNumber }}</div>
+            <div class="patient-name">{{ accessionResult.labelData.patientName }}</div>
+            <div class="specimen-details">
+              {{ accessionResult.labelData.specimenType }}<br>
+              {{ accessionResult.labelData.collectionDate | date:'short' }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" routerLink="/">Cancel</button>
+      <button 
+        type="submit" 
+        class="btn btn-primary" 
+        [disabled]="specimenForm.invalid || isSubmitting || !selectedPatient">
+        {{ isSubmitting ? 'Processing...' : 'Process Specimen' }}
+      </button>
+    </div>
+  </form>
+</div>

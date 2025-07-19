@@ -1,0 +1,284 @@
+<div class="patient-registration-container">
+  <h2>Patient Registration</h2>
+  
+  <!-- Questionnaire Selection -->
+  <div class="questionnaire-selection" *ngIf="availableQuestionnaires.length > 1">
+    <h3>Registration Form</h3>
+    <div class="questionnaire-options">
+      <label *ngFor="let questionnaire of availableQuestionnaires" class="questionnaire-option">
+        <input 
+          type="radio" 
+          [value]="questionnaire" 
+          [checked]="selectedQuestionnaire?.id === questionnaire.id"
+          (change)="selectQuestionnaire(questionnaire)">
+        <span>{{ questionnaire.title || questionnaire.name }}</span>
+        <small *ngIf="questionnaire.description">{{ questionnaire.description }}</small>
+      </label>
+    </div>
+  </div>
+
+  <!-- Duplicate Warning -->
+  <div class="alert alert-warning" *ngIf="showDuplicateWarning">
+    <h4>⚠️ Potential Duplicate Patient</h4>
+    <p>Found {{ duplicatePatients.length }} similar patient(s):</p>
+    <ul>
+      <li *ngFor="let patient of duplicatePatients">
+        {{ patient.name?.[0]?.given?.[0] }} {{ patient.name?.[0]?.family }} 
+        (DOB: {{ patient.birthDate }})
+      </li>
+    </ul>
+    <p>Please verify this is not a duplicate before continuing.</p>
+  </div>
+
+  <!-- Registration Success -->
+  <div class="alert alert-success" *ngIf="registrationResult">
+    <h4>✅ Patient Registered Successfully</h4>
+    <p>
+      Patient <strong>{{ registrationResult.patient.name?.[0]?.given?.[0] }} {{ registrationResult.patient.name?.[0]?.family }}</strong> 
+      has been registered with ID: <code>{{ registrationResult.patient.id }}</code>
+    </p>
+    <div *ngIf="registrationResult.coverage">
+      <small>Insurance coverage created: {{ registrationResult.coverage.payor[0].display || 'Unknown' }}</small>
+    </div>
+  </div>
+  
+  <form [formGroup]="patientForm" (ngSubmit)="onSubmit()" class="patient-form">
+    <div class="form-section">
+      <h3>Patient Demographics</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="firstName">First Name *</label>
+          <input 
+            id="firstName" 
+            type="text" 
+            formControlName="firstName" 
+            class="form-control"
+            [class.error]="hasFieldError('firstName')"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('firstName')">
+            {{ getFieldError('firstName') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="lastName">Last Name *</label>
+          <input 
+            id="lastName" 
+            type="text" 
+            formControlName="lastName" 
+            class="form-control"
+            [class.error]="hasFieldError('lastName')"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('lastName')">
+            {{ getFieldError('lastName') }}
+          </div>
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="dateOfBirth">Date of Birth *</label>
+          <input 
+            id="dateOfBirth" 
+            type="date" 
+            formControlName="dateOfBirth" 
+            class="form-control"
+            [class.error]="hasFieldError('dateOfBirth')"
+            required>
+          <div class="error-message" *ngIf="hasFieldError('dateOfBirth')">
+            {{ getFieldError('dateOfBirth') }}
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="gender">Gender</label>
+          <select id="gender" formControlName="gender" class="form-control">
+            <option value="">Select Gender</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+            <option value="unknown">Unknown</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Contact Information</h3>
+      
+      <div class="form-group">
+        <label for="phone">Phone Number</label>
+        <input 
+          id="phone" 
+          type="tel" 
+          formControlName="phone" 
+          class="form-control"
+          [class.error]="hasFieldError('phone')"
+          placeholder="(555) 123-4567">
+        <div class="error-message" *ngIf="hasFieldError('phone')">
+          {{ getFieldError('phone') }}
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="email">Email Address</label>
+        <input 
+          id="email" 
+          type="email" 
+          formControlName="email" 
+          class="form-control"
+          [class.error]="hasFieldError('email')"
+          placeholder="patient@example.com">
+        <div class="error-message" *ngIf="hasFieldError('email')">
+          {{ getFieldError('email') }}
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="address">Address</label>
+        <textarea 
+          id="address" 
+          formControlName="address" 
+          class="form-control"
+          rows="3"
+          placeholder="Street address, city, state, zip code"></textarea>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Insurance Information</h3>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label for="insuranceProvider">Insurance Provider</label>
+          <input 
+            id="insuranceProvider" 
+            type="text" 
+            formControlName="insuranceProvider" 
+            class="form-control"
+            placeholder="e.g., Blue Cross Blue Shield">
+        </div>
+        
+        <div class="form-group">
+          <label for="policyNumber">Policy Number</label>
+          <input 
+            id="policyNumber" 
+            type="text" 
+            formControlName="policyNumber" 
+            class="form-control"
+            placeholder="Insurance policy number">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="groupNumber">Group Number</label>
+        <input 
+          id="groupNumber" 
+          type="text" 
+          formControlName="groupNumber" 
+          class="form-control"
+          placeholder="Insurance group number">
+      </div>
+    </div>
+
+    <!-- Additional Dynamic Questions -->
+    <div class="form-section" *ngIf="additionalResponses.length > 0">
+      <h3>Additional Information</h3>
+      
+      <div formArrayName="additionalResponses">
+        <div *ngFor="let response of additionalResponses.controls; let i = index" 
+             [formGroupName]="i" 
+             class="form-group">
+          <label [for]="'additional-' + i">
+            {{ response.get('text')?.value }}
+            <span *ngIf="response.get('required')?.value" class="required">*</span>
+          </label>
+          
+          <ng-container [ngSwitch]="response.get('type')?.value">
+            <input 
+              *ngSwitchCase="'string'"
+              [id]="'additional-' + i"
+              type="text" 
+              formControlName="answer" 
+              class="form-control">
+            
+            <input 
+              *ngSwitchCase="'date'"
+              [id]="'additional-' + i"
+              type="date" 
+              formControlName="answer" 
+              class="form-control">
+            
+            <input 
+              *ngSwitchCase="'integer'"
+              [id]="'additional-' + i"
+              type="number" 
+              formControlName="answer" 
+              class="form-control">
+            
+            <textarea 
+              *ngSwitchCase="'text'"
+              [id]="'additional-' + i"
+              formControlName="answer" 
+              class="form-control"
+              rows="3"></textarea>
+            
+            <label *ngSwitchCase="'boolean'" class="checkbox-label">
+              <input 
+                [id]="'additional-' + i"
+                type="checkbox" 
+                formControlName="answer">
+              <span class="checkmark"></span>
+            </label>
+          </ng-container>
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-section">
+      <h3>Consent and Authorization</h3>
+      
+      <div class="consent-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            formControlName="treatmentConsent"
+            [class.error]="hasFieldError('treatmentConsent')"
+            required>
+          <span class="checkmark"></span>
+          <span class="consent-text">
+            I consent to treatment and laboratory testing *
+          </span>
+        </label>
+        <div class="error-message" *ngIf="hasFieldError('treatmentConsent')">
+          Treatment consent is required
+        </div>
+      </div>
+      
+      <div class="consent-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            formControlName="privacyConsent"
+            [class.error]="hasFieldError('privacyConsent')"
+            required>
+          <span class="checkmark"></span>
+          <span class="consent-text">
+            I acknowledge that I have received and understand the privacy notice *
+          </span>
+        </label>
+        <div class="error-message" *ngIf="hasFieldError('privacyConsent')">
+          Privacy acknowledgment is required
+        </div>
+      </div>
+    </div>
+    
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" routerLink="/">Cancel</button>
+      <button type="submit" class="btn btn-primary" [disabled]="patientForm.invalid || isSubmitting">
+        {{ isSubmitting ? 'Registering...' : 'Register Patient' }}
+      </button>
+    </div>
+  </form>
+</div>

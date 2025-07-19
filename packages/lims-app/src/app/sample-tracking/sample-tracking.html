@@ -1,0 +1,313 @@
+<div class="sample-tracking-container">
+  <div class="page-header">
+    <h2>Sample Tracking</h2>
+    <p>Track specimen location and status throughout the laboratory workflow</p>
+  </div>
+
+  <!-- Search and Filter Section -->
+  <div class="search-section">
+    <div class="search-card">
+      <div class="search-row">
+        <div class="search-group">
+          <input 
+            type="text" 
+            [(ngModel)]="searchTerm" 
+            (input)="onSearch()" 
+            placeholder="Search by specimen ID, patient name, or barcode"
+            class="search-input"
+          />
+          <button class="search-btn" (click)="onSearch()">🔍</button>
+        </div>
+        
+        <div class="barcode-group">
+          <input 
+            type="text" 
+            [(ngModel)]="barcodeInput" 
+            (keyup.enter)="scanBarcode()" 
+            placeholder="Scan or enter barcode"
+            class="barcode-input"
+          />
+          <button class="barcode-btn" (click)="scanBarcode()">📷 Scan</button>
+        </div>
+      </div>
+      
+      <div class="filter-row">
+        <select [(ngModel)]="selectedLocation" (change)="onFilterChange()" class="filter-select">
+          <option value="">All Locations</option>
+          <option value="reception">Reception</option>
+          <option value="processing">Processing</option>
+          <option value="chemistry">Chemistry</option>
+          <option value="hematology">Hematology</option>
+          <option value="microbiology">Microbiology</option>
+          <option value="storage">Storage</option>
+          <option value="disposed">Disposed</option>
+        </select>
+        
+        <select [(ngModel)]="selectedStatus" (change)="onFilterChange()" class="filter-select">
+          <option value="">All Statuses</option>
+          <option value="received">Received</option>
+          <option value="processing">Processing</option>
+          <option value="testing">Testing</option>
+          <option value="completed">Completed</option>
+          <option value="stored">Stored</option>
+          <option value="disposed">Disposed</option>
+        </select>
+        
+        <input 
+          type="date" 
+          [(ngModel)]="dateFilter" 
+          (change)="onFilterChange()" 
+          class="date-filter"
+        />
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="stats-section">
+    <div class="stat-card">
+      <div class="stat-icon">📊</div>
+      <div class="stat-content">
+        <h3>{{getLocationCount('processing')}}</h3>
+        <p>In Processing</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">🧪</div>
+      <div class="stat-content">
+        <h3>{{getLocationCount('testing')}}</h3>
+        <p>In Testing</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">✅</div>
+      <div class="stat-content">
+        <h3>{{getStatusCount('completed')}}</h3>
+        <p>Completed</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">⚠️</div>
+      <div class="stat-content">
+        <h3>{{getOverdueCount()}}</h3>
+        <p>Overdue</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sample List -->
+  <div class="samples-section">
+    <div class="table-card">
+      <div class="table-header">
+        <h3>Sample Tracking ({{filteredSamples.length}} samples)</h3>
+        <div class="table-actions">
+          <button class="btn btn-secondary" (click)="exportData()">📤 Export</button>
+          <button class="btn btn-primary" (click)="printLabels()" [disabled]="selectedSamples.length === 0">
+            🏷️ Print Labels ({{selectedSamples.length}})
+          </button>
+        </div>
+      </div>
+      
+      <div class="table-container">
+        <table class="samples-table">
+          <thead>
+            <tr>
+              <th>
+                <input 
+                  type="checkbox" 
+                  [checked]="isAllSelected()" 
+                  [indeterminate]="isPartiallySelected()"
+                  (change)="toggleSelectAll()"
+                />
+              </th>
+              <th>Specimen ID</th>
+              <th>Patient</th>
+              <th>Test Type</th>
+              <th>Current Location</th>
+              <th>Status</th>
+              <th>Last Updated</th>
+              <th>TAT Remaining</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr 
+              *ngFor="let sample of filteredSamples; trackBy: trackBySampleId"
+              [class]="'priority-' + sample.priority"
+            >
+              <td>
+                <input 
+                  type="checkbox" 
+                  [checked]="isSelected(sample.specimenId)"
+                  (change)="toggleSelection(sample.specimenId)"
+                />
+              </td>
+              <td class="specimen-id">
+                <span class="id-text">{{sample.specimenId}}</span>
+                <div class="barcode-display">{{sample.barcode}}</div>
+              </td>
+              <td>{{sample.patientName}}</td>
+              <td>{{sample.testType}}</td>
+              <td>
+                <span class="location-badge" [class]="'location-' + sample.currentLocation">
+                  {{getLocationDisplay(sample.currentLocation)}}
+                </span>
+              </td>
+              <td>
+                <span class="status-badge" [class]="'status-' + sample.status">
+                  {{getStatusDisplay(sample.status)}}
+                </span>
+              </td>
+              <td>{{sample.lastUpdated | date:'MMM d, HH:mm'}}</td>
+              <td>
+                <span 
+                  class="tat-display" 
+                  [class]="getTATClass(sample)"
+                >
+                  {{getTATRemaining(sample)}}
+                </span>
+              </td>
+              <td class="action-buttons">
+                <button 
+                  class="btn btn-sm btn-primary" 
+                  (click)="viewTimeline(sample)"
+                >
+                  📋 Timeline
+                </button>
+                <button 
+                  class="btn btn-sm btn-secondary" 
+                  (click)="updateLocation(sample)"
+                >
+                  📍 Move
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Location Update Modal -->
+  <div class="modal-overlay" *ngIf="showLocationModal" (click)="closeLocationModal()">
+    <div class="location-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Update Location - {{selectedSample?.specimenId}}</h3>
+        <button class="close-btn" (click)="closeLocationModal()">✕</button>
+      </div>
+      
+      <div class="modal-content" *ngIf="selectedSample">
+        <div class="current-info">
+          <p><strong>Current Location:</strong> {{getLocationDisplay(selectedSample.currentLocation)}}</p>
+          <p><strong>Status:</strong> {{getStatusDisplay(selectedSample.status)}}</p>
+        </div>
+        
+        <form [formGroup]="locationForm" (ngSubmit)="saveLocationUpdate()">
+          <div class="form-group">
+            <label for="newLocation">New Location</label>
+            <select id="newLocation" formControlName="newLocation" class="form-control">
+              <option value="">Select Location</option>
+              <option value="reception">Reception</option>
+              <option value="processing">Processing</option>
+              <option value="chemistry">Chemistry</option>
+              <option value="hematology">Hematology</option>
+              <option value="microbiology">Microbiology</option>
+              <option value="storage">Storage</option>
+              <option value="disposed">Disposed</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="newStatus">Status</label>
+            <select id="newStatus" formControlName="newStatus" class="form-control">
+              <option value="">Select Status</option>
+              <option value="received">Received</option>
+              <option value="processing">Processing</option>
+              <option value="testing">Testing</option>
+              <option value="completed">Completed</option>
+              <option value="stored">Stored</option>
+              <option value="disposed">Disposed</option>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="comments">Comments</label>
+            <textarea 
+              id="comments" 
+              formControlName="comments" 
+              rows="3" 
+              class="form-control"
+              placeholder="Enter any comments about this update..."
+            ></textarea>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" (click)="closeLocationModal()">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" [disabled]="!locationForm.valid">
+              ✓ Update Location
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline Modal -->
+  <div class="modal-overlay" *ngIf="showTimelineModal" (click)="closeTimelineModal()">
+    <div class="timeline-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Sample Timeline - {{selectedSample?.specimenId}}</h3>
+        <button class="close-btn" (click)="closeTimelineModal()">✕</button>
+      </div>
+      
+      <div class="modal-content" *ngIf="selectedSample">
+        <div class="sample-info">
+          <div class="info-grid">
+            <div class="info-item">
+              <label>Patient:</label>
+              <span>{{selectedSample.patientName}}</span>
+            </div>
+            <div class="info-item">
+              <label>Test Type:</label>
+              <span>{{selectedSample.testType}}</span>
+            </div>
+            <div class="info-item">
+              <label>Collected:</label>
+              <span>{{selectedSample.collectedDate | date:'MMM d, y HH:mm'}}</span>
+            </div>
+            <div class="info-item">
+              <label>TAT:</label>
+              <span>{{selectedSample.tatHours}} hours</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="timeline">
+          <h4>Timeline</h4>
+          <div class="timeline-list">
+            <div 
+              *ngFor="let event of selectedSample.timeline" 
+              class="timeline-item"
+            >
+              <div class="timeline-dot" [class]="'status-' + event.status"></div>
+              <div class="timeline-content">
+                <div class="timeline-header">
+                  <span class="timeline-location">{{getLocationDisplay(event.location)}}</span>
+                  <span class="timeline-time">{{event.timestamp | date:'MMM d, HH:mm'}}</span>
+                </div>
+                <div class="timeline-status">{{getStatusDisplay(event.status)}}</div>
+                <div class="timeline-comment" *ngIf="event.comments">{{event.comments}}</div>
+                <div class="timeline-user">{{event.user}}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

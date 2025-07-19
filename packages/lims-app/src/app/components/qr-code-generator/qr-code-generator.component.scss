@@ -1,0 +1,306 @@
+.qr-code-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+// QR Code Display
+.qr-code-display {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #dee2e6;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.qr-code-image {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+// Placeholder
+.qr-code-placeholder {
+  width: 120px;
+  height: 120px;
+  border: 2px dashed #6c757d;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: #6c757d;
+}
+
+.placeholder-text {
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.placeholder-text small {
+  font-size: 0.75rem;
+  color: #adb5bd;
+  display: block;
+  margin-top: 0.25rem;
+}
+
+// Loading State
+.qr-code-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #e9ecef;
+  border-top: 2px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+// Specimen Information
+.specimen-info {
+  text-align: center;
+  background: white;
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  min-width: 200px;
+}
+
+.accession-id {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-family: 'Courier New', monospace;
+}
+
+.patient-name {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.collection-date {
+  font-size: 0.875rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.specimen-type {
+  font-size: 0.875rem;
+  color: #28a745;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  background: #d4edda;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+// Actions
+.qr-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-align: center;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: #545b62;
+  transform: translateY(-1px);
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #6c757d;
+  border: 1px solid #6c757d;
+}
+
+.btn-outline:hover:not(:disabled) {
+  background-color: #6c757d;
+  color: white;
+}
+
+// Options Panel
+.qr-options {
+  width: 100%;
+  background: white;
+  border-radius: 6px;
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  margin-top: 1rem;
+}
+
+.qr-options h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.option-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.option-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.form-control {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.color-input {
+  height: 40px;
+  padding: 0.25rem;
+  cursor: pointer;
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .qr-code-container {
+    padding: 0.75rem;
+  }
+  
+  .qr-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .btn {
+    justify-content: center;
+  }
+  
+  .options-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .specimen-info {
+    min-width: auto;
+    width: 100%;
+  }
+}
+
+// Print Styles
+@media print {
+  .qr-code-container {
+    background: white;
+    border: none;
+    box-shadow: none;
+  }
+  
+  .qr-actions,
+  .qr-options {
+    display: none;
+  }
+}
+
+// High Contrast Mode
+@media (prefers-contrast: high) {
+  .qr-code-placeholder {
+    border-color: #000;
+    color: #000;
+  }
+  
+  .specimen-info {
+    border-color: #000;
+  }
+  
+  .btn-outline {
+    border-color: #000;
+    color: #000;
+  }
+}
+
+// Reduced Motion
+@media (prefers-reduced-motion: reduce) {
+  .loading-spinner {
+    animation: none;
+  }
+  
+  .btn {
+    transition: none;
+  }
+  
+  .btn:hover:not(:disabled) {
+    transform: none;
+  }
+}

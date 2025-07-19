@@ -1,0 +1,293 @@
+// Terminology Validation Styles
+
+// Input field states
+.terminology-valid {
+  border-color: #28a745 !important;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25) !important;
+}
+
+.terminology-invalid {
+  border-color: #dc3545 !important;
+  box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25) !important;
+}
+
+.terminology-warning {
+  border-color: #ffc107 !important;
+  box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.25) !important;
+}
+
+// Validation message containers
+.terminology-validation-message {
+  margin-top: 5px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+
+  .terminology-errors {
+    .terminology-error {
+      color: #dc3545;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: flex-start;
+
+      &:before {
+        content: '⚠';
+        margin-right: 5px;
+        font-weight: bold;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
+  .terminology-warnings {
+    .terminology-warning {
+      color: #856404;
+      margin-bottom: 3px;
+      display: flex;
+      align-items: flex-start;
+
+      &:before {
+        content: '⚠';
+        margin-right: 5px;
+        font-weight: bold;
+        color: #ffc107;
+      }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+}
+
+// Concept information display
+.terminology-concept-info {
+  margin-top: 8px;
+  padding: 10px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  font-size: 0.875rem;
+
+  .concept-display {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
+  }
+
+  .concept-definition {
+    color: #6c757d;
+    line-height: 1.4;
+    font-style: italic;
+  }
+}
+
+// Loading states
+.terminology-validating {
+  position: relative;
+
+  &:after {
+    content: '';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: terminology-spin 1s linear infinite;
+  }
+}
+
+@keyframes terminology-spin {
+  0% { transform: translateY(-50%) rotate(0deg); }
+  100% { transform: translateY(-50%) rotate(360deg); }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .terminology-validation-message {
+    font-size: 0.8rem;
+
+    .terminology-errors,
+    .terminology-warnings {
+      .terminology-error,
+      .terminology-warning {
+        &:before {
+          margin-right: 3px;
+        }
+      }
+    }
+  }
+
+  .terminology-concept-info {
+    padding: 8px;
+    font-size: 0.8rem;
+
+    .concept-display {
+      margin-bottom: 3px;
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .terminology-validation-message {
+    .terminology-errors {
+      .terminology-error {
+        &:before {
+          content: '[ERROR]';
+          font-weight: normal;
+        }
+      }
+    }
+
+    .terminology-warnings {
+      .terminology-warning {
+        &:before {
+          content: '[WARNING]';
+          font-weight: normal;
+        }
+      }
+    }
+  }
+
+  .terminology-concept-info {
+    background: transparent;
+    border: 1px solid #000;
+
+    .concept-definition {
+      font-style: normal;
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .terminology-valid {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.4) !important;
+  }
+
+  .terminology-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.4) !important;
+  }
+
+  .terminology-warning {
+    border-color: #ffc107 !important;
+    box-shadow: 0 0 0 2px rgba(255, 193, 7, 0.4) !important;
+  }
+
+  .terminology-validation-message {
+    .terminology-errors {
+      .terminology-error {
+        color: #f87171;
+      }
+    }
+
+    .terminology-warnings {
+      .terminology-warning {
+        color: #fbbf24;
+
+        &:before {
+          color: #fbbf24;
+        }
+      }
+    }
+  }
+
+  .terminology-concept-info {
+    background: #374151;
+    border-color: #4b5563;
+
+    .concept-display {
+      color: #e5e7eb;
+    }
+
+    .concept-definition {
+      color: #9ca3af;
+    }
+  }
+
+  .terminology-validating {
+    &:after {
+      border-color: #4b5563;
+      border-top-color: #60a5fa;
+    }
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .terminology-valid {
+    border-color: #000 !important;
+    background-color: #e6ffe6 !important;
+  }
+
+  .terminology-invalid {
+    border-color: #000 !important;
+    background-color: #ffe6e6 !important;
+  }
+
+  .terminology-warning {
+    border-color: #000 !important;
+    background-color: #fff3cd !important;
+  }
+
+  .terminology-concept-info {
+    background: #f0f0f0;
+    border-color: #000;
+  }
+}
+
+// Focus states for accessibility
+.terminology-valid:focus,
+.terminology-invalid:focus,
+.terminology-warning:focus {
+  outline: 2px solid #005fcc;
+  outline-offset: 2px;
+}
+
+// Animation for validation state changes
+.terminology-valid,
+.terminology-invalid,
+.terminology-warning {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.terminology-validation-message {
+  animation: terminology-fade-in 0.3s ease-in-out;
+}
+
+.terminology-concept-info {
+  animation: terminology-slide-down 0.3s ease-in-out;
+}
+
+@keyframes terminology-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes terminology-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 200px;
+  }
+}

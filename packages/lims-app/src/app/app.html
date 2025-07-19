@@ -1,0 +1,45 @@
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-brand">
+      <h1 routerLink="/">MedLIMS</h1>
+      <span class="tagline">Laboratory Information Management System</span>
+    </div>
+    <nav class="main-nav">
+      <a routerLink="/dashboard" routerLinkActive="active" class="nav-item">
+        <i class="icon">📊</i>
+        Dashboard
+      </a>
+      <a routerLink="/patient-registration" routerLinkActive="active" class="nav-item">
+        <i class="icon">👤</i>
+        Patients
+      </a>
+      <a routerLink="/specimen-accessioning" routerLinkActive="active" class="nav-item">
+        <i class="icon">🧪</i>
+        Specimens
+      </a>
+      <a routerLink="/test-ordering" routerLinkActive="active" class="nav-item">
+        <i class="icon">📋</i>
+        Orders
+      </a>
+      <a routerLink="/result-entry" routerLinkActive="active" class="nav-item">
+        <i class="icon">📈</i>
+        Results
+      </a>
+      <a routerLink="/sample-tracking" routerLinkActive="active" class="nav-item">
+        <i class="icon">🔍</i>
+        Tracking
+      </a>
+      <a routerLink="/reports" routerLinkActive="active" class="nav-item">
+        <i class="icon">📄</i>
+        Reports
+      </a>
+    </nav>
+    <div class="user-menu">
+      <span class="user-name">Dr. Smith</span>
+      <button class="logout-btn">Logout</button>
+    </div>
+  </header>
+  <main class="app-content">
+    <router-outlet></router-outlet>
+  </main>
+</div>

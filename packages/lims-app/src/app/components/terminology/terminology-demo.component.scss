@@ -1,0 +1,317 @@
+.terminology-demo {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: 100vh;
+
+  .demo-header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 30px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    h2 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 2rem;
+      font-weight: 600;
+    }
+
+    p {
+      margin: 0;
+      color: #666;
+      font-size: 1.1rem;
+      line-height: 1.5;
+    }
+  }
+
+  .demo-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+
+    .demo-section {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+      h3 {
+        margin: 0 0 10px 0;
+        color: #333;
+        font-size: 1.5rem;
+        font-weight: 600;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+      }
+
+      > p {
+        margin: 0 0 20px 0;
+        color: #666;
+        font-size: 1rem;
+        line-height: 1.5;
+      }
+
+      .demo-output {
+        margin-top: 20px;
+        padding: 20px;
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 6px;
+
+        h4 {
+          margin: 0 0 10px 0;
+          color: #495057;
+          font-size: 1.1rem;
+          font-weight: 600;
+        }
+
+        pre {
+          background: #2d3748;
+          color: #e2e8f0;
+          padding: 15px;
+          border-radius: 4px;
+          font-size: 0.85rem;
+          line-height: 1.4;
+          overflow-x: auto;
+          margin: 0;
+          white-space: pre-wrap;
+          word-wrap: break-word;
+        }
+      }
+
+      .validation-demo-form {
+        .form-group {
+          margin-bottom: 25px;
+
+          label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95rem;
+          }
+
+          .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+
+            &:focus {
+              outline: none;
+              border-color: #007bff;
+              box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+            }
+          }
+        }
+      }
+
+      .summary-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 6px;
+
+        .summary-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          padding: 15px;
+          background: white;
+          border-radius: 4px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+          strong {
+            color: #495057;
+            font-size: 0.9rem;
+            margin-bottom: 5px;
+            text-align: center;
+          }
+
+          .valid {
+            color: #28a745;
+            font-weight: bold;
+            font-size: 1.1rem;
+          }
+
+          .invalid {
+            color: #dc3545;
+            font-weight: bold;
+            font-size: 1.1rem;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .terminology-demo {
+    padding: 15px;
+
+    .demo-header {
+      padding: 20px;
+
+      h2 {
+        font-size: 1.5rem;
+      }
+
+      p {
+        font-size: 1rem;
+      }
+    }
+
+    .demo-sections {
+      gap: 20px;
+
+      .demo-section {
+        padding: 20px;
+
+        h3 {
+          font-size: 1.3rem;
+        }
+
+        .demo-output {
+          padding: 15px;
+
+          pre {
+            font-size: 0.8rem;
+            padding: 10px;
+          }
+        }
+
+        .summary-content {
+          grid-template-columns: 1fr;
+          gap: 10px;
+          padding: 15px;
+
+          .summary-item {
+            padding: 10px;
+          }
+        }
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .terminology-demo {
+    background: white;
+
+    .demo-header,
+    .demo-section {
+      background: white;
+      box-shadow: none;
+      border: 1px solid #000;
+    }
+
+    .demo-output {
+      background: white;
+      border: 1px solid #000;
+
+      pre {
+        background: white;
+        color: #000;
+        border: 1px solid #000;
+      }
+    }
+
+    .summary-content {
+      background: white;
+
+      .summary-item {
+        background: white;
+        box-shadow: none;
+        border: 1px solid #000;
+      }
+    }
+  }
+}
+
+// Dark theme support
+@media (prefers-color-scheme: dark) {
+  .terminology-demo {
+    background: #1a202c;
+
+    .demo-header,
+    .demo-section {
+      background: #2d3748;
+      color: #e2e8f0;
+
+      h2, h3 {
+        color: #e2e8f0;
+      }
+
+      h3 {
+        border-bottom-color: #63b3ed;
+      }
+
+      > p {
+        color: #a0aec0;
+      }
+
+      .demo-output {
+        background: #4a5568;
+        border-color: #718096;
+
+        h4 {
+          color: #e2e8f0;
+        }
+
+        pre {
+          background: #1a202c;
+          color: #e2e8f0;
+        }
+      }
+
+      .validation-demo-form {
+        .form-group {
+          label {
+            color: #e2e8f0;
+          }
+
+          .form-control {
+            background: #4a5568;
+            border-color: #718096;
+            color: #e2e8f0;
+
+            &:focus {
+              border-color: #63b3ed;
+              box-shadow: 0 0 0 2px rgba(99, 179, 237, 0.25);
+            }
+          }
+        }
+      }
+
+      .summary-content {
+        background: #4a5568;
+
+        .summary-item {
+          background: #2d3748;
+
+          strong {
+            color: #cbd5e0;
+          }
+
+          .valid {
+            color: #68d391;
+          }
+
+          .invalid {
+            color: #fc8181;
+          }
+        }
+      }
+    }
+  }
+}

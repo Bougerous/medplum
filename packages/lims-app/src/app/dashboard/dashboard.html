@@ -1,0 +1,176 @@
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h2>Laboratory Dashboard</h2>
+    <p class="date-display">{{ currentDate | date:'fullDate' }}</p>
+  </div>
+
+  <!-- Quick Stats Cards -->
+  <div class="stats-grid">
+    <div class="stat-card patients">
+      <div class="stat-icon">👥</div>
+      <div class="stat-content">
+        <h3>{{ dashboardStats.totalPatients }}</h3>
+        <p>Total Patients</p>
+        <span class="stat-change positive">+{{ dashboardStats.newPatientsToday }} today</span>
+      </div>
+    </div>
+
+    <div class="stat-card specimens">
+      <div class="stat-icon">🧪</div>
+      <div class="stat-content">
+        <h3>{{ dashboardStats.totalSpecimens }}</h3>
+        <p>Specimens Processed</p>
+        <span class="stat-change positive">+{{ dashboardStats.newSpecimensToday }} today</span>
+      </div>
+    </div>
+
+    <div class="stat-card pending">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-content">
+        <h3>{{ dashboardStats.pendingResults }}</h3>
+        <p>Pending Results</p>
+        <span class="stat-change negative">{{ dashboardStats.overdue }} overdue</span>
+      </div>
+    </div>
+
+    <div class="stat-card revenue">
+      <div class="stat-icon">💰</div>
+      <div class="stat-content">
+        <h3>${{ dashboardStats.todayRevenue | number:'1.0-0' }}</h3>
+        <p>Today's Revenue</p>
+        <span class="stat-change positive">+12% vs yesterday</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="quick-actions">
+    <h3>Quick Actions</h3>
+    <div class="action-grid">
+      <button class="action-btn register" routerLink="/patient-registration">
+        <i class="icon">👤</i>
+        <span>Register Patient</span>
+      </button>
+      <button class="action-btn specimen" routerLink="/specimen-accessioning">
+        <i class="icon">🧪</i>
+        <span>Process Specimen</span>
+      </button>
+      <button class="action-btn order" routerLink="/test-ordering">
+        <i class="icon">📋</i>
+        <span>Create Order</span>
+      </button>
+      <button class="action-btn results" routerLink="/result-entry">
+        <i class="icon">📈</i>
+        <span>Enter Results</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Recent Activity & Pending Tasks -->
+  <div class="dashboard-grid">
+    <!-- Recent Activity -->
+    <div class="dashboard-section">
+      <h3>Recent Activity</h3>
+      <div class="activity-list">
+        <div class="activity-item" *ngFor="let activity of recentActivity">
+          <div class="activity-icon" [class]="activity.type">{{ activity.icon }}</div>
+          <div class="activity-content">
+            <p class="activity-description">{{ activity.description }}</p>
+            <span class="activity-time">{{ activity.timestamp | date:'short' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pending Tasks -->
+    <div class="dashboard-section">
+      <h3>Pending Tasks</h3>
+      <div class="task-list">
+        <div class="task-item" *ngFor="let task of pendingTasks" [class]="task.priority">
+          <div class="task-header">
+            <span class="task-title">{{ task.title }}</span>
+            <span class="task-priority">{{ task.priority }}</span>
+          </div>
+          <p class="task-description">{{ task.description }}</p>
+          <div class="task-footer">
+            <span class="task-due">Due: {{ task.dueDate | date:'short' }}</span>
+            <button class="task-action" (click)="completeTask(task)">Complete</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts and Analytics -->
+  <div class="analytics-section">
+    <h3>Analytics Overview</h3>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h4>Test Volume Trends</h4>
+        <div class="chart-placeholder">
+          <div class="mock-chart">
+            <div class="chart-bar" style="height: 60%"></div>
+            <div class="chart-bar" style="height: 75%"></div>
+            <div class="chart-bar" style="height: 45%"></div>
+            <div class="chart-bar" style="height: 90%"></div>
+            <div class="chart-bar" style="height: 65%"></div>
+            <div class="chart-bar" style="height: 80%"></div>
+            <div class="chart-bar" style="height: 70%"></div>
+          </div>
+          <div class="chart-labels">
+            <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h4>Test Categories</h4>
+        <div class="category-stats">
+          <div class="category-item">
+            <span class="category-name">Hematology</span>
+            <div class="category-bar">
+              <div class="category-fill" style="width: 65%"></div>
+            </div>
+            <span class="category-value">65%</span>
+          </div>
+          <div class="category-item">
+            <span class="category-name">Chemistry</span>
+            <div class="category-bar">
+              <div class="category-fill" style="width: 45%"></div>
+            </div>
+            <span class="category-value">45%</span>
+          </div>
+          <div class="category-item">
+            <span class="category-name">Microbiology</span>
+            <div class="category-bar">
+              <div class="category-fill" style="width: 30%"></div>
+            </div>
+            <span class="category-value">30%</span>
+          </div>
+          <div class="category-item">
+            <span class="category-name">Molecular</span>
+            <div class="category-bar">
+              <div class="category-fill" style="width: 25%"></div>
+            </div>
+            <span class="category-value">25%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts and Notifications -->
+  <div class="alerts-section" *ngIf="alerts.length > 0">
+    <h3>System Alerts</h3>
+    <div class="alert-list">
+      <div class="alert-item" *ngFor="let alert of alerts" [class]="alert.type">
+        <div class="alert-icon">{{ alert.icon }}</div>
+        <div class="alert-content">
+          <p class="alert-message">{{ alert.message }}</p>
+          <span class="alert-time">{{ alert.timestamp | date:'short' }}</span>
+        </div>
+        <button class="alert-dismiss" (click)="dismissAlert(alert)">×</button>
+      </div>
+    </div>
+  </div>
+</div>
