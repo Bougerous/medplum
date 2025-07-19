@@ -1,0 +1,383 @@
+<div class="patient-portal">
+  <!-- Header -->
+  <header class="portal-header">
+    <div class="header-content">
+      <div class="portal-title">
+        <h1>Patient Portal</h1>
+        <p class="welcome-message" *ngIf="patientData">
+          Welcome, {{ getPatientDisplayName() }}
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <button 
+          class="refresh-btn" 
+          (click)="refreshData()" 
+          [disabled]="loading"
+          title="Refresh Data">
+          <i class="icon-refresh"></i>
+          Refresh
+        </button>
+        
+        <button 
+          class="logout-btn" 
+          (click)="logout()"
+          title="Logout">
+          <i class="icon-logout"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+    
+    <!-- Notifications -->
+    <div class="notifications" *ngIf="patientData">
+      <div class="notification new-results" *ngIf="patientData.hasNewResults">
+        <i class="icon-alert"></i>
+        You have new test results available
+      </div>
+      
+      <div class="notification unread-messages" *ngIf="patientData.hasUnreadMessages">
+        <i class="icon-message"></i>
+        You have unread messages
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading your information...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="error && !loading">
+    <div class="error-message">
+      <i class="icon-error"></i>
+      <h3>Unable to Load Portal</h3>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="refreshData()">
+        Try Again
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="portal-content" *ngIf="patientData && !loading && !error">
+    <!-- Navigation Tabs -->
+    <nav class="portal-tabs">
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'results'"
+        (click)="setActiveTab('results')">
+        <i class="icon-results"></i>
+        Test Results
+        <span class="badge" *ngIf="patientData.hasNewResults">New</span>
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'appointments'"
+        (click)="setActiveTab('appointments')">
+        <i class="icon-calendar"></i>
+        Appointments
+        <span class="count" *ngIf="patientData.upcomingAppointments.length > 0">
+          {{ patientData.upcomingAppointments.length }}
+        </span>
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'messages'"
+        (click)="setActiveTab('messages')">
+        <i class="icon-message"></i>
+        Messages
+        <span class="badge" *ngIf="patientData.hasUnreadMessages">New</span>
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'profile'"
+        (click)="setActiveTab('profile')">
+        <i class="icon-user"></i>
+        Profile
+      </button>
+    </nav>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Test Results Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'results'">
+        <div class="panel-header">
+          <h2>Test Results</h2>
+          
+          <div class="results-filters">
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'all'"
+              (click)="setResultsFilter('all')">
+              All Results
+            </button>
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'recent'"
+              (click)="setResultsFilter('recent')">
+              Recent (30 days)
+            </button>
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'pending'"
+              (click)="setResultsFilter('pending')">
+              Pending
+            </button>
+          </div>
+        </div>
+
+        <div class="results-list">
+          <div 
+            class="result-card" 
+            *ngFor="let report of getFilteredReports()"
+            (click)="viewReport(report)">
+            
+            <div class="result-header">
+              <h3>{{ report.code?.text || 'Laboratory Report' }}</h3>
+              <span class="result-status" [class]="report.status">
+                {{ report.status | titlecase }}
+              </span>
+            </div>
+            
+            <div class="result-details">
+              <div class="detail-item">
+                <label>Date:</label>
+                <span>{{ formatDate(report.issued) }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="report.performer && report.performer.length > 0">
+                <label>Provider:</label>
+                <span>{{ report.performer[0].display || 'Laboratory' }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="report.category && report.category.length > 0">
+                <label>Category:</label>
+                <span>{{ report.category[0].text || report.category[0].coding?.[0]?.display }}</span>
+              </div>
+            </div>
+            
+            <div class="result-actions">
+              <button class="view-btn">
+                <i class="icon-view"></i>
+                View Details
+              </button>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="getFilteredReports().length === 0">
+            <i class="icon-empty"></i>
+            <h3>No Results Found</h3>
+            <p>No test results match your current filter.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Appointments Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'appointments'">
+        <div class="panel-header">
+          <h2>Appointments</h2>
+          <button class="schedule-btn" (click)="scheduleAppointment()">
+            <i class="icon-plus"></i>
+            Schedule Appointment
+          </button>
+        </div>
+
+        <div class="appointments-list">
+          <div 
+            class="appointment-card" 
+            *ngFor="let appointment of patientData.upcomingAppointments">
+            
+            <div class="appointment-header">
+              <h3>{{ appointment.serviceType?.[0]?.text || 'Laboratory Appointment' }}</h3>
+              <span class="appointment-status" [class]="appointment.status">
+                {{ appointment.status | titlecase }}
+              </span>
+            </div>
+            
+            <div class="appointment-details">
+              <div class="detail-item">
+                <label>Date & Time:</label>
+                <span>{{ formatDateTime(appointment.start) }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="appointment.participant && appointment.participant.length > 0">
+                <label>Provider:</label>
+                <span>{{ appointment.participant[0].actor?.display || 'Laboratory Staff' }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="appointment.description">
+                <label>Description:</label>
+                <span>{{ appointment.description }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="patientData.upcomingAppointments.length === 0">
+            <i class="icon-calendar"></i>
+            <h3>No Upcoming Appointments</h3>
+            <p>You don't have any scheduled appointments.</p>
+            <button class="schedule-btn" (click)="scheduleAppointment()">
+              Schedule Your First Appointment
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Messages Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'messages'">
+        <div class="panel-header">
+          <h2>Messages</h2>
+          <button class="compose-btn" (click)="composeMessage()">
+            <i class="icon-compose"></i>
+            New Message
+          </button>
+        </div>
+
+        <div class="messages-list">
+          <div 
+            class="message-card" 
+            *ngFor="let communication of patientData.communications"
+            [class.unread]="communication.status === 'received'">
+            
+            <div class="message-header">
+              <h3>{{ communication.topic?.text || 'Message' }}</h3>
+              <span class="message-date">{{ formatDateTime(communication.sent) }}</span>
+            </div>
+            
+            <div class="message-content">
+              <p>{{ communication.payload?.[0]?.contentString || 'No content' }}</p>
+            </div>
+            
+            <div class="message-status">
+              <span class="status-indicator" [class]="communication.status">
+                {{ communication.status | titlecase }}
+              </span>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="patientData.communications.length === 0">
+            <i class="icon-message"></i>
+            <h3>No Messages</h3>
+            <p>You don't have any messages yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'profile'">
+        <div class="panel-header">
+          <h2>My Profile</h2>
+        </div>
+
+        <div class="profile-content">
+          <div class="profile-section">
+            <h3>Personal Information</h3>
+            
+            <div class="profile-field">
+              <label>Name:</label>
+              <span>{{ getPatientDisplayName() }}</span>
+            </div>
+            
+            <div class="profile-field" *ngIf="patientData.patient.birthDate">
+              <label>Date of Birth:</label>
+              <span>{{ formatDate(patientData.patient.birthDate) }}</span>
+            </div>
+            
+            <div class="profile-field" *ngIf="patientData.patient.gender">
+              <label>Gender:</label>
+              <span>{{ patientData.patient.gender | titlecase }}</span>
+            </div>
+          </div>
+
+          <div class="profile-section" *ngIf="patientData.patient.telecom && patientData.patient.telecom.length > 0">
+            <h3>Contact Information</h3>
+            
+            <div class="profile-field" *ngFor="let telecom of patientData.patient.telecom">
+              <label>{{ telecom.system | titlecase }}:</label>
+              <span>{{ telecom.value }}</span>
+            </div>
+          </div>
+
+          <div class="profile-section" *ngIf="patientData.patient.address && patientData.patient.address.length > 0">
+            <h3>Address</h3>
+            
+            <div class="address-display" *ngFor="let address of patientData.patient.address">
+              <div class="address-lines">
+                <div *ngFor="let line of address.line">{{ line }}</div>
+                <div>
+                  {{ address.city }}<span *ngIf="address.state">, {{ address.state }}</span>
+                  <span *ngIf="address.postalCode"> {{ address.postalCode }}</span>
+                </div>
+                <div *ngIf="address.country">{{ address.country }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="profile-actions">
+            <button class="edit-profile-btn" (click)="editProfile()">
+              <i class="icon-edit"></i>
+              Edit Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Message Compose Modal -->
+<div class="modal-overlay" *ngIf="showComposeModal" (click)="closeComposeModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>New Message</h3>
+      <button class="close-btn" (click)="closeComposeModal()">
+        <i class="icon-close"></i>
+      </button>
+    </div>
+    
+    <form class="compose-form" (ngSubmit)="submitMessage()" #messageForm="ngForm">
+      <div class="form-group">
+        <label for="messageSubject">Subject:</label>
+        <input 
+          type="text" 
+          id="messageSubject"
+          [(ngModel)]="newMessage.subject"
+          name="subject"
+          required
+          class="form-control">
+      </div>
+      
+      <div class="form-group">
+        <label for="messageContent">Message:</label>
+        <textarea 
+          id="messageContent"
+          [(ngModel)]="newMessage.content"
+          name="content"
+          required
+          rows="6"
+          class="form-control">
+        </textarea>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="cancel-btn" (click)="closeComposeModal()">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="send-btn"
+          [disabled]="!messageForm.valid || sendingMessage">
+          <span *ngIf="sendingMessage">Sending...</span>
+          <span *ngIf="!sendingMessage">Send Message</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

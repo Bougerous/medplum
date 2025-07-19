@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "module": "NodeNext",
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "NodeNext",
+    "lib": ["esnext", "dom"],
+    "types": ["jest", "node"]
   },
   "include": ["src/**/*.ts", "src/**/*.json"]
 }

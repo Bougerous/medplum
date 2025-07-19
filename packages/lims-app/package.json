@@ -19,30 +19,37 @@
       }
     ]
   },
+  "overrides": {
+    "semver": "^7.5.4",
+    "@angular/cli": {
+      "semver": "^7.5.4"
+    }
+  },
   "private": true,
   "dependencies": {
-    "@angular/common": "^20.1.0",
-    "@angular/compiler": "^20.1.0",
-    "@angular/core": "^20.1.0",
-    "@angular/forms": "^20.1.0",
-    "@angular/platform-browser": "^20.1.0",
-    "@angular/platform-server": "^20.1.0",
-    "@angular/router": "^20.1.0",
-    "@angular/ssr": "^20.1.1",
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/platform-server": "^20.0.0",
+    "@angular/router": "^20.0.0",
+    "@angular/ssr": "^20.0.0",
     "@medplum/core": "^4.3.6",
     "@medplum/fhirtypes": "^4.3.6",
     "@medplum/react": "^4.3.6",
     "@types/qrcode": "^1.5.5",
     "express": "^5.1.0",
+    "html5-qrcode": "^2.3.8",
     "qrcode": "^1.5.4",
     "react-qr-code": "^2.0.18",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "^20.1.1",
-    "@angular/cli": "^20.1.1",
-    "@angular/compiler-cli": "^20.1.0",
+    "@angular/build": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",

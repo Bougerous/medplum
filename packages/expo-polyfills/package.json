@@ -50,6 +50,7 @@
   "devDependencies": {
     "@medplum/core": "4.3.6",
     "@types/base-64": "1.0.2",
+    "@types/jest": "^29.5.14",
     "@types/react": "19.1.8",
     "@types/text-encoding": "0.0.40",
     "babel-preset-expo": "13.2.3",

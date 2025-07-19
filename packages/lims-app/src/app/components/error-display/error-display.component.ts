@@ -247,7 +247,7 @@ export class ErrorDisplayComponent implements OnInit, OnDestroy {
 
     // Subscribe to notifications
     this.subscriptions.push(
-      this.notificationService.getNotifications$().subscribe(notifications => {
+      this.notificationService.getNotifications().subscribe(notifications => {
         this.notifications = notifications;
       })
     );

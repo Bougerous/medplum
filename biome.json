@@ -1,8 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.8.1/schema.json",
-  "organizeImports": {
-    "enabled": false
-  },
+  "$schema": "https://biomejs.dev/schemas/2.1.2/schema.json",
   "formatter": {
     "enabled": false,
     "indentStyle": "space",
@@ -17,7 +14,6 @@
       },
       "style": {
         "useImportType": "off",
-
         "useTemplate": "warn",
         "noParameterAssign": "warn",
         "noUnusedTemplateLiteral": "warn",
@@ -25,7 +21,6 @@
         "useExponentiationOperator": "warn",
         "useSingleVarDeclarator": "warn",
         "useEnumInitializers": "warn",
-
         "useBlockStatements": "error"
       },
       "suspicious": {
@@ -42,7 +37,6 @@
             "maxAllowedComplexity": 15
           }
         },
-
         "noForEach": "warn",
         "useSimplifiedLogicExpression": "warn"
       },
@@ -50,8 +44,6 @@
         "noDelete": "warn"
       },
       "a11y": {
-        "noBlankTarget": "off",
-
         "noRedundantAlt": "warn",
         "useValidAnchor": "warn",
         "noSvgWithoutTitle": "warn",
@@ -70,8 +62,5 @@
       "quoteStyle": "single",
       "trailingCommas": "es5"
     }
-  },
-  "files": {
-    "ignore": ["**/dist/**/*", "**/build/**/*", "**/.next/**/*"]
   }
 }

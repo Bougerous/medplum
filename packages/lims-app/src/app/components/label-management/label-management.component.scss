@@ -1,0 +1,600 @@
+.label-management-container {
+  padding: 20px;
+  
+  .management-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    
+    h2 {
+      margin: 0;
+      color: #333;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+  }
+  
+  .tabs-container {
+    margin-bottom: 20px;
+    
+    .nav-tabs {
+      border-bottom: 2px solid #dee2e6;
+      
+      .nav-item {
+        margin-bottom: -2px;
+        
+        .nav-link {
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: #666;
+          padding: 12px 20px;
+          cursor: pointer;
+          
+          &:hover {
+            color: #007bff;
+            border-bottom-color: #007bff;
+          }
+          
+          &.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background-color: transparent;
+          }
+        }
+      }
+    }
+  }
+  
+  .tab-content {
+    min-height: 400px;
+  }
+  
+  // Templates Tab
+  .templates-section {
+    .templates-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      
+      .template-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        
+        .template-preview {
+          background: #f8f9fa;
+          padding: 20px;
+          text-align: center;
+          border-bottom: 1px solid #dee2e6;
+          
+          .preview-area {
+            background: white;
+            border: 2px dashed #ccc;
+            margin: 0 auto;
+            position: relative;
+            min-width: 100px;
+            min-height: 50px;
+            
+            .preview-elements {
+              position: relative;
+              width: 100%;
+              height: 100%;
+              
+              .preview-element {
+                position: absolute;
+                border: 1px solid #007bff;
+                background: rgba(0, 123, 255, 0.1);
+                font-size: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                
+                &[data-type="text"] {
+                  background: rgba(40, 167, 69, 0.1);
+                  border-color: #28a745;
+                }
+                
+                &[data-type="qrcode"] {
+                  background: rgba(255, 193, 7, 0.1);
+                  border-color: #ffc107;
+                  
+                  .qr-placeholder {
+                    font-weight: bold;
+                    font-size: 10px;
+                  }
+                }
+                
+                &[data-type="barcode"] {
+                  background: rgba(220, 53, 69, 0.1);
+                  border-color: #dc3545;
+                  
+                  .barcode-placeholder {
+                    font-family: monospace;
+                    font-size: 8px;
+                  }
+                }
+              }
+            }
+          }
+        }
+        
+        .template-info {
+          padding: 15px;
+          
+          h4 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+            color: #333;
+          }
+          
+          p {
+            margin: 0 0 10px 0;
+            color: #666;
+            font-size: 14px;
+          }
+          
+          .template-meta {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #666;
+            
+            .dimensions {
+              background: #e9ecef;
+              padding: 2px 6px;
+              border-radius: 4px;
+            }
+            
+            .specimen-types {
+              background: #d1ecf1;
+              padding: 2px 6px;
+              border-radius: 4px;
+            }
+          }
+          
+          .template-actions {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+          }
+        }
+      }
+    }
+  }
+  
+  // Print Jobs Tab
+  .print-jobs-section {
+    .jobs-table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
+      
+      .table {
+        margin-bottom: 0;
+        
+        th {
+          background: #f8f9fa;
+          border-top: none;
+          font-weight: 600;
+        }
+        
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+          
+          &[data-status="pending"] {
+            background: #fff3cd;
+            color: #856404;
+          }
+          
+          &[data-status="printing"] {
+            background: #d1ecf1;
+            color: #0c5460;
+          }
+          
+          &[data-status="completed"] {
+            background: #d4edda;
+            color: #155724;
+          }
+          
+          &[data-status="failed"] {
+            background: #f8d7da;
+            color: #721c24;
+          }
+        }
+      }
+    }
+  }
+  
+  // Inventory Tab
+  .inventory-section {
+    .inventory-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+      
+      .inventory-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        
+        .inventory-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+          
+          h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+          }
+          
+          .total-printed {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+          }
+        }
+        
+        .inventory-stats {
+          margin-bottom: 15px;
+          
+          .stat {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            
+            label {
+              color: #666;
+              font-weight: 500;
+            }
+            
+            span {
+              color: #333;
+              
+              &.low-stock {
+                color: #dc3545;
+                font-weight: bold;
+              }
+            }
+          }
+        }
+        
+        .inventory-actions {
+          display: flex;
+          gap: 10px;
+        }
+      }
+    }
+  }
+  
+  // Printers Tab
+  .printers-section {
+    .printers-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      gap: 20px;
+      
+      .printer-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 20px;
+        
+        .printer-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+          
+          h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+          }
+          
+          .printer-status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+            
+            &[data-status="online"] {
+              background: #d4edda;
+              color: #155724;
+            }
+            
+            &[data-status="offline"] {
+              background: #f8d7da;
+              color: #721c24;
+            }
+            
+            &[data-status="error"] {
+              background: #f8d7da;
+              color: #721c24;
+            }
+          }
+        }
+        
+        .printer-info {
+          margin-bottom: 15px;
+          
+          .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 14px;
+            
+            label {
+              color: #666;
+              font-weight: 500;
+            }
+            
+            span {
+              color: #333;
+            }
+          }
+        }
+        
+        .printer-actions {
+          display: flex;
+          gap: 10px;
+        }
+      }
+    }
+  }
+  
+  // Template Editor Modal
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    
+    &.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal-dialog {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      max-width: 1200px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+      
+      &.modal-xl {
+        max-width: 1200px;
+      }
+    }
+    
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      
+      .modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      
+      .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+        
+        &:hover {
+          color: #333;
+        }
+      }
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+    
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  }
+  
+  // Template Designer
+  .template-designer {
+    .designer-toolbar {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .design-canvas {
+      border: 2px solid #dee2e6;
+      background: white;
+      position: relative;
+      margin: 0 auto;
+      cursor: crosshair;
+      
+      .design-element {
+        position: absolute;
+        border: 2px solid #007bff;
+        background: rgba(0, 123, 255, 0.1);
+        cursor: move;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        
+        &.selected {
+          border-color: #dc3545;
+          background: rgba(220, 53, 69, 0.1);
+        }
+        
+        &[data-type="text"] {
+          border-color: #28a745;
+          background: rgba(40, 167, 69, 0.1);
+          
+          &.selected {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+          }
+        }
+        
+        &[data-type="qrcode"] {
+          border-color: #ffc107;
+          background: rgba(255, 193, 7, 0.1);
+          
+          .qr-placeholder {
+            font-weight: bold;
+            color: #856404;
+          }
+          
+          &.selected {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+          }
+        }
+        
+        &[data-type="barcode"] {
+          border-color: #6f42c1;
+          background: rgba(111, 66, 193, 0.1);
+          
+          .barcode-placeholder {
+            font-family: monospace;
+            color: #6f42c1;
+          }
+          
+          &.selected {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+          }
+        }
+        
+        &[data-type="line"] {
+          .line-placeholder {
+            width: 100%;
+            height: 2px;
+            background: #17a2b8;
+          }
+          
+          &.selected .line-placeholder {
+            background: #dc3545;
+          }
+        }
+        
+        &[data-type="rectangle"] {
+          .rectangle-placeholder {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #17a2b8;
+            background: rgba(23, 162, 184, 0.1);
+          }
+          
+          &.selected .rectangle-placeholder {
+            border-color: #dc3545;
+            background: rgba(220, 53, 69, 0.1);
+          }
+        }
+      }
+    }
+  }
+  
+  .template-properties,
+  .element-properties {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    
+    h6 {
+      margin: 0 0 15px 0;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 1px solid #dee2e6;
+      padding-bottom: 8px;
+    }
+    
+    .element-actions {
+      margin-top: 15px;
+      padding-top: 15px;
+      border-top: 1px solid #dee2e6;
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .label-management-container {
+    padding: 10px;
+    
+    .management-header {
+      flex-direction: column;
+      gap: 15px;
+      align-items: stretch;
+      
+      .header-actions {
+        justify-content: center;
+      }
+    }
+    
+    .templates-grid,
+    .inventory-cards,
+    .printers-grid {
+      grid-template-columns: 1fr;
+    }
+    
+    .modal-dialog {
+      width: 95%;
+      margin: 10px;
+      
+      .modal-body .row {
+        flex-direction: column;
+      }
+    }
+    
+    .designer-toolbar {
+      flex-direction: column;
+      
+      .btn {
+        width: 100%;
+      }
+    }
+  }
+}

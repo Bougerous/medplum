@@ -545,11 +545,11 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
       tComponent: this.stagingForm.get('tComponent')?.value || undefined,
       nComponent: this.stagingForm.get('nComponent')?.value || undefined,
       mComponent: this.stagingForm.get('mComponent')?.value || undefined,
-      codeableConcept: this.terminologyService.createCodeableConcept(
-        this.selectedStage!.code,
-        this.selectedStage!.display,
-        this.selectedStage!.system
-      ),
+      codeableConcept: this.selectedStage ? this.terminologyService.createCodeableConcept(
+        this.selectedStage.code,
+        this.selectedStage.display,
+        this.selectedStage.system
+      ) : undefined,
       additionalNotes: this.stagingForm.get('additionalNotes')?.value
     };
   }

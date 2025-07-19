@@ -320,6 +320,46 @@ export class SessionService {
   }
 
   /**
+   * Terminate user sessions (for security purposes)
+   */
+  async terminateUserSessions(userId: string): Promise<void> {
+    // In a real implementation, this would terminate all sessions for the user
+    // For now, we'll just end the current session if it belongs to the user
+    const currentUser = this.authService.getCurrentUserSync();
+    if (currentUser && currentUser.practitioner.id === userId) {
+      await this.authService.logout();
+      
+      // Log forced termination
+      await this.auditService.logSecurityAlert(
+        'session-termination',
+        {
+          userId,
+          reason: 'Security-forced termination'
+        }
+      );
+    }
+  }
+
+  /**
+   * Terminate specific session
+   */
+  async terminateSession(sessionId: string): Promise<void> {
+    // In a real implementation, this would terminate a specific session
+    // For now, we'll just end the current session
+    await this.authService.logout();
+    
+    // Log session termination
+    await this.auditService.logAuthenticationEvent(
+      'session-timeout',
+      undefined,
+      {
+        sessionId,
+        reason: 'Forced termination'
+      }
+    );
+  }
+
+  /**
    * Cleanup on service destruction
    */
   ngOnDestroy(): void {

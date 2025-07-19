@@ -21,7 +21,7 @@ export class ErrorHandlingService {
   /**
    * Handle and process errors throughout the application
    */
-  handleError(error: any, context?: string): void {
+  handleError(error: unknown, context?: string): void {
     const limsError = this.createLIMSError(error, context);
     
     // Log error to console
@@ -47,25 +47,25 @@ export class ErrorHandlingService {
   /**
    * Create a standardized LIMS error from various error types
    */
-  private createLIMSError(error: any, context?: string): LIMSError {
+  private createLIMSError(error: unknown, context?: string): LIMSError {
     let errorType: LIMSErrorType;
     let message: string;
-    let details: any = error;
+    let details: unknown = error;
 
     // Determine error type based on error characteristics
-    if (error?.status === 401 || error?.message?.includes('unauthorized')) {
+    if ((error as any)?.status === 401 || (error as any)?.message?.includes('unauthorized')) {
       errorType = LIMSErrorType.AUTHENTICATION_ERROR;
       message = 'Authentication failed. Please sign in again.';
-    } else if (error?.status === 403 || error?.message?.includes('forbidden')) {
+    } else if ((error as any)?.status === 403 || (error as any)?.message?.includes('forbidden')) {
       errorType = LIMSErrorType.AUTHORIZATION_ERROR;
       message = 'You do not have permission to perform this action.';
-    } else if (error?.status >= 400 && error?.status < 500) {
+    } else if ((error as any)?.status >= 400 && (error as any)?.status < 500) {
       errorType = LIMSErrorType.VALIDATION_ERROR;
-      message = error?.message || 'Invalid data provided.';
-    } else if (error?.status >= 500 || error?.name === 'NetworkError') {
+      message = (error as any)?.message || 'Invalid data provided.';
+    } else if ((error as any)?.status >= 500 || (error as any)?.name === 'NetworkError') {
       errorType = LIMSErrorType.NETWORK_ERROR;
       message = 'Network error occurred. Please check your connection.';
-    } else if (error?.resourceType || error?.issue) {
+    } else if ((error as any)?.resourceType || (error as any)?.issue) {
       errorType = LIMSErrorType.FHIR_ERROR;
       message = this.extractFHIRErrorMessage(error);
     } else if (context?.includes('workflow')) {
@@ -76,7 +76,7 @@ export class ErrorHandlingService {
       message = 'External service integration error.';
     } else {
       errorType = LIMSErrorType.NETWORK_ERROR;
-      message = error?.message || 'An unexpected error occurred.';
+      message = (error as any)?.message || 'An unexpected error occurred.';
     }
 
     return {
@@ -85,20 +85,20 @@ export class ErrorHandlingService {
       details,
       timestamp: new Date(),
       userId: this.getCurrentUserId(),
-      resourceType: error?.resourceType,
-      resourceId: error?.id
+      resourceType: (error as any)?.resourceType,
+      resourceId: (error as any)?.id
     };
   }
 
   /**
    * Extract meaningful error message from FHIR OperationOutcome
    */
-  private extractFHIRErrorMessage(error: any): string {
-    if (error?.issue && Array.isArray(error.issue)) {
-      const firstIssue = error.issue[0];
+  private extractFHIRErrorMessage(error: unknown): string {
+    if ((error as any)?.issue && Array.isArray((error as any).issue)) {
+      const firstIssue = (error as any).issue[0];
       return firstIssue?.diagnostics || firstIssue?.details?.text || 'FHIR operation failed.';
     }
-    return error?.message || 'FHIR resource error occurred.';
+    return (error as any)?.message || 'FHIR resource error occurred.';
   }
 
   /**

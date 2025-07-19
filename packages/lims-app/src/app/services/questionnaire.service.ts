@@ -261,8 +261,10 @@ export class QuestionnaireService {
           item.item?.forEach(subItem => {
             switch (subItem.linkId) {
               case 'firstName':
-                if (!patient.name![0].given) patient.name![0].given = [];
-                patient.name![0].given!.push(subItem.answer?.[0]?.valueString || '');
+                if (patient.name?.[0]) {
+                  if (!patient.name[0].given) patient.name[0].given = [];
+                  patient.name[0].given.push(subItem.answer?.[0]?.valueString || '');
+                }
                 break;
               case 'lastName':
                 patient.name![0].family = subItem.answer?.[0]?.valueString;

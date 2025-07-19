@@ -1,0 +1,578 @@
+<div class="provider-portal">
+  <!-- Header -->
+  <header class="portal-header">
+    <div class="header-content">
+      <div class="portal-title">
+        <h1>Provider Portal</h1>
+        <p class="welcome-message" *ngIf="providerData">
+          Welcome, {{ getProviderDisplayName() }}
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <div class="real-time-toggle">
+          <label class="toggle-switch">
+            <input 
+              type="checkbox" 
+              [(ngModel)]="realTimeUpdatesEnabled"
+              (change)="toggleRealTimeUpdates()">
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Real-time Updates</span>
+        </div>
+        
+        <div class="last-update" *ngIf="lastUpdateTime">
+          Last updated: {{ formatDateTime(lastUpdateTime.toISOString()) }}
+        </div>
+        
+        <button 
+          class="refresh-btn" 
+          (click)="refreshData()" 
+          [disabled]="loading"
+          title="Refresh Data">
+          <i class="icon-refresh"></i>
+          Refresh
+        </button>
+        
+        <button 
+          class="logout-btn" 
+          (click)="logout()"
+          title="Logout">
+          <i class="icon-logout"></i>
+          Logout
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading State -->
+  <div class="loading-container" *ngIf="loading">
+    <div class="loading-spinner"></div>
+    <p>Loading provider information...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="error && !loading">
+    <div class="error-message">
+      <i class="icon-error"></i>
+      <h3>Unable to Load Portal</h3>
+      <p>{{ error }}</p>
+      <button class="retry-btn" (click)="refreshData()">
+        Try Again
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="portal-content" *ngIf="providerData && !loading && !error">
+    <!-- Navigation Tabs -->
+    <nav class="portal-tabs">
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'dashboard'"
+        (click)="setActiveTab('dashboard')">
+        <i class="icon-dashboard"></i>
+        Dashboard
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'orders'"
+        (click)="setActiveTab('orders')">
+        <i class="icon-orders"></i>
+        Orders
+        <span class="count" *ngIf="providerData.pendingOrders.length > 0">
+          {{ providerData.pendingOrders.length }}
+        </span>
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'results'"
+        (click)="setActiveTab('results')">
+        <i class="icon-results"></i>
+        Results
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'patients'"
+        (click)="setActiveTab('patients')">
+        <i class="icon-patients"></i>
+        Patients
+        <span class="count">{{ providerData.patients.length }}</span>
+      </button>
+      
+      <button 
+        class="tab-button"
+        [class.active]="activeTab === 'notifications'"
+        (click)="setActiveTab('notifications')">
+        <i class="icon-notifications"></i>
+        Notifications
+        <span class="badge" *ngIf="providerData.notifications.length > 0">
+          {{ providerData.notifications.length }}
+        </span>
+      </button>
+    </nav>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+      
+      <!-- Dashboard Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'dashboard'">
+        <div class="dashboard-grid">
+          <!-- Statistics Cards -->
+          <div class="stats-row">
+            <div class="stat-card">
+              <div class="stat-icon">
+                <i class="icon-orders"></i>
+              </div>
+              <div class="stat-content">
+                <h3>{{ providerData.orderStatistics.totalOrders }}</h3>
+                <p>Total Orders</p>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-icon pending">
+                <i class="icon-pending"></i>
+              </div>
+              <div class="stat-content">
+                <h3>{{ providerData.orderStatistics.pendingOrders }}</h3>
+                <p>Pending Orders</p>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-icon completed">
+                <i class="icon-completed"></i>
+              </div>
+              <div class="stat-content">
+                <h3>{{ providerData.orderStatistics.completedToday }}</h3>
+                <p>Completed Today</p>
+              </div>
+            </div>
+            
+            <div class="stat-card">
+              <div class="stat-icon turnaround">
+                <i class="icon-clock"></i>
+              </div>
+              <div class="stat-content">
+                <h3>{{ providerData.orderStatistics.averageTurnaroundTime }}h</h3>
+                <p>Avg. Turnaround</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="quick-actions">
+            <h3>Quick Actions</h3>
+            <div class="action-buttons">
+              <button class="action-btn primary" (click)="openOrderModal()">
+                <i class="icon-plus"></i>
+                New Order
+              </button>
+              <button class="action-btn" (click)="setActiveTab('results')">
+                <i class="icon-results"></i>
+                View Results
+              </button>
+              <button class="action-btn" (click)="setActiveTab('patients')">
+                <i class="icon-patients"></i>
+                Manage Patients
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="recent-activity">
+            <h3>Recent Activity</h3>
+            <div class="activity-list">
+              <div class="activity-item" *ngFor="let result of providerData.recentResults.slice(0, 5)">
+                <div class="activity-icon">
+                  <i class="icon-result"></i>
+                </div>
+                <div class="activity-content">
+                  <p class="activity-title">{{ result.code?.text || 'Lab Result' }}</p>
+                  <p class="activity-subtitle">
+                    Patient: {{ result.subject?.display || 'Unknown' }} • 
+                    {{ formatDateTime(result.issued) }}
+                  </p>
+                </div>
+                <div class="activity-status">
+                  <span class="status-badge" [class]="getStatusClass(result.status!)">
+                    {{ result.status | titlecase }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'orders'">
+        <div class="panel-header">
+          <h2>Laboratory Orders</h2>
+          <button class="new-order-btn" (click)="openOrderModal()">
+            <i class="icon-plus"></i>
+            New Order
+          </button>
+        </div>
+
+        <div class="orders-list">
+          <div 
+            class="order-card" 
+            *ngFor="let order of providerData.pendingOrders"
+            (click)="viewOrder(order)">
+            
+            <div class="order-header">
+              <h3>{{ order.code?.text || 'Laboratory Order' }}</h3>
+              <div class="order-badges">
+                <span class="priority-badge" [class]="getPriorityClass(order.priority!)">
+                  {{ order.priority | titlecase }}
+                </span>
+                <span class="status-badge" [class]="getStatusClass(order.status!)">
+                  {{ order.status | titlecase }}
+                </span>
+              </div>
+            </div>
+            
+            <div class="order-details">
+              <div class="detail-item">
+                <label>Patient:</label>
+                <span>{{ order.subject?.display || 'Unknown Patient' }}</span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Ordered:</label>
+                <span>{{ formatDateTime(order.authoredOn) }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="order.reasonCode && order.reasonCode.length > 0">
+                <label>Indication:</label>
+                <span>{{ order.reasonCode[0].text || order.reasonCode[0].coding?.[0]?.display }}</span>
+              </div>
+            </div>
+            
+            <div class="order-actions">
+              <button class="view-btn">
+                <i class="icon-view"></i>
+                View Details
+              </button>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="providerData.pendingOrders.length === 0">
+            <i class="icon-orders"></i>
+            <h3>No Pending Orders</h3>
+            <p>You don't have any pending laboratory orders.</p>
+            <button class="new-order-btn" (click)="openOrderModal()">
+              Create Your First Order
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'results'">
+        <div class="panel-header">
+          <h2>Laboratory Results</h2>
+          
+          <div class="results-filters">
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'all'"
+              (click)="setResultsFilter('all')">
+              All Results
+            </button>
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'today'"
+              (click)="setResultsFilter('today')">
+              Today
+            </button>
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'week'"
+              (click)="setResultsFilter('week')">
+              This Week
+            </button>
+            <button 
+              class="filter-btn"
+              [class.active]="resultsFilter === 'pending'"
+              (click)="setResultsFilter('pending')">
+              Pending
+            </button>
+          </div>
+        </div>
+
+        <div class="results-list">
+          <div 
+            class="result-card" 
+            *ngFor="let result of getFilteredResults()"
+            (click)="viewReport(result)">
+            
+            <div class="result-header">
+              <h3>{{ result.code?.text || 'Laboratory Report' }}</h3>
+              <span class="result-status" [class]="getStatusClass(result.status!)">
+                {{ result.status | titlecase }}
+              </span>
+            </div>
+            
+            <div class="result-details">
+              <div class="detail-item">
+                <label>Patient:</label>
+                <span>{{ result.subject?.display || 'Unknown Patient' }}</span>
+              </div>
+              
+              <div class="detail-item">
+                <label>Date:</label>
+                <span>{{ formatDateTime(result.issued) }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="result.category && result.category.length > 0">
+                <label>Category:</label>
+                <span>{{ result.category[0].text || result.category[0].coding?.[0]?.display }}</span>
+              </div>
+            </div>
+            
+            <div class="result-actions">
+              <button class="view-btn">
+                <i class="icon-view"></i>
+                View Report
+              </button>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="getFilteredResults().length === 0">
+            <i class="icon-results"></i>
+            <h3>No Results Found</h3>
+            <p>No laboratory results match your current filter.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patients Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'patients'">
+        <div class="panel-header">
+          <h2>My Patients</h2>
+        </div>
+
+        <div class="patients-list">
+          <div 
+            class="patient-card" 
+            *ngFor="let patient of providerData.patients"
+            (click)="viewPatient(patient)">
+            
+            <div class="patient-header">
+              <h3>{{ getPatientDisplayName(patient) }}</h3>
+              <div class="patient-info">
+                <span *ngIf="patient.birthDate">DOB: {{ formatDate(patient.birthDate) }}</span>
+                <span *ngIf="patient.gender">{{ patient.gender | titlecase }}</span>
+              </div>
+            </div>
+            
+            <div class="patient-details">
+              <div class="detail-item" *ngIf="patient.telecom && patient.telecom.length > 0">
+                <label>Contact:</label>
+                <span>{{ patient.telecom[0].value }}</span>
+              </div>
+              
+              <div class="detail-item" *ngIf="patient.identifier && patient.identifier.length > 0">
+                <label>MRN:</label>
+                <span>{{ patient.identifier[0].value }}</span>
+              </div>
+            </div>
+            
+            <div class="patient-actions">
+              <button class="view-btn">
+                <i class="icon-view"></i>
+                View Details
+              </button>
+              <button class="order-btn" (click)="$event.stopPropagation(); orderForm.patientId = patient.id!; openOrderModal()">
+                <i class="icon-plus"></i>
+                New Order
+              </button>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="providerData.patients.length === 0">
+            <i class="icon-patients"></i>
+            <h3>No Patients</h3>
+            <p>You don't have any patients assigned yet.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications Tab -->
+      <div class="tab-panel" *ngIf="activeTab === 'notifications'">
+        <div class="panel-header">
+          <h2>Notifications</h2>
+        </div>
+
+        <div class="notifications-list">
+          <div 
+            class="notification-card" 
+            *ngFor="let notification of providerData.notifications"
+            [class.unread]="notification.status === 'requested'">
+            
+            <div class="notification-header">
+              <h3>{{ notification.description || 'Notification' }}</h3>
+              <span class="notification-date">{{ formatDateTime(notification.authoredOn) }}</span>
+            </div>
+            
+            <div class="notification-content">
+              <p>{{ notification.note?.[0]?.text || 'No additional details' }}</p>
+            </div>
+            
+            <div class="notification-status">
+              <span class="status-indicator" [class]="getStatusClass(notification.status!)">
+                {{ notification.status | titlecase }}
+              </span>
+            </div>
+          </div>
+
+          <div class="empty-state" *ngIf="providerData.notifications.length === 0">
+            <i class="icon-notifications"></i>
+            <h3>No Notifications</h3>
+            <p>You don't have any notifications at this time.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- New Order Modal -->
+<div class="modal-overlay" *ngIf="showOrderModal" (click)="closeOrderModal()">
+  <div class="modal-content order-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>New Laboratory Order</h3>
+      <button class="close-btn" (click)="closeOrderModal()">
+        <i class="icon-close"></i>
+      </button>
+    </div>
+    
+    <form class="order-form" (ngSubmit)="submitOrder()" #orderFormRef="ngForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="patientSelect">Patient *</label>
+          <select 
+            id="patientSelect"
+            [(ngModel)]="orderForm.patientId"
+            name="patientId"
+            required
+            class="form-control">
+            <option value="">Select Patient</option>
+            <option *ngFor="let patient of providerData?.patients" [value]="patient.id">
+              {{ getPatientDisplayName(patient) }}
+            </option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="prioritySelect">Priority</label>
+          <select 
+            id="prioritySelect"
+            [(ngModel)]="orderForm.priority"
+            name="priority"
+            class="form-control">
+            <option value="routine">Routine</option>
+            <option value="urgent">Urgent</option>
+            <option value="stat">STAT</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Tests *</label>
+        <div class="test-selection">
+          <div 
+            class="test-option" 
+            *ngFor="let test of availableTests"
+            [class.selected]="orderForm.testCodes.includes(test.code)">
+            <label class="checkbox-label">
+              <input 
+                type="checkbox" 
+                [value]="test.code"
+                [checked]="orderForm.testCodes.includes(test.code)"
+                (change)="toggleTestSelection(test.code)">
+              <span class="checkmark"></span>
+              <div class="test-info">
+                <span class="test-name">{{ test.display }}</span>
+                <span class="test-category">{{ test.category }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="specimenType">Specimen Type *</label>
+          <select 
+            id="specimenType"
+            [(ngModel)]="orderForm.specimenType"
+            name="specimenType"
+            required
+            class="form-control">
+            <option value="">Select Specimen Type</option>
+            <option value="blood">Blood</option>
+            <option value="urine">Urine</option>
+            <option value="tissue">Tissue</option>
+            <option value="swab">Swab</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="collectionDate">Collection Date</label>
+          <input 
+            type="datetime-local"
+            id="collectionDate"
+            [(ngModel)]="orderForm.collectionDate"
+            name="collectionDate"
+            class="form-control">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="clinicalInfo">Clinical Information *</label>
+        <textarea 
+          id="clinicalInfo"
+          [(ngModel)]="orderForm.clinicalInfo"
+          name="clinicalInfo"
+          required
+          rows="3"
+          placeholder="Provide relevant clinical information, symptoms, or indication for testing"
+          class="form-control">
+        </textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Additional Notes</label>
+        <textarea 
+          id="notes"
+          [(ngModel)]="orderForm.notes"
+          name="notes"
+          rows="2"
+          placeholder="Any additional instructions or notes"
+          class="form-control">
+        </textarea>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="cancel-btn" (click)="closeOrderModal()">
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          class="submit-btn"
+          [disabled]="!orderFormRef.valid || submittingOrder">
+          <span *ngIf="submittingOrder">Submitting...</span>
+          <span *ngIf="!submittingOrder">Submit Order</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

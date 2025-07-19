@@ -1,0 +1,388 @@
+.billing-summary-widget {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ecf0f1;
+    background: #f8f9fa;
+    
+    h4 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .period-selector {
+      select {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        background: white;
+        color: #2c3e50;
+        
+        &:focus {
+          outline: none;
+          border-color: #3498db;
+        }
+      }
+    }
+  }
+  
+  .billing-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .loading-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #7f8c8d;
+    
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #ecf0f1;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .billing-data {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      
+      .metric-card {
+        background: white;
+        border: 1px solid #ecf0f1;
+        border-radius: 8px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        
+        .metric-icon {
+          font-size: 1.5rem;
+          padding: 0.5rem;
+          border-radius: 6px;
+          
+          &.revenue { background: rgba(46, 204, 113, 0.1); }
+          &.claims { background: rgba(52, 152, 219, 0.1); }
+          &.collection { background: rgba(155, 89, 182, 0.1); }
+        }
+        
+        .metric-content {
+          flex: 1;
+          
+          .metric-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c3e50;
+            margin-bottom: 0.25rem;
+          }
+          
+          .metric-label {
+            font-size: 0.8rem;
+            color: #7f8c8d;
+            margin-bottom: 0.25rem;
+          }
+          
+          .metric-trend {
+            font-size: 0.75rem;
+            font-weight: 600;
+            
+            &.trend-positive {
+              color: #27ae60;
+            }
+            
+            &.trend-negative {
+              color: #e74c3c;
+            }
+            
+            &.trend-neutral {
+              color: #7f8c8d;
+            }
+          }
+          
+          .metric-sublabel {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+          }
+        }
+      }
+    }
+    
+    .outstanding-section, .payors-section, .activity-section {
+      background: white;
+      border: 1px solid #ecf0f1;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      
+      .section-header, h5 {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin: 0 0 1rem 0;
+        color: #2c3e50;
+        font-size: 0.9rem;
+        font-weight: 600;
+        
+        .balance-amount {
+          font-size: 1.1rem;
+          font-weight: 700;
+          color: #e74c3c;
+        }
+      }
+      
+      h5 {
+        justify-content: flex-start;
+        margin-bottom: 0.75rem;
+      }
+    }
+    
+    .balance-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      
+      .balance-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        
+        .age-range {
+          font-size: 0.85rem;
+          color: #2c3e50;
+        }
+        
+        .amount {
+          font-size: 0.85rem;
+          font-weight: 600;
+          color: #2c3e50;
+          
+          &.warning {
+            color: #e74c3c;
+          }
+        }
+      }
+    }
+    
+    .payors-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      
+      .payor-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        
+        .payor-info {
+          display: flex;
+          flex-direction: column;
+          
+          .payor-name {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #2c3e50;
+          }
+          
+          .claim-count {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+          }
+        }
+        
+        .payor-amount {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          
+          .amount {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #2c3e50;
+          }
+          
+          .percentage {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+          }
+        }
+      }
+    }
+    
+    .activity-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      
+      .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.5rem;
+        background: #f8f9fa;
+        border-radius: 4px;
+        
+        .activity-icon {
+          font-size: 1rem;
+          padding: 0.25rem;
+          border-radius: 4px;
+          
+          &.claim_submitted {
+            background: rgba(52, 152, 219, 0.1);
+          }
+          
+          &.payment_received {
+            background: rgba(46, 204, 113, 0.1);
+          }
+          
+          &.claim_denied {
+            background: rgba(231, 76, 60, 0.1);
+          }
+          
+          &.adjustment {
+            background: rgba(243, 156, 18, 0.1);
+          }
+        }
+        
+        .activity-content {
+          flex: 1;
+          
+          .activity-description {
+            font-size: 0.85rem;
+            color: #2c3e50;
+            margin-bottom: 0.1rem;
+          }
+          
+          .activity-time {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+          }
+        }
+        
+        .activity-amount {
+          font-size: 0.85rem;
+          font-weight: 600;
+          
+          &.amount-positive {
+            color: #27ae60;
+          }
+          
+          &.amount-negative {
+            color: #e74c3c;
+          }
+          
+          &.amount-neutral {
+            color: #7f8c8d;
+          }
+        }
+      }
+    }
+  }
+  
+  .widget-actions {
+    padding: 1rem;
+    border-top: 1px solid #ecf0f1;
+    display: flex;
+    gap: 0.5rem;
+    
+    .action-btn {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      text-align: center;
+      
+      &.primary {
+        background: #3498db;
+        color: white;
+        
+        &:hover {
+          background: #2980b9;
+        }
+      }
+      
+      &.secondary {
+        background: #ecf0f1;
+        color: #2c3e50;
+        
+        &:hover {
+          background: #d5dbdb;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .billing-summary-widget {
+    .billing-data {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+        
+        .metric-card {
+          padding: 0.75rem;
+          
+          .metric-icon {
+            font-size: 1.25rem;
+          }
+          
+          .metric-content .metric-value {
+            font-size: 1rem;
+          }
+        }
+      }
+      
+      .balance-breakdown .balance-item,
+      .payors-list .payor-item,
+      .activity-list .activity-item {
+        padding: 0.4rem;
+      }
+    }
+  }
+}

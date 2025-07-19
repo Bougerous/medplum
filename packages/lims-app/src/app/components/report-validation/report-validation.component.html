@@ -1,0 +1,518 @@
+<div class="report-validation-container">
+  <!-- Header -->
+  <div class="validation-header">
+    <h2>
+      <span *ngIf="mode === 'single'">Report Validation</span>
+      <span *ngIf="mode === 'batch'">Batch Report Validation</span>
+      <span *ngIf="mode === 'queue'">Validation Queue</span>
+    </h2>
+    
+    <div class="header-actions">
+      <button 
+        *ngIf="mode === 'queue'" 
+        class="btn btn-primary"
+        (click)="loadInitialData()"
+        [disabled]="isLoading">
+        <i class="fas fa-sync-alt" [class.fa-spin]="isLoading"></i>
+        Refresh
+      </button>
+      
+      <button 
+        *ngIf="mode === 'batch' && hasSelectedItems" 
+        class="btn btn-success"
+        (click)="processBatchValidation()"
+        [disabled]="isLoading">
+        <i class="fas fa-check-double"></i>
+        Validate Selected ({{ selectedItemsCount }})
+      </button>
+    </div>
+  </div>
+
+  <!-- Filters (for queue mode) -->
+  <div *ngIf="mode === 'queue'" class="validation-filters" [formGroup]="filterForm">
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>Search</label>
+        <input 
+          type="text" 
+          class="form-control"
+          placeholder="Search by ID, patient, or test..."
+          formControlName="searchTerm">
+      </div>
+      
+      <div class="filter-group">
+        <label>Status</label>
+        <select class="form-control" formControlName="statusFilter">
+          <option value="all">All Statuses</option>
+          <option value="preliminary">Preliminary</option>
+          <option value="registered">Registered</option>
+          <option value="partial">Partial</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Priority</label>
+        <select class="form-control" formControlName="priorityFilter">
+          <option value="all">All Priorities</option>
+          <option value="routine">Routine</option>
+          <option value="urgent">Urgent</option>
+          <option value="stat">STAT</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label>Specialty</label>
+        <select class="form-control" formControlName="specialtyFilter">
+          <option value="all">All Specialties</option>
+          <option value="histopathology">Histopathology</option>
+          <option value="microbiology">Microbiology</option>
+          <option value="chemistry">Chemistry</option>
+          <option value="hematology">Hematology</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner-border" role="status">
+      <span class="sr-only">Loading...</span>
+    </div>
+    <p>Loading reports...</p>
+  </div>
+
+  <!-- Single Report View -->
+  <div *ngIf="mode === 'single' && currentView && !isLoading" class="single-report-view">
+    <div class="report-tabs">
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a 
+            class="nav-link" 
+            [class.active]="activeTab === 'validation'"
+            (click)="onTabChange('validation')">
+            Validation
+          </a>
+        </li>
+        <li class="nav-item">
+          <a 
+            class="nav-link" 
+            [class.active]="activeTab === 'history'"
+            (click)="onTabChange('history')">
+            History
+          </a>
+        </li>
+        <li class="nav-item">
+          <a 
+            class="nav-link" 
+            [class.active]="activeTab === 'pdf'"
+            (click)="onTabChange('pdf')">
+            PDF
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Validation Tab -->
+    <div *ngIf="activeTab === 'validation'" class="tab-content">
+      <div class="report-summary">
+        <div class="row">
+          <div class="col-md-6">
+            <h4>Report Information</h4>
+            <dl class="row">
+              <dt class="col-sm-4">Report ID:</dt>
+              <dd class="col-sm-8">{{ currentView.report.id }}</dd>
+              
+              <dt class="col-sm-4">Status:</dt>
+              <dd class="col-sm-8">
+                <span class="badge" [ngClass]="'badge-' + currentView.report.status">
+                  {{ currentView.report.status | titlecase }}
+                </span>
+              </dd>
+              
+              <dt class="col-sm-4">Date:</dt>
+              <dd class="col-sm-8">{{ currentView.report.effectiveDateTime | date:'medium' }}</dd>
+              
+              <dt class="col-sm-4">Category:</dt>
+              <dd class="col-sm-8">{{ currentView.report.category?.[0]?.coding?.[0]?.display || 'N/A' }}</dd>
+            </dl>
+          </div>
+          
+          <div class="col-md-6">
+            <h4>Patient Information</h4>
+            <dl class="row" *ngIf="currentView.patient">
+              <dt class="col-sm-4">Name:</dt>
+              <dd class="col-sm-8">{{ getPatientName(currentView.patient) }}</dd>
+              
+              <dt class="col-sm-4">DOB:</dt>
+              <dd class="col-sm-8">{{ currentView.patient.birthDate | date:'shortDate' }}</dd>
+              
+              <dt class="col-sm-4">Gender:</dt>
+              <dd class="col-sm-8">{{ currentView.patient.gender | titlecase }}</dd>
+            </dl>
+          </div>
+        </div>
+      </div>
+
+      <!-- Validation Form -->
+      <form [formGroup]="validationForm" class="validation-form">
+        <div class="form-section">
+          <h5>Validation Results</h5>
+          
+          <div *ngIf="currentView.validationResults" class="validation-results">
+            <div 
+              *ngFor="let result of currentView.validationResults" 
+              class="validation-result"
+              [ngClass]="'result-' + result.severity">
+              <div class="result-header">
+                <i class="fas" [ngClass]="{
+                  'fa-check-circle text-success': result.passed && result.severity !== 'error',
+                  'fa-exclamation-triangle text-warning': !result.passed && result.severity === 'warning',
+                  'fa-times-circle text-danger': !result.passed && result.severity === 'error',
+                  'fa-info-circle text-info': result.severity === 'info'
+                }"></i>
+                <span class="result-message">{{ result.message }}</span>
+              </div>
+              <div *ngIf="result.details" class="result-details">
+                <small>{{ result.details | json }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h5>Validation Notes</h5>
+          <textarea 
+            class="form-control" 
+            rows="4"
+            placeholder="Add validation notes..."
+            formControlName="validationNotes">
+          </textarea>
+        </div>
+
+        <div class="form-section">
+          <h5>Actions</h5>
+          <div class="action-buttons">
+            <button 
+              type="button" 
+              class="btn btn-primary"
+              (click)="validateReport(currentView.report.id!)"
+              [disabled]="!currentView.isEditable">
+              <i class="fas fa-check"></i>
+              Run Validation
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn btn-success"
+              (click)="approveReport(currentView.report.id!)"
+              [disabled]="!currentView.canApprove">
+              <i class="fas fa-thumbs-up"></i>
+              Approve
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn btn-warning"
+              (click)="performQualityCheck(currentView.report.id!)">
+              <i class="fas fa-search"></i>
+              Quality Check
+            </button>
+            
+            <button 
+              type="button" 
+              class="btn btn-danger"
+              (click)="rejectReport(currentView.report.id!, validationForm.get('validationNotes')?.value)"
+              [disabled]="!currentView.canReject">
+              <i class="fas fa-thumbs-down"></i>
+              Reject
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- History Tab -->
+    <div *ngIf="activeTab === 'history'" class="tab-content">
+      <div class="validation-history">
+        <h5>Validation History</h5>
+        <div *ngIf="currentView.workflow" class="workflow-steps">
+          <div 
+            *ngFor="let step of currentView.workflow.steps" 
+            class="workflow-step"
+            [ngClass]="'step-' + step.status">
+            <div class="step-indicator">
+              <i class="fas" [ngClass]="{
+                'fa-clock text-muted': step.status === 'pending',
+                'fa-play text-primary': step.status === 'in-progress',
+                'fa-check text-success': step.status === 'completed',
+                'fa-times text-danger': step.status === 'failed'
+              }"></i>
+            </div>
+            <div class="step-content">
+              <h6>{{ step.name }}</h6>
+              <p>{{ step.description }}</p>
+              <div *ngIf="step.completedAt" class="step-meta">
+                <small>
+                  Completed: {{ step.completedAt | date:'medium' }}
+                  <span *ngIf="step.completedBy">by {{ step.completedBy.display }}</span>
+                </small>
+              </div>
+              <div *ngIf="step.notes" class="step-notes">
+                <small><strong>Notes:</strong> {{ step.notes }}</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PDF Tab -->
+    <div *ngIf="activeTab === 'pdf'" class="tab-content">
+      <div class="pdf-management">
+        <h5>PDF Documents</h5>
+        
+        <div class="pdf-actions">
+          <button 
+            type="button" 
+            class="btn btn-primary"
+            (click)="generatePDF(currentView.report.id!)">
+            <i class="fas fa-file-pdf"></i>
+            Generate PDF
+          </button>
+          
+          <button 
+            type="button" 
+            class="btn btn-secondary"
+            (click)="regeneratePDF(currentView.report.id!)">
+            <i class="fas fa-redo"></i>
+            Regenerate PDF
+          </button>
+        </div>
+
+        <div *ngIf="currentView.report.presentedForm" class="pdf-list">
+          <div 
+            *ngFor="let form of currentView.report.presentedForm" 
+            class="pdf-item">
+            <div class="pdf-info">
+              <i class="fas fa-file-pdf text-danger"></i>
+              <span>{{ form.title || 'Diagnostic Report PDF' }}</span>
+              <small *ngIf="form.creation">{{ form.creation | date:'medium' }}</small>
+            </div>
+            <div class="pdf-actions">
+              <a 
+                [href]="form.url" 
+                target="_blank" 
+                class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i>
+                View
+              </a>
+              <a 
+                [href]="form.url" 
+                [download]="form.title" 
+                class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-download"></i>
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch/Queue View -->
+  <div *ngIf="(mode === 'batch' || mode === 'queue') && !isLoading" class="batch-queue-view">
+    <!-- Batch Actions -->
+    <div *ngIf="showBatchActions" class="batch-actions">
+      <div class="selected-info">
+        <span>{{ selectedItemsCount }} reports selected</span>
+      </div>
+      <div class="batch-buttons">
+        <button 
+          class="btn btn-success"
+          (click)="processBatchValidation()">
+          <i class="fas fa-check-double"></i>
+          Validate Selected
+        </button>
+        <button 
+          class="btn btn-secondary"
+          (click)="onSelectAll(false)">
+          <i class="fas fa-times"></i>
+          Clear Selection
+        </button>
+      </div>
+    </div>
+
+    <!-- Reports Table -->
+    <div class="reports-table">
+      <table class="table table-striped table-hover">
+        <thead>
+          <tr>
+            <th *ngIf="mode === 'batch'">
+              <input 
+                type="checkbox" 
+                (change)="onSelectAll($event.target.checked)">
+            </th>
+            <th>Report ID</th>
+            <th>Patient</th>
+            <th>Test</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Date</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of batchItems" [ngClass]="'status-' + item.status">
+            <td *ngIf="mode === 'batch'">
+              <input 
+                type="checkbox" 
+                [checked]="item.selected"
+                (change)="onItemSelect(item, $event.target.checked)">
+            </td>
+            <td>
+              <a [routerLink]="['/reports', item.reportId]">
+                {{ item.reportId }}
+              </a>
+            </td>
+            <td>{{ item.report.subject?.display || 'Unknown' }}</td>
+            <td>{{ item.report.code?.text || 'N/A' }}</td>
+            <td>
+              <span class="badge" [ngClass]="'badge-' + item.report.status">
+                {{ item.report.status | titlecase }}
+              </span>
+            </td>
+            <td>
+              <span class="priority-indicator" [ngClass]="'priority-' + getReportPriority(item.report)">
+                {{ getReportPriority(item.report) | titlecase }}
+              </span>
+            </td>
+            <td>{{ item.report.effectiveDateTime | date:'short' }}</td>
+            <td>
+              <div class="action-buttons">
+                <button 
+                  class="btn btn-sm btn-primary"
+                  (click)="validateReport(item.reportId)"
+                  [disabled]="item.status === 'processing'">
+                  <i class="fas fa-check"></i>
+                </button>
+                <button 
+                  class="btn btn-sm btn-info"
+                  [routerLink]="['/reports', item.reportId, 'validate']">
+                  <i class="fas fa-eye"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="mode === 'queue'" class="pagination-container">
+      <div class="pagination-info">
+        Showing {{ (currentPage - 1) * pageSize + 1 }} to 
+        {{ Math.min(currentPage * pageSize, totalItems) }} of 
+        {{ totalItems }} reports
+      </div>
+      
+      <nav aria-label="Reports pagination">
+        <ul class="pagination">
+          <li class="page-item" [class.disabled]="currentPage === 1">
+            <a class="page-link" (click)="onPageChange(currentPage - 1)">Previous</a>
+          </li>
+          
+          <li 
+            *ngFor="let page of getPageNumbers()" 
+            class="page-item" 
+            [class.active]="page === currentPage">
+            <a class="page-link" (click)="onPageChange(page)">{{ page }}</a>
+          </li>
+          
+          <li class="page-item" [class.disabled]="currentPage === totalPages">
+            <a class="page-link" (click)="onPageChange(currentPage + 1)">Next</a>
+          </li>
+        </ul>
+      </nav>
+      
+      <div class="page-size-selector">
+        <label>Show:</label>
+        <select 
+          class="form-control form-control-sm"
+          [value]="pageSize"
+          (change)="onPageSizeChange(+$event.target.value)">
+          <option value="10">10</option>
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+        </select>
+        <span>per page</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!isLoading && batchItems.length === 0" class="empty-state">
+    <div class="empty-icon">
+      <i class="fas fa-clipboard-list"></i>
+    </div>
+    <h4>No Reports Found</h4>
+    <p *ngIf="mode === 'queue'">There are no reports pending validation.</p>
+    <p *ngIf="mode === 'batch'">No reports available for batch processing.</p>
+  </div>
+</div>
+
+<!-- Digital Signature Modal -->
+<ng-template #signatureModal>
+  <div class="modal-header">
+    <h4 class="modal-title">Digital Signature Required</h4>
+  </div>
+  <div class="modal-body">
+    <form [formGroup]="validationForm.get('digitalSignature')" class="signature-form">
+      <div class="form-group">
+        <label>Signature Method</label>
+        <select class="form-control" formControlName="method">
+          <option value="password">Password</option>
+          <option value="biometric">Biometric</option>
+          <option value="token">Security Token</option>
+        </select>
+      </div>
+      
+      <div class="form-group" *ngIf="validationForm.get('digitalSignature.method')?.value === 'password'">
+        <label>Password</label>
+        <input 
+          type="password" 
+          class="form-control"
+          placeholder="Enter your password"
+          formControlName="password">
+      </div>
+      
+      <div class="form-group">
+        <label>Reason for Signature</label>
+        <textarea 
+          class="form-control" 
+          rows="3"
+          placeholder="Enter reason for digital signature..."
+          formControlName="reason">
+        </textarea>
+      </div>
+    </form>
+  </div>
+  <div class="modal-footer">
+    <button 
+      type="button" 
+      class="btn btn-secondary"
+      (click)="showSignatureDialog = false">
+      Cancel
+    </button>
+    <button 
+      type="button" 
+      class="btn btn-primary"
+      (click)="createDigitalSignature(
+        validationForm.get('digitalSignature.method')?.value,
+        { password: validationForm.get('digitalSignature.password')?.value }
+      )">
+      Sign and Approve
+    </button>
+  </div>
+</ng-template>

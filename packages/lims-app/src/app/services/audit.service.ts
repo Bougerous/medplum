@@ -435,6 +435,47 @@ export class AuditService {
   }
 
   /**
+   * Log unauthorized access attempts
+   */
+  async logUnauthorizedAccess(
+    userId: string,
+    resource: string,
+    details?: string,
+  ): Promise<void> {
+    await this.logSecurityEvent({
+      type: SecurityEventType.AUTHORIZATION,
+      action: 'unauthorized-access',
+      userId,
+      outcome: 'serious-failure',
+      details: {
+        resource,
+        description: details,
+      },
+    });
+  }
+
+  /**
+   * Log patient portal access events
+   */
+  async logPatientPortalAccess(
+    patientId: string,
+    action: string,
+    details?: string,
+  ): Promise<void> {
+    await this.logSecurityEvent({
+      type: SecurityEventType.SYSTEM_ACCESS,
+      action: `patient-portal-${action}`,
+      resourceType: 'Patient',
+      resourceId: patientId,
+      outcome: 'success',
+      details: {
+        description: details,
+        portal: 'patient',
+      },
+    });
+  }
+
+  /**
    * Cleanup on service destruction
    */
   ngOnDestroy(): void {

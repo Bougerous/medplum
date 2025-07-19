@@ -1,7 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
-import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
 
 interface TestResult {
   specimenId: string;
@@ -27,8 +25,7 @@ interface TestParameter {
 
 @Component({
   selector: 'app-result-entry',
-  standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule, DatePipe],
+  standalone: false,
   templateUrl: './result-entry.html',
   styleUrl: './result-entry.scss'
 })

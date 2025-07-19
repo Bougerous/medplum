@@ -1,10 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule, DatePipe, DecimalPipe } from '@angular/common';
-import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
-import { RoleService } from '../services/role.service';
-import { UserProfile, DashboardWidget, UserRole } from '../types/fhir-types';
+import { Component, OnInit } from '@angular/core';
 
 interface DashboardStats {
   totalPatients: number;
@@ -42,18 +36,12 @@ interface Alert {
 
 @Component({
   selector: 'app-dashboard',
-  standalone: true,
-  imports: [CommonModule, DatePipe, DecimalPipe],
+  standalone: false,
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
-export class Dashboard implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
-  
+export class Dashboard implements OnInit {
   currentDate = new Date();
-  currentUser: UserProfile | null = null;
-  dashboardWidgets: DashboardWidget[] = [];
-  userRoles: UserRole[] = [];
   
   dashboardStats: DashboardStats = {
     totalPatients: 1247,
@@ -158,108 +146,17 @@ export class Dashboard implements OnInit, OnDestroy {
     }
   ];
 
-  constructor(
-    private authService: AuthService,
-    private roleService: RoleService
-  ) { }
+  constructor() { }
 
   ngOnInit(): void {
-    // Subscribe to current user changes
-    this.authService.getCurrentUser()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(user => {
-        this.currentUser = user;
-        this.userRoles = user?.roles || [];
-        this.loadDashboardData();
-      });
-
-    // Subscribe to dashboard widgets based on user roles
-    this.roleService.getDashboardWidgetsForCurrentUser()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe(widgets => {
-        this.dashboardWidgets = widgets;
-      });
-  }
-
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
+    // Load dashboard data
+    this.loadDashboardData();
   }
 
   private loadDashboardData(): void {
-    if (!this.currentUser) {
-      return;
-    }
-
-    // Load role-specific dashboard data
-    this.loadRoleSpecificData();
-    
     // Simulate loading dashboard data
     // In a real implementation, this would make API calls to get actual data
-    console.log('Dashboard data loaded for roles:', this.userRoles);
-  }
-
-  private loadRoleSpecificData(): void {
-    // Customize data based on user roles
-    if (this.hasRole(['lab-technician', 'lab-manager'])) {
-      this.loadSpecimenData();
-    }
-    
-    if (this.hasRole(['pathologist', 'lab-manager'])) {
-      this.loadReportData();
-    }
-    
-    if (this.hasRole(['billing-staff', 'lab-manager'])) {
-      this.loadBillingData();
-    }
-    
-    if (this.hasRole(['admin', 'lab-manager'])) {
-      this.loadAnalyticsData();
-    }
-  }
-
-  private loadSpecimenData(): void {
-    // Load specimen-specific data for lab technicians
-    this.dashboardStats.totalSpecimens = 856;
-    this.dashboardStats.newSpecimensToday = 23;
-  }
-
-  private loadReportData(): void {
-    // Load report-specific data for pathologists
-    this.dashboardStats.pendingResults = 47;
-    this.dashboardStats.overdue = 3;
-  }
-
-  private loadBillingData(): void {
-    // Load billing-specific data for billing staff
-    this.dashboardStats.todayRevenue = 15420;
-  }
-
-  private loadAnalyticsData(): void {
-    // Load analytics data for managers and admins
-    // This would include comprehensive metrics
-  }
-
-  hasRole(roles: UserRole[]): boolean {
-    return roles.some(role => this.userRoles.includes(role));
-  }
-
-  getDashboardTitle(): string {
-    if (!this.currentUser) {
-      return 'Dashboard';
-    }
-
-    const primaryRole = this.userRoles[0];
-    const roleDisplayName = this.roleService.getRoleDisplayName(primaryRole);
-    return `${roleDisplayName} Dashboard`;
-  }
-
-  getUserRoleClass(): string {
-    if (!this.userRoles.length) {
-      return 'default-role';
-    }
-    
-    return `role-${this.userRoles[0].replace('-', '_')}`;
+    console.log('Dashboard data loaded');
   }
 
   completeTask(task: Task): void {

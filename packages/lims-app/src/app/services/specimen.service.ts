@@ -420,7 +420,7 @@ export class SpecimenService {
     dateTo?: string;
   }): Promise<Specimen[]> {
     try {
-      const searchParams: any = {};
+      const searchParams: Record<string, string> = {};
       
       if (criteria.patientId) {
         searchParams.subject = `Patient/${criteria.patientId}`;

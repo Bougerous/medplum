@@ -388,11 +388,13 @@ export class TerminologyService {
 
     // Add additional coding for grading if available
     if (diagnosisConcept.severity) {
-      codeableConcept.coding!.push({
+      if (codeableConcept.coding) {
+        codeableConcept.coding.push({
         system: SNOMED_CT_SYSTEM,
         code: diagnosisConcept.severity.code,
         display: diagnosisConcept.severity.display
-      });
+        });
+      }
     }
 
     return codeableConcept;

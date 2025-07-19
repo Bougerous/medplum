@@ -1,0 +1,347 @@
+.pending-reports-widget {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ecf0f1;
+    background: #f8f9fa;
+    
+    h4 {
+      margin: 0;
+      color: #2c3e50;
+      font-size: 1rem;
+      font-weight: 600;
+    }
+    
+    .reports-stats {
+      display: flex;
+      gap: 1rem;
+      
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        
+        .stat-value {
+          font-size: 1.2rem;
+          font-weight: 700;
+          color: #2c3e50;
+        }
+        
+        .stat-label {
+          font-size: 0.75rem;
+          color: #7f8c8d;
+          text-transform: uppercase;
+        }
+        
+        &.overdue {
+          .stat-value {
+            color: #e74c3c;
+          }
+        }
+      }
+    }
+  }
+  
+  .reports-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .loading-state, .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #7f8c8d;
+    
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 2px solid #ecf0f1;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 0.5rem;
+    }
+    
+    .empty-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .reports-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+    
+    .report-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      background: white;
+      border: 1px solid #ecf0f1;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        border-color: #3498db;
+        box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
+      }
+      
+      &.overdue {
+        border-left: 4px solid #e74c3c;
+        background: rgba(231, 76, 60, 0.02);
+        
+        &:hover {
+          border-color: #e74c3c;
+          box-shadow: 0 2px 8px rgba(231, 76, 60, 0.1);
+        }
+      }
+      
+      &.priority {
+        border-left: 4px solid #f39c12;
+        
+        &:hover {
+          border-color: #f39c12;
+          box-shadow: 0 2px 8px rgba(243, 156, 18, 0.1);
+        }
+      }
+      
+      .report-info {
+        flex: 1;
+        
+        .report-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 0.25rem;
+          
+          .accession-number {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+          }
+          
+          .priority-badge {
+            font-size: 0.7rem;
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-weight: 600;
+            text-transform: uppercase;
+            
+            &.stat {
+              background: rgba(231, 76, 60, 0.1);
+              color: #e74c3c;
+            }
+            
+            &.urgent {
+              background: rgba(243, 156, 18, 0.1);
+              color: #f39c12;
+            }
+            
+            &.routine {
+              background: rgba(39, 174, 96, 0.1);
+              color: #27ae60;
+            }
+          }
+        }
+        
+        .patient-name {
+          font-size: 0.85rem;
+          color: #2c3e50;
+          margin-bottom: 0.25rem;
+          font-weight: 500;
+        }
+        
+        .test-type {
+          font-size: 0.8rem;
+          color: #7f8c8d;
+          margin-bottom: 0.5rem;
+          font-style: italic;
+        }
+        
+        .report-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.1rem;
+          font-size: 0.75rem;
+          color: #7f8c8d;
+          margin-bottom: 0.25rem;
+          
+          .due-date {
+            &.overdue {
+              color: #e74c3c;
+              font-weight: 600;
+            }
+          }
+        }
+        
+        .assigned-pathologist {
+          font-size: 0.75rem;
+          color: #3498db;
+          font-weight: 500;
+        }
+      }
+      
+      .report-status {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        min-width: 80px;
+        
+        .status-indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          
+          &.status-partial {
+            background: #f39c12;
+          }
+          
+          &.status-preliminary {
+            background: #3498db;
+          }
+          
+          &.status-final {
+            background: #27ae60;
+          }
+          
+          &.status-amended {
+            background: #9b59b6;
+          }
+          
+          &.status-cancelled {
+            background: #e74c3c;
+          }
+          
+          &.status-unknown {
+            background: #95a5a6;
+          }
+        }
+        
+        .status-text {
+          font-size: 0.7rem;
+          color: #7f8c8d;
+          text-transform: capitalize;
+          text-align: center;
+        }
+        
+        .days-pending {
+          font-size: 0.7rem;
+          color: #7f8c8d;
+          text-align: center;
+          padding: 0.2rem 0.4rem;
+          background: #f8f9fa;
+          border-radius: 4px;
+          
+          &.overdue {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            font-weight: 600;
+          }
+        }
+      }
+    }
+  }
+  
+  .widget-actions {
+    padding: 1rem;
+    border-top: 1px solid #ecf0f1;
+    display: flex;
+    gap: 0.5rem;
+    
+    .action-btn {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      text-align: center;
+      
+      &.primary {
+        background: #3498db;
+        color: white;
+        
+        &:hover {
+          background: #2980b9;
+        }
+      }
+      
+      &.secondary {
+        background: #ecf0f1;
+        color: #2c3e50;
+        
+        &:hover {
+          background: #d5dbdb;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .pending-reports-widget {
+    .widget-header .reports-stats {
+      gap: 0.5rem;
+      
+      .stat-item {
+        .stat-value {
+          font-size: 1rem;
+        }
+        
+        .stat-label {
+          font-size: 0.7rem;
+        }
+      }
+    }
+    
+    .reports-list .report-item {
+      padding: 0.5rem;
+      
+      .report-info {
+        .report-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.25rem;
+        }
+        
+        .report-details {
+          gap: 0.05rem;
+        }
+      }
+      
+      .report-status {
+        min-width: 60px;
+      }
+    }
+  }
+}

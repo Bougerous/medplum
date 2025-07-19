@@ -326,7 +326,8 @@ export class PatientRegistration implements OnInit, OnDestroy {
 
     // Add optional fields
     if (formValue.gender) {
-      response.item![0].item!.push({
+      if (response.item?.[0]?.item) {
+        response.item[0].item.push({
         linkId: 'gender',
         text: 'Gender',
         answer: [{ valueString: formValue.gender }]
@@ -334,23 +335,23 @@ export class PatientRegistration implements OnInit, OnDestroy {
     }
 
     // Add contact information
-    const contactItem = response.item![1];
-    if (formValue.phone) {
-      contactItem.item!.push({
+    const contactItem = response.item?.[1];
+    if (formValue.phone && contactItem?.item) {
+      contactItem.item.push({
         linkId: 'phone',
         text: 'Phone Number',
         answer: [{ valueString: formValue.phone }]
       });
     }
-    if (formValue.email) {
-      contactItem.item!.push({
+    if (formValue.email && contactItem?.item) {
+      contactItem.item.push({
         linkId: 'email',
         text: 'Email Address',
         answer: [{ valueString: formValue.email }]
       });
     }
-    if (formValue.address) {
-      contactItem.item!.push({
+    if (formValue.address && contactItem?.item) {
+      contactItem.item.push({
         linkId: 'address',
         text: 'Address',
         answer: [{ valueString: formValue.address }]
@@ -358,23 +359,23 @@ export class PatientRegistration implements OnInit, OnDestroy {
     }
 
     // Add insurance information
-    const insuranceItem = response.item![2];
-    if (formValue.insuranceProvider) {
-      insuranceItem.item!.push({
+    const insuranceItem = response.item?.[2];
+    if (formValue.insuranceProvider && insuranceItem?.item) {
+      insuranceItem.item.push({
         linkId: 'insuranceProvider',
         text: 'Insurance Provider',
         answer: [{ valueString: formValue.insuranceProvider }]
       });
     }
-    if (formValue.policyNumber) {
-      insuranceItem.item!.push({
+    if (formValue.policyNumber && insuranceItem?.item) {
+      insuranceItem.item.push({
         linkId: 'policyNumber',
         text: 'Policy Number',
         answer: [{ valueString: formValue.policyNumber }]
       });
     }
-    if (formValue.groupNumber) {
-      insuranceItem.item!.push({
+    if (formValue.groupNumber && insuranceItem?.item) {
+      insuranceItem.item.push({
         linkId: 'groupNumber',
         text: 'Group Number',
         answer: [{ valueString: formValue.groupNumber }]

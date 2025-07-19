@@ -1,0 +1,133 @@
+<div class="access-denied-container">
+  <div class="access-denied-content">
+    <!-- Icon -->
+    <div class="access-denied-icon">
+      <i [class]="getAccessDeniedIcon()"></i>
+    </div>
+
+    <!-- Title -->
+    <h1 class="access-denied-title">
+      {{ getAccessDeniedTitle() }}
+    </h1>
+
+    <!-- Message -->
+    <p class="access-denied-message">
+      {{ getAccessDeniedMessage() }}
+    </p>
+
+    <!-- Additional Info for Authenticated Users -->
+    <div class="access-denied-details" *ngIf="currentUser">
+      <div class="user-info">
+        <h3>Current User Information</h3>
+        <div class="info-item">
+          <label>Name:</label>
+          <span>{{ currentUser.practitioner.name?.[0]?.given?.join(' ') }} {{ currentUser.practitioner.name?.[0]?.family }}</span>
+        </div>
+        <div class="info-item">
+          <label>Roles:</label>
+          <span>{{ currentUser.roles.join(', ') }}</span>
+        </div>
+        <div class="info-item" *ngIf="attemptedUrl">
+          <label>Attempted URL:</label>
+          <span class="url">{{ attemptedUrl }}</span>
+        </div>
+      </div>
+
+      <div class="access-requirements" *ngIf="reason">
+        <h3>Access Requirements</h3>
+        <p>{{ reason }}</p>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="access-denied-actions">
+      <!-- For unauthenticated users -->
+      <div class="unauthenticated-actions" *ngIf="!currentUser">
+        <button class="primary-btn" (click)="login()">
+          <i class="icon-login"></i>
+          Sign In
+        </button>
+        <p class="help-text">
+          Already have an account? Sign in to access your portal.
+        </p>
+      </div>
+
+      <!-- For authenticated users -->
+      <div class="authenticated-actions" *ngIf="currentUser">
+        <div class="primary-actions">
+          <button class="primary-btn" (click)="goBack()">
+            <i class="icon-arrow-left"></i>
+            Go Back
+          </button>
+          
+          <button 
+            class="secondary-btn" 
+            (click)="requestAccess()"
+            *ngIf="canRequestAccess">
+            <i class="icon-request"></i>
+            Request Access
+          </button>
+        </div>
+
+        <div class="help-section">
+          <h4>Need Help?</h4>
+          <p>
+            If you believe you should have access to this resource, please:
+          </p>
+          <ul>
+            <li>Contact your system administrator</li>
+            <li>Verify you have the correct role assignments</li>
+            <li>Check if additional permissions are required</li>
+          </ul>
+          
+          <div class="contact-info" *ngIf="contactInfo">
+            <p>
+              <strong>Support Contact:</strong> 
+              <a [href]="'mailto:' + contactInfo">{{ contactInfo }}</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Notice -->
+    <div class="security-notice">
+      <div class="notice-content">
+        <i class="icon-info"></i>
+        <div class="notice-text">
+          <strong>Security Notice:</strong>
+          This access attempt has been logged for security purposes. 
+          Unauthorized access attempts may result in account suspension.
+        </div>
+      </div>
+    </div>
+
+    <!-- Common Issues -->
+    <div class="common-issues" *ngIf="currentUser">
+      <details>
+        <summary>Common Access Issues</summary>
+        <div class="issues-content">
+          <div class="issue-item">
+            <h5>Insufficient Role Permissions</h5>
+            <p>Your current role may not have access to this resource. Contact your administrator to request additional permissions.</p>
+          </div>
+          
+          <div class="issue-item">
+            <h5>Patient-Provider Relationship Required</h5>
+            <p>Access to patient data requires an established patient-provider relationship. Verify the relationship exists and is active.</p>
+          </div>
+          
+          <div class="issue-item">
+            <h5>Resource Ownership</h5>
+            <p>You can only access resources that you own or have been explicitly granted access to.</p>
+          </div>
+          
+          <div class="issue-item">
+            <h5>Session Expired</h5>
+            <p>Your session may have expired. Try logging out and logging back in.</p>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>

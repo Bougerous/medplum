@@ -4,7 +4,7 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "[javascriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -18,8 +18,26 @@
   "[jsonc]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.suggest.insertMode": "replace"
+  },
   "editor.codeActionsOnSave": {
     "source.fixAll.eslint": "never"
+  },
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "angular.enable-strict-mode-prompt": false,
+  "angular.experimental-ivy": true,
+  "html.suggest.html5": true,
+  "emmet.includeLanguages": {
+    "typescript": "html"
+  },
+  "files.associations": {
+    "*.component.html": "html",
+    "*.component.ts": "typescript"
   },
   "cSpell.words": [
     "auditevent",
@@ -27,5 +45,6 @@
     "FHIR",
     "Fhircast",
     "Medplum"
-  ]
+  ],
+  "postman.settings.dotenv-detection-notification-visibility": false
 }

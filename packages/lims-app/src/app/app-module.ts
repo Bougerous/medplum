@@ -1,43 +1,48 @@
-import { NgModule, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
-import { BrowserModule, provideClientHydration, withEventReplay } from '@angular/platform-browser';
-import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { HttpClientModule } from '@angular/common/http';
+import { NgModule, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
+import { BrowserModule, provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { Home } from './home/home';
+import { Login } from './login/login';
+import { Dashboard } from './dashboard/dashboard';
 import { PatientRegistration } from './patient-registration/patient-registration';
 import { SpecimenAccessioning } from './specimen-accessioning/specimen-accessioning';
 import { TestOrdering } from './test-ordering/test-ordering';
-import { Login } from './login/login';
-import { Dashboard } from './dashboard/dashboard';
-import { Reports } from './reports/reports';
 import { ResultEntry } from './result-entry/result-entry';
 import { SampleTracking } from './sample-tracking/sample-tracking';
+import { Reports } from './reports/reports';
 
-// Import the new terminology module
-import { TerminologyModule } from './modules/terminology.module';
+// Import portal components
+import { PatientPortalComponent } from './portals/patient-portal/patient-portal';
+import { ProviderPortalComponent } from './portals/provider-portal/provider-portal';
+import { AccessDeniedComponent } from './components/access-denied/access-denied.component';
 
 @NgModule({
   declarations: [
     App,
     Home,
+    Login,
+    Dashboard,
     PatientRegistration,
     SpecimenAccessioning,
     TestOrdering,
-    Login
+    ResultEntry,
+    SampleTracking,
+    Reports,
+    PatientPortalComponent,
+    ProviderPortalComponent,
+    AccessDeniedComponent
   ],
   imports: [
     BrowserModule,
     CommonModule,
+    HttpClientModule,
     AppRoutingModule,
-    ReactiveFormsModule,
-    FormsModule,
-    Dashboard,
-    Reports,
-    ResultEntry,
-    SampleTracking,
-    TerminologyModule
+    ReactiveFormsModule
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

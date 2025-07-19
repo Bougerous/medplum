@@ -1,0 +1,874 @@
+.compliance-dashboard-container {
+  padding: 20px;
+
+  .dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+
+    h2 {
+      margin: 0;
+      color: #333;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+    }
+  }
+
+  // Summary Cards
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+
+    .summary-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 15px;
+
+      .card-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: white;
+      }
+
+      .card-content {
+        flex: 1;
+
+        .card-value {
+          font-size: 28px;
+          font-weight: bold;
+          color: #333;
+          line-height: 1;
+        }
+
+        .card-label {
+          font-size: 14px;
+          color: #666;
+          margin: 5px 0;
+        }
+
+        .card-trend {
+          font-size: 12px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+
+          &.improving {
+            color: #28a745;
+          }
+
+          &.declining {
+            color: #dc3545;
+          }
+
+          &.stable {
+            color: #6c757d;
+          }
+        }
+
+        .card-breakdown {
+          font-size: 12px;
+          display: flex;
+          gap: 10px;
+          margin-top: 5px;
+
+          span {
+            padding: 2px 6px;
+            border-radius: 4px;
+
+            &.critical {
+              background: #f8d7da;
+              color: #721c24;
+            }
+
+            &.high {
+              background: #fff3cd;
+              color: #856404;
+            }
+
+            &.compliant {
+              background: #d4edda;
+              color: #155724;
+            }
+
+            &.non-compliant {
+              background: #f8d7da;
+              color: #721c24;
+            }
+
+            &.intact {
+              background: #d4edda;
+              color: #155724;
+            }
+
+            &.broken {
+              background: #f8d7da;
+              color: #721c24;
+            }
+          }
+        }
+      }
+
+      &.compliance-rate .card-icon {
+        background: linear-gradient(135deg, #28a745, #20c997);
+      }
+
+      &.violations .card-icon {
+        background: linear-gradient(135deg, #dc3545, #fd7e14);
+      }
+
+      &.specimens .card-icon {
+        background: linear-gradient(135deg, #007bff, #6610f2);
+      }
+
+      &.chain-of-custody .card-icon {
+        background: linear-gradient(135deg, #17a2b8, #6f42c1);
+      }
+    }
+  }
+
+  // Tabs
+  .tabs-container {
+    margin-bottom: 20px;
+
+    .nav-tabs {
+      border-bottom: 2px solid #dee2e6;
+
+      .nav-item {
+        margin-bottom: -2px;
+
+        .nav-link {
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: #666;
+          padding: 12px 20px;
+          cursor: pointer;
+
+          &:hover {
+            color: #007bff;
+            border-bottom-color: #007bff;
+          }
+
+          &.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            background-color: transparent;
+          }
+        }
+      }
+    }
+  }
+
+  .tab-content {
+    min-height: 400px;
+  }
+
+  // Violations Tab
+  .violations-section {
+    .filters-bar {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+
+      form {
+        display: flex;
+        gap: 15px;
+        align-items: end;
+
+        .filter-group {
+          flex: 1;
+          min-width: 150px;
+        }
+      }
+    }
+
+    .violations-table-container {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+
+      .table {
+        margin-bottom: 0;
+
+        th {
+          background: #f8f9fa;
+          border-top: none;
+          font-weight: 600;
+        }
+
+        .severity-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+
+          &[data-severity="critical"] {
+            background: #dc3545;
+            color: white;
+          }
+
+          &[data-severity="high"] {
+            background: #fd7e14;
+            color: white;
+          }
+
+          &[data-severity="medium"] {
+            background: #ffc107;
+            color: #212529;
+          }
+
+          &[data-severity="low"] {
+            background: #6c757d;
+            color: white;
+          }
+        }
+
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 500;
+          text-transform: uppercase;
+
+          &[data-status="resolved"] {
+            background: #d4edda;
+            color: #155724;
+          }
+
+          &[data-status="unresolved"] {
+            background: #f8d7da;
+            color: #721c24;
+          }
+        }
+      }
+    }
+  }
+
+  // Audit Trails Tab
+  .audit-trails-section {
+    .search-bar {
+      margin-bottom: 20px;
+
+      .form-control {
+        max-width: 400px;
+      }
+    }
+
+    .audit-trails-list {
+      display: grid;
+      gap: 20px;
+
+      .audit-trail-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+
+        .trail-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+
+          .trail-info {
+            h4 {
+              margin: 0 0 5px 0;
+              color: #333;
+            }
+
+            .specimen-id {
+              font-size: 12px;
+              color: #666;
+              background: #e9ecef;
+              padding: 2px 6px;
+              border-radius: 4px;
+            }
+          }
+
+          .trail-status {
+            display: flex;
+            flex-direction: column;
+            align-items: end;
+            gap: 5px;
+
+            .compliance-badge {
+              padding: 4px 8px;
+              border-radius: 12px;
+              font-size: 11px;
+              font-weight: 500;
+              text-transform: uppercase;
+
+              &[data-status="compliant"] {
+                background: #d4edda;
+                color: #155724;
+              }
+
+              &[data-status="non-compliant"] {
+                background: #f8d7da;
+                color: #721c24;
+              }
+
+              &[data-status="warning"] {
+                background: #fff3cd;
+                color: #856404;
+              }
+            }
+
+            .quality-score {
+              font-size: 12px;
+              color: #666;
+            }
+          }
+        }
+
+        .trail-summary {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+          gap: 15px;
+          margin-bottom: 15px;
+
+          .summary-item {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+
+            label {
+              font-size: 12px;
+              color: #666;
+              font-weight: 500;
+            }
+
+            span {
+              font-size: 14px;
+              color: #333;
+
+              &.chain-intact {
+                color: #28a745;
+              }
+
+              &.chain-broken {
+                color: #dc3545;
+              }
+
+              &.chain-questionable {
+                color: #ffc107;
+              }
+
+              &.violations-count {
+                color: #dc3545;
+                font-weight: 500;
+              }
+            }
+          }
+        }
+
+        .trail-actions {
+          display: flex;
+          gap: 10px;
+        }
+      }
+    }
+  }
+
+  // Reports Tab
+  .reports-section {
+    .report-generator {
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+
+      h4 {
+        margin: 0 0 15px 0;
+        color: #333;
+      }
+    }
+
+    .reports-list {
+      h4 {
+        margin-bottom: 15px;
+        color: #333;
+      }
+
+      .reports-table-container {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+
+        .table {
+          margin-bottom: 0;
+
+          th {
+            background: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+          }
+
+          .compliance-rate {
+            font-weight: 500;
+
+            &.excellent {
+              color: #28a745;
+            }
+
+            &.good {
+              color: #20c997;
+            }
+
+            &.warning {
+              color: #ffc107;
+            }
+
+            &.poor {
+              color: #dc3545;
+            }
+          }
+
+          .violations-summary {
+            small {
+              color: #666;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Requirements Tab
+  .requirements-section {
+    .requirements-list {
+      display: grid;
+      gap: 20px;
+
+      .requirement-card {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        padding: 20px;
+
+        .requirement-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+
+          h4 {
+            margin: 0;
+            color: #333;
+          }
+
+          .requirement-category {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+            text-transform: uppercase;
+
+            &[data-category="CAP"] {
+              background: #d1ecf1;
+              color: #0c5460;
+            }
+
+            &[data-category="CLIA"] {
+              background: #d4edda;
+              color: #155724;
+            }
+
+            &[data-category="FDA"] {
+              background: #fff3cd;
+              color: #856404;
+            }
+
+            &[data-category="ISO"] {
+              background: #e2e3e5;
+              color: #383d41;
+            }
+          }
+        }
+
+        .requirement-description {
+          margin-bottom: 20px;
+
+          p {
+            color: #666;
+            margin: 0;
+          }
+        }
+
+        .requirement-details {
+          .detail-section {
+            margin-bottom: 20px;
+
+            h6 {
+              margin: 0 0 10px 0;
+              color: #333;
+              font-weight: 600;
+            }
+
+            ul {
+              list-style: none;
+              padding: 0;
+              margin: 0;
+
+              li {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 5px;
+                font-size: 14px;
+
+                i {
+                  color: #28a745;
+                  font-size: 12px;
+                }
+
+                small {
+                  color: #666;
+                  margin-left: 5px;
+                }
+              }
+            }
+
+            .specimen-types {
+              display: flex;
+              flex-wrap: wrap;
+              gap: 5px;
+
+              .specimen-type-badge {
+                background: #e9ecef;
+                padding: 2px 6px;
+                border-radius: 4px;
+                font-size: 12px;
+                color: #495057;
+              }
+            }
+
+            .penalties {
+              .penalty-item {
+                margin-bottom: 8px;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 14px;
+
+                strong {
+                  display: inline-block;
+                  min-width: 80px;
+                }
+
+                &.warning {
+                  background: #fff3cd;
+                  border-left: 4px solid #ffc107;
+                }
+
+                &.violation {
+                  background: #f8d7da;
+                  border-left: 4px solid #dc3545;
+                }
+
+                &.critical {
+                  background: #f5c6cb;
+                  border-left: 4px solid #721c24;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Modal styles
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1050;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+
+    &.show {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-dialog {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 1200px;
+      width: 95%;
+      max-height: 90vh;
+      overflow-y: auto;
+
+      &.modal-xl {
+        max-width: 1200px;
+      }
+    }
+
+    .modal-header {
+      padding: 15px 20px;
+      border-bottom: 1px solid #dee2e6;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .modal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .btn-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+
+        &:hover {
+          color: #333;
+        }
+      }
+    }
+
+    .modal-body {
+      padding: 20px;
+    }
+
+    .modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid #dee2e6;
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  }
+
+  // Audit Trail Details
+  .audit-trail-details {
+    .timeline-section {
+      margin-bottom: 30px;
+
+      h6 {
+        margin-bottom: 15px;
+        color: #333;
+        font-weight: 600;
+      }
+
+      .timeline {
+        position: relative;
+        padding-left: 30px;
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: 15px;
+          top: 0;
+          bottom: 0;
+          width: 2px;
+          background: #dee2e6;
+        }
+
+        .timeline-item {
+          position: relative;
+          margin-bottom: 20px;
+
+          .timeline-marker {
+            position: absolute;
+            left: -22px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid white;
+
+            &[data-outcome="success"] {
+              background: #28a745;
+            }
+
+            &[data-outcome="warning"] {
+              background: #ffc107;
+            }
+
+            &[data-outcome="failure"] {
+              background: #dc3545;
+            }
+          }
+
+          .timeline-content {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+
+            .timeline-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 10px;
+
+              strong {
+                color: #333;
+              }
+
+              .timestamp {
+                font-size: 12px;
+                color: #666;
+              }
+            }
+
+            .timeline-details {
+              font-size: 14px;
+              color: #666;
+
+              >div {
+                margin-bottom: 5px;
+              }
+
+              .compliance-flags {
+                margin-top: 8px;
+
+                .flag-badge {
+                  display: inline-block;
+                  padding: 2px 6px;
+                  border-radius: 4px;
+                  font-size: 11px;
+                  margin-right: 5px;
+
+                  &[data-type="warning"] {
+                    background: #fff3cd;
+                    color: #856404;
+                  }
+
+                  &[data-type="violation"] {
+                    background: #f8d7da;
+                    color: #721c24;
+                  }
+
+                  &[data-type="critical"] {
+                    background: #dc3545;
+                    color: white;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .metrics-section {
+      h6 {
+        margin-bottom: 15px;
+        color: #333;
+        font-weight: 600;
+      }
+
+      .metrics-grid {
+        display: grid;
+        gap: 15px;
+
+        .metric-item {
+          label {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+            font-weight: 500;
+          }
+
+          .metric-bar {
+            position: relative;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+
+            .metric-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #28a745, #20c997);
+              transition: width 0.3s ease;
+            }
+
+            .metric-value {
+              position: absolute;
+              right: 8px;
+              top: 50%;
+              transform: translateY(-50%);
+              font-size: 12px;
+              font-weight: 500;
+              color: #333;
+            }
+          }
+
+          &.overall .metric-fill {
+            background: linear-gradient(90deg, #007bff, #6610f2);
+          }
+        }
+      }
+    }
+  }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .compliance-dashboard-container {
+    padding: 10px;
+
+    .dashboard-header {
+      flex-direction: column;
+      gap: 15px;
+      align-items: stretch;
+
+      .header-actions {
+        justify-content: center;
+      }
+    }
+
+    .summary-cards {
+      grid-template-columns: 1fr;
+    }
+
+    .violations-section .filters-bar form {
+      flex-direction: column;
+    }
+
+    .audit-trails-list .audit-trail-card .trail-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 10px;
+    }
+
+    .reports-section .report-generator .row {
+      flex-direction: column;
+    }
+
+    .modal-dialog {
+      width: 95%;
+      margin: 10px;
+    }
+  }
+}

@@ -63,6 +63,7 @@
     "rfc6902": "5.1.2"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/pdfmake": "0.2.11"
   },
   "engines": {
