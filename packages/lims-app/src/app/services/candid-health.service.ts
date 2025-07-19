@@ -240,7 +240,7 @@ export class CandidHealthService {
     try {
       // Convert FHIR Claim to Candid Health format
       const candidClaim = await this.convertFhirClaimToCandid(claim);
-      
+
       // Submit to Candid Health API
       const response = await this.makeApiCall<CandidHealthClaimResponse>(
         'POST',
@@ -295,7 +295,7 @@ export class CandidHealthService {
   async processWebhook(webhookData: unknown): Promise<void> {
     try {
       const claimResponse = webhookData as CandidHealthClaimResponse;
-      
+
       // Find the original FHIR claim
       const originalClaim = await this.findOriginalClaim(claimResponse.external_id);
       if (!originalClaim) {
@@ -455,7 +455,7 @@ export class CandidHealthService {
 
     return this.retryService.executeWithRetry(async () => {
       let response;
-      
+
       switch (method.toUpperCase()) {
         case 'GET':
           response = await this.http.get<T>(url, { headers }).toPromise();
@@ -478,7 +478,7 @@ export class CandidHealthService {
       }
 
       return response;
-    }, this.config.retryAttempts);
+    }, { maxRetries: this.config.retryAttempts });
   }
 
   private async convertFhirClaimToCandid(claim: Claim): Promise<CandidHealthClaim> {
@@ -487,15 +487,15 @@ export class CandidHealthService {
     if (!patientId) {
       throw new Error('Patient reference is required');
     }
-    
+
     const patient = await this.medplumService.readResource<Patient>('Patient', patientId);
-    
+
     // Get provider information
     const providerId = claim.provider?.reference?.split('/')[1];
     if (!providerId) {
       throw new Error('Provider reference is required');
     }
-    
+
     const provider = await this.medplumService.readResource<Practitioner>('Practitioner', providerId);
 
     // Get coverage information
@@ -535,7 +535,7 @@ export class CandidHealthService {
   }
 
   private convertDiagnosesToCandid(diagnoses: unknown[]): CandidHealthDiagnosis[] {
-    return diagnoses.map(diagnosis => ({
+    return diagnoses.map((diagnosis: any) => ({
       diagnosis_code: diagnosis.diagnosisCodeableConcept?.coding?.[0]?.code || '',
       code_type: 'ABF' as const,
       name: diagnosis.diagnosisCodeableConcept?.coding?.[0]?.display
@@ -543,7 +543,7 @@ export class CandidHealthService {
   }
 
   private convertServiceLinesToCandid(items: unknown[]): CandidHealthServiceLine[] {
-    return items.map(item => ({
+    return items.map((item: any) => ({
       procedure_code: item.productOrService?.coding?.[0]?.code || '',
       quantity: item.quantity?.value?.toString() || '1',
       units: 'UN',

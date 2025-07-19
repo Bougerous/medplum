@@ -1,4 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule, TitleCasePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -27,7 +29,13 @@ interface PatientPortalData {
 @Component({
   selector: 'app-patient-portal',
   templateUrl: './patient-portal.html',
-  styleUrls: ['./patient-portal.scss']
+  styleUrls: ['./patient-portal.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    TitleCasePipe
+  ]
 })
 export class PatientPortalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
@@ -401,7 +409,7 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
 
       await this.medplumService.createResource(communication);
 
-      this.notificationService.showSuccess('Message sent successfully');
+      this.notificationService.showSuccess('Message Sent', 'Message sent successfully');
 
       // Reload communications
       const communications = await this.loadCommunications(this.patientData.patient.id);
@@ -426,7 +434,7 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
       const updatedResource = await this.medplumService.updateResource(patient);
 
       this.patientData.patient = updatedResource;
-      this.notificationService.showSuccess('Profile updated successfully');
+      this.notificationService.showSuccess('Profile Updated', 'Profile updated successfully');
 
       // Log profile update
       await this.auditService.logPatientPortalAccess(
@@ -568,6 +576,6 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
    */
   editProfile(): void {
     // This would open a profile editing modal or navigate to edit page
-    this.notificationService.showInfo('Profile editing will be available in a future update');
+    this.notificationService.showInfo('Profile Editing', 'Profile editing will be available in a future update');
   }
 }

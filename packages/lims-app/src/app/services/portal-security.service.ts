@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, interval } from 'rxjs';
 import { map, switchMap, catchError } from 'rxjs/operators';
-import { 
-  Patient, 
-  Practitioner, 
+import {
+  Patient,
+  Practitioner,
   Reference,
   Bundle,
   AuditEvent,
@@ -11,7 +11,7 @@ import {
 } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { AuthService } from './auth.service';
-import { AuditService } from './audit.service';
+import { AuditService, SecurityEventType } from './audit.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { SessionService } from './session.service';
 import { UserProfile, LIMSErrorType } from '../types/fhir-types';
@@ -90,7 +90,7 @@ export class PortalSecurityService {
   private securityAlerts$ = new BehaviorSubject<SecurityAlert[]>([]);
   private activeSessions$ = new BehaviorSubject<SessionMonitoring[]>([]);
   private portalAccessPolicies: PortalAccessPolicy[] = [];
-  
+
   // Security monitoring
   private monitoringInterval: any;
   private readonly MONITORING_INTERVAL_MS = 30000; // 30 seconds
@@ -115,13 +115,13 @@ export class PortalSecurityService {
     try {
       // Load access policies
       await this.loadPortalAccessPolicies();
-      
+
       // Load patient-provider relationships
       await this.loadPatientProviderRelationships();
-      
+
       // Start security monitoring
       this.startSecurityMonitoring();
-      
+
       console.log('Portal security system initialized');
     } catch (error) {
       console.error('Failed to initialize portal security:', error);
@@ -236,7 +236,7 @@ export class PortalSecurityService {
       // In a real implementation, this would query a specific resource type
       // or extension that tracks patient-provider relationships
       const relationships: PatientProviderRelationship[] = [];
-      
+
       // For now, we'll derive relationships from Patient.generalPractitioner
       const patientBundle = await this.medplumService.searchResources<Patient>(
         'Patient',
@@ -247,7 +247,7 @@ export class PortalSecurityService {
       );
 
       const patients = patientBundle.entry?.map(entry => entry.resource!).filter(Boolean) || [];
-      
+
       for (const patient of patients) {
         if (patient.generalPractitioner) {
           for (const practitionerRef of patient.generalPractitioner) {
@@ -278,22 +278,22 @@ export class PortalSecurityService {
    * Validate patient-provider relationship
    */
   async validatePatientProviderRelationship(
-    patientId: string, 
+    patientId: string,
     providerId: string
   ): Promise<boolean> {
     try {
       const relationships = this.patientProviderRelationships$.value;
-      
-      const relationship = relationships.find(rel => 
-        rel.patientId === patientId && 
-        rel.providerId === providerId && 
+
+      const relationship = relationships.find(rel =>
+        rel.patientId === patientId &&
+        rel.providerId === providerId &&
         rel.active
       );
 
       if (relationship) {
         // Log successful validation
         await this.auditService.logAuthorizationEvent(
-          'relationship-validated',
+          'access-granted',
           'Patient',
           patientId,
           { providerId, relationshipType: relationship.relationshipType }
@@ -303,7 +303,7 @@ export class PortalSecurityService {
 
       // Log failed validation
       await this.auditService.logAuthorizationEvent(
-        'relationship-validation-failed',
+        'access-denied',
         'Patient',
         patientId,
         { providerId, reason: 'No active relationship found' }
@@ -311,7 +311,7 @@ export class PortalSecurityService {
 
       // Create security alert for unauthorized access attempt
       await this.createSecurityAlert({
-        type: 'unauthorized-access',
+        type: 'suspicious-activity',
         severity: 'medium',
         userId: providerId,
         resourceType: 'Patient',
@@ -339,7 +339,7 @@ export class PortalSecurityService {
   ): Promise<boolean> {
     try {
       // Find applicable access policy
-      const policy = this.portalAccessPolicies.find(p => 
+      const policy = this.portalAccessPolicies.find(p =>
         p.resourceType === resourceType || p.resourceType === '*'
       );
 
@@ -379,9 +379,9 @@ export class PortalSecurityService {
             'access-denied',
             resourceType,
             resourceId,
-            { 
-              reason: `Access condition not met: ${condition.description}`, 
-              userId, 
+            {
+              reason: `Access condition not met: ${condition.description}`,
+              userId,
               action,
               condition: condition.type
             }
@@ -418,16 +418,16 @@ export class PortalSecurityService {
     switch (condition.type) {
       case 'role':
         return this.evaluateRoleCondition(condition, userRole);
-      
+
       case 'relationship':
         return await this.evaluateRelationshipCondition(condition, userId, resourceId);
-      
+
       case 'resource-owner':
         return await this.evaluateResourceOwnerCondition(condition, userId, resourceType, resourceId);
-      
+
       case 'time':
         return this.evaluateTimeCondition(condition);
-      
+
       default:
         console.warn(`Unknown access condition type: ${condition.type}`);
         return false;
@@ -459,10 +459,10 @@ export class PortalSecurityService {
     resourceId?: string
   ): Promise<boolean> {
     if (!resourceId) return false;
-    
+
     // For patient resources, check if user is the patient
     if (resourceId === userId) return true;
-    
+
     // For other resources, check patient-provider relationship
     return await this.validatePatientProviderRelationship(resourceId, userId);
   }
@@ -477,19 +477,19 @@ export class PortalSecurityService {
     resourceId?: string
   ): Promise<boolean> {
     if (!resourceId) return false;
-    
+
     try {
       // Check if user owns the resource
       if (resourceType === 'Patient') {
         return resourceId === userId;
       }
-      
+
       // For other resources, check if they reference the user
       const resource = await this.medplumService.readResource(resourceType, resourceId);
-      
+
       // Check various reference fields that might indicate ownership
       const ownershipFields = ['subject', 'patient', 'requester', 'performer'];
-      
+
       for (const field of ownershipFields) {
         const fieldValue = (resource as any)[field];
         if (fieldValue) {
@@ -504,7 +504,7 @@ export class PortalSecurityService {
           }
         }
       }
-      
+
       return false;
     } catch (error) {
       console.error('Error evaluating resource owner condition:', error);
@@ -518,7 +518,7 @@ export class PortalSecurityService {
   private evaluateTimeCondition(condition: AccessCondition): boolean {
     const now = new Date();
     const conditionTime = new Date(condition.value);
-    
+
     switch (condition.operator) {
       case 'before':
         return now < conditionTime;
@@ -546,7 +546,7 @@ export class PortalSecurityService {
 
     // Log to audit service
     await this.auditService.logSecurityAlert(
-      alert.type,
+      'suspicious-activity',
       {
         alertId: alert.id,
         severity: alert.severity,
@@ -574,7 +574,7 @@ export class PortalSecurityService {
       if (alert.userId) {
         // Force logout user
         await this.sessionService.terminateUserSessions(alert.userId);
-        
+
         // Temporarily disable user account
         // This would typically involve updating the user's status
         console.log(`Critical alert: User ${alert.userId} sessions terminated`);
@@ -582,7 +582,7 @@ export class PortalSecurityService {
 
       // Notify security team (in production, this would send actual notifications)
       console.log('CRITICAL SECURITY ALERT:', alert);
-      
+
     } catch (error) {
       console.error('Error handling critical security alert:', error);
     }
@@ -607,10 +607,10 @@ export class PortalSecurityService {
   private async performSecurityChecks(): Promise<void> {
     // Check for suspicious session activity
     await this.checkSuspiciousActivity();
-    
+
     // Check for expired sessions
     await this.checkExpiredSessions();
-    
+
     // Check for failed login attempts
     await this.checkFailedLoginAttempts();
   }
@@ -620,32 +620,32 @@ export class PortalSecurityService {
    */
   private async checkSuspiciousActivity(): Promise<void> {
     const sessions = this.activeSessions$.value;
-    
+
     for (const session of sessions) {
       let riskScore = 0;
-      
+
       // Check for rapid successive actions
       const recentActivities = session.activities.filter(
         activity => Date.now() - activity.timestamp.getTime() < 60000 // Last minute
       );
-      
+
       if (recentActivities.length > 20) {
         riskScore += 5;
       }
-      
+
       // Check for unusual access patterns
       const uniqueResourceTypes = new Set(
         recentActivities.map(activity => activity.resourceType).filter(Boolean)
       );
-      
+
       if (uniqueResourceTypes.size > 10) {
         riskScore += 3;
       }
-      
+
       // Update session risk score
       session.riskScore = riskScore;
       session.suspicious = riskScore >= this.SUSPICIOUS_ACTIVITY_THRESHOLD;
-      
+
       // Create alert for suspicious activity
       if (session.suspicious && !session.activities.some(a => a.action === 'suspicious-activity-detected')) {
         await this.createSecurityAlert({
@@ -655,7 +655,7 @@ export class PortalSecurityService {
           description: `Suspicious activity detected for user ${session.userId} (risk score: ${riskScore})`,
           actions: ['monitor-closely', 'require-re-authentication']
         });
-        
+
         // Add marker activity
         session.activities.push({
           timestamp: new Date(),
@@ -672,18 +672,18 @@ export class PortalSecurityService {
   private async checkExpiredSessions(): Promise<void> {
     const sessions = this.activeSessions$.value;
     const now = new Date();
-    
+
     for (const session of sessions) {
       const timeSinceLastActivity = now.getTime() - session.lastActivity.getTime();
-      
+
       if (timeSinceLastActivity > this.SESSION_TIMEOUT_MS) {
         // Terminate expired session
         await this.sessionService.terminateSession(session.sessionId);
-        
+
         // Remove from active sessions
         const updatedSessions = sessions.filter(s => s.sessionId !== session.sessionId);
         this.activeSessions$.next(updatedSessions);
-        
+
         console.log(`Expired session terminated: ${session.sessionId}`);
       }
     }
@@ -695,22 +695,22 @@ export class PortalSecurityService {
   private async checkFailedLoginAttempts(): Promise<void> {
     // This would typically query audit logs for failed login attempts
     // For now, we'll implement a simplified version
-    
+
     try {
       const recentAudits = await this.auditService.searchEvents({
-        type: 'authentication',
+        type: SecurityEventType.AUTHENTICATION,
         action: 'login-failure',
         fromDate: new Date(Date.now() - 3600000) // Last hour
       });
-      
+
       // Group by user
       const failuresByUser = new Map<string, number>();
-      
+
       for (const audit of recentAudits) {
         const userId = audit.userId || 'unknown';
         failuresByUser.set(userId, (failuresByUser.get(userId) || 0) + 1);
       }
-      
+
       // Check for excessive failures
       for (const [userId, failures] of failuresByUser.entries()) {
         if (failures >= this.MAX_FAILED_ATTEMPTS) {

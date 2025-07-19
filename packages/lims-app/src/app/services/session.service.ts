@@ -63,7 +63,7 @@ export class SessionService {
    */
   private startSession(): void {
     const now = new Date();
-    
+
     this.sessionInfo$.next({
       startTime: now,
       lastActivity: now,
@@ -74,7 +74,7 @@ export class SessionService {
 
     this.startSessionTimer();
     this.auditService.logAuthenticationEvent('login-success');
-    
+
     console.log('Session started');
   }
 
@@ -83,7 +83,7 @@ export class SessionService {
    */
   private endSession(): void {
     this.clearTimers();
-    
+
     const currentSession = this.sessionInfo$.value;
     this.sessionInfo$.next({
       ...currentSession,
@@ -104,7 +104,7 @@ export class SessionService {
 
     const now = new Date();
     const currentSession = this.sessionInfo$.value;
-    
+
     this.sessionInfo$.next({
       ...currentSession,
       lastActivity: now,
@@ -168,7 +168,7 @@ export class SessionService {
   private updateRemainingTime(): void {
     const updateInterval = setInterval(() => {
       const currentSession = this.sessionInfo$.value;
-      
+
       if (!currentSession.isActive) {
         clearInterval(updateInterval);
         return;
@@ -193,7 +193,7 @@ export class SessionService {
    */
   private showTimeoutWarning(): void {
     const currentSession = this.sessionInfo$.value;
-    
+
     if (currentSession.timeoutWarningShown || !currentSession.isActive) {
       return;
     }
@@ -206,20 +206,11 @@ export class SessionService {
     // Show warning notification
     this.notificationService.showWarning(
       'Session Timeout Warning',
-      `Your session will expire in ${this.WARNING_TIME_MS / 60000} minutes due to inactivity. Click anywhere to continue.`,
-      {
-        duration: this.WARNING_TIME_MS,
-        actions: [
-          {
-            label: 'Extend Session',
-            action: () => this.extendSession()
-          }
-        ]
-      }
+      `Your session will expire in ${this.WARNING_TIME_MS / 60000} minutes due to inactivity. Click anywhere to continue.`
     );
 
     // Log security event
-    this.auditService.logAuthenticationEvent('session-timeout-warning');
+    this.auditService.logAuthenticationEvent('session-timeout');
   }
 
   /**
@@ -227,15 +218,14 @@ export class SessionService {
    */
   private async handleSessionTimeout(): Promise<void> {
     console.warn('Session timed out due to inactivity');
-    
+
     // Log security event
     await this.auditService.logAuthenticationEvent('session-timeout');
-    
+
     // Show timeout notification
     this.notificationService.showError(
       'Session Expired',
-      'Your session has expired due to inactivity. Please log in again.',
-      { duration: 10000 }
+      'Your session has expired due to inactivity. Please log in again.'
     );
 
     // Sign out user
@@ -247,15 +237,14 @@ export class SessionService {
    */
   extendSession(): void {
     this.refreshActivity();
-    
+
     this.notificationService.showSuccess(
       'Session Extended',
-      'Your session has been extended.',
-      { duration: 3000 }
+      'Your session has been extended.'
     );
 
     // Log security event
-    this.auditService.logAuthenticationEvent('session-extended');
+    this.auditService.logAuthenticationEvent('login-success');
   }
 
   /**
@@ -328,10 +317,10 @@ export class SessionService {
     const currentUser = this.authService.getCurrentUserSync();
     if (currentUser && currentUser.practitioner.id === userId) {
       await this.authService.logout();
-      
+
       // Log forced termination
       await this.auditService.logSecurityAlert(
-        'session-termination',
+        'suspicious-activity',
         {
           userId,
           reason: 'Security-forced termination'
@@ -347,7 +336,7 @@ export class SessionService {
     // In a real implementation, this would terminate a specific session
     // For now, we'll just end the current session
     await this.authService.logout();
-    
+
     // Log session termination
     await this.auditService.logAuthenticationEvent(
       'session-timeout',
@@ -364,7 +353,7 @@ export class SessionService {
    */
   ngOnDestroy(): void {
     this.clearTimers();
-    
+
     if (this.activitySubscription) {
       this.activitySubscription.unsubscribe();
     }

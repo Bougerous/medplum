@@ -428,7 +428,7 @@ export class StripePaymentService {
     try {
       // Check if customer already exists
       const existingCustomers = this.customers$.value;
-      const existingCustomer = existingCustomers.find(c => 
+      const existingCustomer = existingCustomers.find(c =>
         c.metadata?.patientId === patient.id
       );
 
@@ -592,7 +592,7 @@ export class StripePaymentService {
 
   private async handleInvoicePaymentFailed(invoice: StripeInvoice): Promise<void> {
     console.log(`Payment failed for invoice ${invoice.id}`);
-    
+
     // Update FHIR Invoice status
     await this.updateFhirInvoiceStatus(invoice.id, 'issued');
   }
@@ -686,7 +686,7 @@ export class StripePaymentService {
 
     return this.retryService.executeWithRetry(async () => {
       let response;
-      
+
       switch (method.toUpperCase()) {
         case 'GET':
           response = await this.http.get<T>(url, { headers }).toPromise();
@@ -709,16 +709,16 @@ export class StripePaymentService {
       }
 
       return response;
-    }, 3);
+    }, { maxRetries: 3 });
   }
 
   private objectToFormData(obj: any, prefix?: string): string {
     const params = new URLSearchParams();
-    
+
     for (const key in obj) {
       if (obj.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null) {
         const paramKey = prefix ? `${prefix}[${key}]` : key;
-        
+
         if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
           const nestedParams = this.objectToFormData(obj[key], paramKey);
           nestedParams.split('&').forEach(param => {
@@ -746,7 +746,7 @@ export class StripePaymentService {
         }
       }
     }
-    
+
     return params.toString();
   }
 

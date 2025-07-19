@@ -1,4 +1,5 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { AuditService } from '../../services/audit.service';
@@ -7,7 +8,9 @@ import { UserProfile } from '../../types/fhir-types';
 @Component({
   selector: 'app-access-denied',
   templateUrl: './access-denied.html',
-  styleUrls: ['./access-denied.scss']
+  styleUrls: ['./access-denied.scss'],
+  standalone: true,
+  imports: [CommonModule]
 })
 export class AccessDeniedComponent implements OnInit {
   currentUser: UserProfile | null = null;
@@ -21,7 +24,7 @@ export class AccessDeniedComponent implements OnInit {
     private router: Router,
     private authService: AuthService,
     private auditService: AuditService
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     // Get current user
@@ -85,7 +88,7 @@ export class AccessDeniedComponent implements OnInit {
       // In a real implementation, this would create a request ticket
       // For now, we'll just log the request
       await this.auditService.logSystemAccessEvent(
-        'access-request',
+        'feature-access',
         {
           userId: this.currentUser.practitioner.id,
           requestedUrl: this.attemptedUrl,
@@ -97,7 +100,7 @@ export class AccessDeniedComponent implements OnInit {
 
       // Show success message (you'd typically use a notification service)
       alert('Access request submitted. You will be contacted by an administrator.');
-      
+
     } catch (error) {
       console.error('Error submitting access request:', error);
       alert('Failed to submit access request. Please contact support directly.');
@@ -120,7 +123,7 @@ export class AccessDeniedComponent implements OnInit {
     if (!this.currentUser) {
       return 'icon-lock';
     }
-    
+
     return 'icon-shield-x';
   }
 
@@ -131,7 +134,7 @@ export class AccessDeniedComponent implements OnInit {
     if (!this.currentUser) {
       return 'Authentication Required';
     }
-    
+
     return 'Access Denied';
   }
 
@@ -142,7 +145,7 @@ export class AccessDeniedComponent implements OnInit {
     if (!this.currentUser) {
       return 'You must be logged in to access this resource.';
     }
-    
+
     return this.reason || 'You do not have permission to access this resource.';
   }
 }

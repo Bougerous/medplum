@@ -13,7 +13,9 @@ import {
   CodeableConcept,
   Money,
   Bundle,
-  Task
+  Task,
+  Device,
+  Encounter
 } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from './error-handling.service';
@@ -44,10 +46,10 @@ export interface ClaimItem {
   unitPrice?: Money;
   factor?: number;
   net?: Money;
-  udi?: Reference[];
+  udi?: Reference<Device>[];
   bodySite?: CodeableConcept;
   subSite?: CodeableConcept[];
-  encounter?: Reference[];
+  encounter?: Reference<Encounter>[];
   noteNumber?: number[];
   detail?: ClaimItemDetail[];
 }
@@ -66,7 +68,7 @@ export interface ClaimItemDetail {
   unitPrice?: Money;
   factor?: number;
   net?: Money;
-  udi?: Reference[];
+  udi?: Reference<Device>[];
   noteNumber?: number[];
   subDetail?: ClaimItemSubDetail[];
 }
@@ -85,7 +87,7 @@ export interface ClaimItemSubDetail {
   unitPrice?: Money;
   factor?: number;
   net?: Money;
-  udi?: Reference[];
+  udi?: Reference<Device>[];
   noteNumber?: number[];
 }
 
@@ -128,10 +130,10 @@ export class BillingService {
 
       // Gather required context
       const billingContext = await this.gatherBillingContext(diagnosticReport, context);
-      
+
       // Apply billing rules to determine charges
       const claimItems = await this.generateClaimItems(billingContext);
-      
+
       // Create the claim resource
       const claim: Claim = {
         resourceType: 'Claim',
@@ -201,7 +203,7 @@ export class BillingService {
 
       // Create the claim in Medplum
       const createdClaim = await this.medplumService.createResource(claim);
-      
+
       // Update pending claims list
       const currentClaims = this.pendingClaims$.value;
       this.pendingClaims$.next([...currentClaims, createdClaim]);
@@ -233,15 +235,15 @@ export class BillingService {
       if (!claim.patient?.reference) {
         errors.push('Patient reference is required');
       }
-      
+
       if (!claim.provider?.reference) {
         errors.push('Provider reference is required');
       }
-      
+
       if (!claim.item || claim.item.length === 0) {
         errors.push('At least one claim item is required');
       }
-      
+
       if (!claim.total?.value || claim.total.value <= 0) {
         errors.push('Claim total must be greater than zero');
       }
@@ -252,7 +254,7 @@ export class BillingService {
           if (!item.productOrService?.coding?.[0]?.code) {
             errors.push(`Item ${item.sequence}: Product or service code is required`);
           }
-          
+
           if (!item.unitPrice?.value || item.unitPrice.value <= 0) {
             warnings.push(`Item ${item.sequence}: Unit price should be specified`);
           }
@@ -287,7 +289,7 @@ export class BillingService {
         details: { claimId: claim.id, error },
         timestamp: new Date()
       });
-      
+
       return {
         isValid: false,
         errors: ['Validation process failed'],
@@ -359,10 +361,10 @@ export class BillingService {
         details: { claimId: claim.id, error },
         timestamp: new Date()
       });
-      
-      return { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Unknown error occurred' 
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -379,7 +381,7 @@ export class BillingService {
       if (claimResponse.request?.reference) {
         const claimId = claimResponse.request.reference.split('/')[1];
         const originalClaim = await this.medplumService.readResource<Claim>('Claim', claimId);
-        
+
         let newStatus: Claim['status'] = 'active';
         if (claimResponse.outcome === 'complete') {
           newStatus = 'active'; // Claim processed successfully
@@ -427,13 +429,13 @@ export class BillingService {
       // For now, we'll store it in memory
       const currentRules = this.billingRules$.value;
       const existingIndex = currentRules.findIndex(r => r.id === rule.id);
-      
+
       if (existingIndex >= 0) {
         currentRules[existingIndex] = rule;
       } else {
         currentRules.push(rule);
       }
-      
+
       this.billingRules$.next([...currentRules]);
       return rule;
     } catch (error) {
@@ -514,22 +516,22 @@ export class BillingService {
     }
 
     const patientId = patientRef.split('/')[1];
-    const patient = partialContext.patient || 
+    const patient = partialContext.patient ||
       await this.medplumService.readResource<Patient>('Patient', patientId);
 
     // Get service requests related to this diagnostic report
-    const serviceRequests = partialContext.serviceRequests || 
+    const serviceRequests = partialContext.serviceRequests ||
       await this.getServiceRequestsForDiagnosticReport(diagnosticReport);
 
     // Get coverage information
-    const coverage = partialContext.coverage || 
+    const coverage = partialContext.coverage ||
       await this.getPrimaryCoverageForPatient(patient);
 
     // Get organization and provider information
-    const organization = partialContext.organization || 
+    const organization = partialContext.organization ||
       await this.getDefaultOrganization();
-    
-    const provider = partialContext.provider || 
+
+    const provider = partialContext.provider ||
       await this.getProviderForDiagnosticReport(diagnosticReport);
 
     return {
@@ -594,7 +596,7 @@ export class BillingService {
   private async extractDiagnoses(diagnosticReport: DiagnosticReport) {
     // Extract diagnosis information from diagnostic report
     const diagnoses = [];
-    
+
     if (diagnosticReport.conclusionCode) {
       for (let i = 0; i < diagnosticReport.conclusionCode.length; i++) {
         const coding = diagnosticReport.conclusionCode[i];
@@ -617,7 +619,7 @@ export class BillingService {
 
   private async extractProcedures(serviceRequests: ServiceRequest[]) {
     const procedures = [];
-    
+
     for (let i = 0; i < serviceRequests.length; i++) {
       const serviceRequest = serviceRequests[i];
       if (serviceRequest.code?.coding) {
@@ -685,7 +687,7 @@ export class BillingService {
         patient: `Patient/${patient.id}`,
         status: 'active'
       });
-      
+
       return coverageBundle.entry?.[0]?.resource;
     } catch (error) {
       console.warn('No coverage found for patient', patient.id);
@@ -715,7 +717,7 @@ export class BillingService {
       const id = diagnosticReport.performer[0].reference.split('/')[1];
       return await this.medplumService.readResource<Practitioner>('Practitioner', id);
     }
-    
+
     // Return default provider if none specified
     return {
       resourceType: 'Practitioner',

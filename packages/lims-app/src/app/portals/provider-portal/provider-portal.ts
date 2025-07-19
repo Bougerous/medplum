@@ -1,13 +1,14 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { CommonModule, TitleCasePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject } from 'rxjs';
+import { Subject, Subscription } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { 
-  Patient, 
-  DiagnosticReport, 
+import {
+  Patient,
+  DiagnosticReport,
   ServiceRequest,
   Practitioner,
-  Subscription,
   Task
 } from '@medplum/fhirtypes';
 import { AuthService } from '../../services/auth.service';
@@ -53,33 +54,39 @@ interface OrderFormData {
 @Component({
   selector: 'app-provider-portal',
   templateUrl: './provider-portal.html',
-  styleUrls: ['./provider-portal.scss']
+  styleUrls: ['./provider-portal.scss'],
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    TitleCasePipe
+  ]
 })
 export class ProviderPortalComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private subscriptions: Subscription[] = [];
-  
+
   currentUser: UserProfile | null = null;
   providerData: ProviderPortalData | null = null;
   loading = true;
   error: string | null = null;
-  
+
   // Tab management
   activeTab: 'dashboard' | 'orders' | 'results' | 'patients' | 'notifications' = 'dashboard';
-  
+
   // Order management
   showOrderModal = false;
   orderForm: OrderFormData = this.getEmptyOrderForm();
   submittingOrder = false;
   availableTests: TestCatalogItem[] = [];
-  
+
   // Results filtering
   resultsFilter: 'all' | 'today' | 'week' | 'pending' = 'all';
-  
+
   // Real-time updates
   realTimeUpdatesEnabled = true;
   lastUpdateTime: Date = new Date();
-  
+
   constructor(
     private authService: AuthService,
     private medplumService: MedplumService,
@@ -88,7 +95,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     private auditService: AuditService,
     private testOrderingService: TestOrderingService,
     private router: Router
-  ) {}
+  ) { }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -100,20 +107,21 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
             this.router.navigate(['/login']);
             return;
           }
-          
+
           if (!user.roles.includes('provider')) {
             this.error = 'Access denied. Provider portal is only available to healthcare providers.';
-            await this.auditService.logUnauthorizedAccess(
-              user.practitioner.id || 'unknown',
+            await this.auditService.logAuthorizationEvent(
+              'access-denied',
               'provider-portal',
+              user.practitioner.id || 'unknown',
               'Attempted to access provider portal without provider role'
             );
             return;
           }
-          
+
           this.currentUser = user;
           await this.loadProviderData();
-          
+
           if (this.realTimeUpdatesEnabled) {
             this.setupRealTimeUpdates();
           }
@@ -126,7 +134,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-    
+
     // Clean up subscriptions
     for (const sub of this.subscriptions) {
       sub.unsubscribe();
@@ -172,10 +180,9 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
       this.lastUpdateTime = new Date();
 
       // Log successful access
-      await this.auditService.logPatientPortalAccess(
-        providerId,
-        'portal-access',
-        'Provider accessed portal successfully'
+      await this.auditService.logSystemAccessEvent(
+        'page-access',
+        { portal: 'provider', providerId }
       );
 
     } catch (error) {
@@ -302,7 +309,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     try {
       const today = new Date();
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      
+
       // Get all orders for this provider
       const allOrdersBundle = await this.medplumService.searchResources<ServiceRequest>(
         'ServiceRequest',
@@ -313,13 +320,13 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
       );
 
       const allOrders = allOrdersBundle.entry?.map(entry => entry.resource).filter((resource): resource is ServiceRequest => Boolean(resource)) || [];
-      
+
       // Calculate statistics
       const totalOrders = allOrders.length;
-      const pendingOrders = allOrders.filter(order => 
+      const pendingOrders = allOrders.filter(order =>
         order.status === 'active' || order.status === 'on-hold'
       ).length;
-      
+
       const completedToday = allOrders.filter(order => {
         if (!order.meta?.lastUpdated) {
           return false;
@@ -338,7 +345,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
           const authored = new Date(order.authoredOn);
           const completed = new Date(order.meta.lastUpdated);
           const turnaroundHours = (completed.getTime() - authored.getTime()) / (1000 * 60 * 60);
-          
+
           if (turnaroundHours > 0 && turnaroundHours < 720) { // Less than 30 days
             totalTurnaroundTime += turnaroundHours;
             validTurnaroundCount++;
@@ -346,8 +353,8 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
         }
       }
 
-      const averageTurnaroundTime = validTurnaroundCount > 0 
-        ? Math.round(totalTurnaroundTime / validTurnaroundCount) 
+      const averageTurnaroundTime = validTurnaroundCount > 0
+        ? Math.round(totalTurnaroundTime / validTurnaroundCount)
         : 0;
 
       return {
@@ -413,7 +420,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
    */
   setActiveTab(tab: 'dashboard' | 'orders' | 'results' | 'patients' | 'notifications'): void {
     this.activeTab = tab;
-    
+
     // Log tab access for analytics
     this.auditService.logPatientPortalAccess(
       this.currentUser?.practitioner.id || 'unknown',
@@ -465,28 +472,41 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     this.submittingOrder = true;
 
     try {
-      const serviceRequest = await this.testOrderingService.createServiceRequest({
-        patientId: this.orderForm.patientId,
-        testCodes: this.orderForm.testCodes,
-        priority: this.orderForm.priority,
-        clinicalInfo: this.orderForm.clinicalInfo,
-        specimenType: this.orderForm.specimenType,
-        collectionDate: this.orderForm.collectionDate,
-        notes: this.orderForm.notes,
-        requesterId: this.currentUser?.practitioner.id || ''
-      });
+      // Convert test codes to LabTest objects
+      const selectedTests = this.availableTests.filter(test =>
+        this.orderForm.testCodes.includes(test.code)
+      ).map(test => ({
+        id: test.code,
+        name: test.display,
+        description: test.display,
+        code: test.code,
+        category: test.category,
+        specimenTypes: [this.orderForm.specimenType]
+      }));
 
-      this.notificationService.showSuccess('Order submitted successfully');
+      const orderResult = await this.testOrderingService.createTestOrders(
+        this.orderForm.patientId,
+        selectedTests,
+        {
+          providerId: this.currentUser?.practitioner.id || '',
+          providerName: this.currentUser?.practitioner.name?.[0]?.text || 'Unknown Provider',
+          priority: this.orderForm.priority,
+          clinicalInfo: this.orderForm.clinicalInfo
+        }
+      );
+
+      this.notificationService.showSuccess('Order submitted successfully', `${orderResult.orders.length} test order(s) created successfully`);
       this.closeOrderModal();
-      
+
       // Refresh data to show new order
       await this.refreshData();
 
       // Log order creation
-      await this.auditService.logPatientPortalAccess(
-        this.currentUser?.practitioner.id || 'unknown',
-        'order-created',
-        `Provider created new order: ${serviceRequest.id}`
+      await this.auditService.logDataModificationEvent(
+        'create',
+        'ServiceRequest',
+        orderResult.orders[0]?.id,
+        { orderCount: orderResult.orders.length, providerId: this.currentUser?.practitioner.id }
       );
 
     } catch (error) {
@@ -501,17 +521,17 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
    */
   private validateOrderForm(): boolean {
     if (!this.orderForm.patientId) {
-      this.notificationService.showError('Please select a patient');
+      this.notificationService.showError('Validation Error', 'Please select a patient');
       return false;
     }
 
     if (this.orderForm.testCodes.length === 0) {
-      this.notificationService.showError('Please select at least one test');
+      this.notificationService.showError('Validation Error', 'Please select at least one test');
       return false;
     }
 
     if (!this.orderForm.specimenType) {
-      this.notificationService.showError('Please specify specimen type');
+      this.notificationService.showError('Validation Error', 'Please specify specimen type');
       return false;
     }
 
@@ -544,7 +564,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
           return issuedDate && issuedDate >= todayStart;
         });
       }
-      
+
       case 'week': {
         const weekAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
         return results.filter(result => {
@@ -552,14 +572,14 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
           return issuedDate && issuedDate >= weekAgo;
         });
       }
-      
+
       case 'pending':
-        return results.filter(result => 
-          result.status === 'registered' || 
+        return results.filter(result =>
+          result.status === 'registered' ||
           result.status === 'partial' ||
           result.status === 'preliminary'
         );
-      
+
       default:
         return results;
     }
@@ -627,16 +647,16 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
    */
   toggleRealTimeUpdates(): void {
     this.realTimeUpdatesEnabled = !this.realTimeUpdatesEnabled;
-    
+
     if (this.realTimeUpdatesEnabled) {
       this.setupRealTimeUpdates();
-      this.notificationService.showSuccess('Real-time updates enabled');
+      this.notificationService.showSuccess('Real-time Updates', 'Real-time updates enabled');
     } else {
       for (const sub of this.subscriptions) {
         sub.unsubscribe();
       }
       this.subscriptions = [];
-      this.notificationService.showInfo('Real-time updates disabled');
+      this.notificationService.showInfo('Real-time Updates', 'Real-time updates disabled');
     }
   }
 
@@ -667,7 +687,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
   private handleError(message: string, error: unknown): void {
     console.error(message, error);
     this.error = message;
-    
+
     this.errorHandlingService.handleError({
       type: LIMSErrorType.FHIR_ERROR,
       message,
@@ -690,7 +710,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     const given = name.given?.join(' ') || '';
     const family = name.family || '';
     const prefix = name.prefix?.join(' ') || '';
-    
+
     return `${prefix} ${given} ${family}`.trim() || 'Provider';
   }
 
@@ -705,7 +725,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     const name = patient.name[0];
     const given = name.given?.join(' ') || '';
     const family = name.family || '';
-    
+
     return `${given} ${family}`.trim() || 'Unknown Patient';
   }
 
@@ -716,7 +736,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     if (!dateString) {
       return 'N/A';
     }
-    
+
     try {
       return new Date(dateString).toLocaleDateString();
     } catch {
@@ -731,7 +751,7 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
     if (!dateString) {
       return 'N/A';
     }
-    
+
     try {
       return new Date(dateString).toLocaleString();
     } catch {

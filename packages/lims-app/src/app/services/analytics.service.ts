@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
 import { map, switchMap, catchError, startWith } from 'rxjs/operators';
-import { 
-  DiagnosticReport, 
-  Specimen, 
-  ServiceRequest, 
+import {
+  DiagnosticReport,
+  Specimen,
+  ServiceRequest,
   Observation,
   Bundle,
   Resource
@@ -67,7 +67,7 @@ export class AnalyticsService {
    */
   async executeQuery(query: AnalyticsQuery): Promise<AnalyticsResult> {
     const startTime = Date.now();
-    
+
     try {
       const searchParams = this.buildSearchParams(query);
       const bundle = await this.medplumService.searchResources(
@@ -214,7 +214,7 @@ export class AnalyticsService {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      
+
       switch (period) {
         case 'daily':
           startDate.setDate(endDate.getDate() - duration);
@@ -318,7 +318,7 @@ export class AnalyticsService {
   }
 
   private processQueryResults(bundle: Bundle, query: AnalyticsQuery): unknown[] {
-    const resources = bundle.entry?.map(entry => entry.resource).filter(Boolean) || [];
+    const resources = bundle.entry?.map(entry => entry.resource).filter((resource): resource is Resource => Boolean(resource)) || [];
 
     if (!query.aggregation && !query.groupBy) {
       return resources;
@@ -339,9 +339,9 @@ export class AnalyticsService {
     const groups = new Map<string, Resource[]>();
 
     resources.forEach(resource => {
-      const groupValue = this.getNestedProperty(resource, groupBy) || 'unknown';
+      const groupValue = this.getNestedProperty(resource as unknown as Record<string, unknown>, groupBy) || 'unknown';
       const key = typeof groupValue === 'object' ? JSON.stringify(groupValue) : String(groupValue);
-      
+
       if (!groups.has(key)) {
         groups.set(key, []);
       }
@@ -374,7 +374,12 @@ export class AnalyticsService {
   }
 
   private getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
+    return path.split('.').reduce((current, key) => {
+      if (current && typeof current === 'object' && key in current) {
+        return (current as Record<string, unknown>)[key];
+      }
+      return undefined;
+    }, obj as unknown);
   }
 
   private calculateTurnaroundTimes(reports: DiagnosticReport[]): TurnaroundTimeMetric[] {
@@ -448,15 +453,15 @@ export class AnalyticsService {
     const thisWeek = new Date(today.getTime() - (7 * 24 * 60 * 60 * 1000));
     const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-    const todayCount = specimens.filter(s => 
+    const todayCount = specimens.filter(s =>
       s.receivedTime && new Date(s.receivedTime) >= today
     ).length;
 
-    const weekCount = specimens.filter(s => 
+    const weekCount = specimens.filter(s =>
       s.receivedTime && new Date(s.receivedTime) >= thisWeek
     ).length;
 
-    const monthCount = specimens.filter(s => 
+    const monthCount = specimens.filter(s =>
       s.receivedTime && new Date(s.receivedTime) >= thisMonth
     ).length;
 
@@ -486,7 +491,7 @@ export class AnalyticsService {
   }
 
   private calculateQualityMetrics(
-    rejectedSpecimens: Specimen[], 
+    rejectedSpecimens: Specimen[],
     amendedReports: DiagnosticReport[]
   ): AnalyticsMetric[] {
     const totalSpecimens = 1000; // This would come from a total count query
@@ -520,7 +525,7 @@ export class AnalyticsService {
 
     const now = new Date();
     const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthlyReports = reports.filter(r => 
+    const monthlyReports = reports.filter(r =>
       r.issued && new Date(r.issued) >= thisMonth
     );
 

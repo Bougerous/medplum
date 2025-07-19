@@ -345,27 +345,27 @@
   - Add notification and alert generation
   - _Requirements: 5.2_
 
-- [ ] 12. Add Testing and Quality Assurance
+- [-] 12. Add Testing and Quality Assurance
   - Create comprehensive test suite
   - Add integration testing with Medplum
   - Implement performance and load testing
   - _Requirements: All requirements for validation_
 
-- [ ] 12.1 Create unit tests for all services
+- [x] 12.1 Create unit tests for all services
   - Add tests for MedplumService with mock client
   - Create tests for AuthService and permission checking
   - Implement tests for workflow services and components
   - Add tests for billing and payment processing
   - _Requirements: All service layer requirements_
 
-- [ ] 12.2 Add integration tests
+- [x] 12.2 Add integration tests
   - Create tests with actual Medplum test instance
   - Add end-to-end workflow testing
   - Implement portal integration testing
   - Add external service integration tests (Candid, Stripe)
   - _Requirements: All integration requirements_
 
-- [ ] 12.3 Implement performance testing
+- [x] 12.3 Implement performance testing
   - Add load testing for concurrent users
   - Create stress testing for high specimen volumes
   - Implement WSI viewer performance testing

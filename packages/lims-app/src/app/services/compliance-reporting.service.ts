@@ -21,7 +21,7 @@ export interface ComplianceReport {
   downloadUrl?: string;
 }
 
-export type ComplianceReportType = 
+export type ComplianceReportType =
   | 'clia-compliance'
   | 'cap-inspection'
   | 'hipaa-audit'
@@ -104,7 +104,7 @@ export class ComplianceReportingService {
   constructor(
     private medplumService: MedplumService,
     private errorHandlingService: ErrorHandlingService
-  ) {}
+  ) { }
 
   /**
    * Generate compliance report
@@ -229,7 +229,7 @@ export class ComplianceReportingService {
       // - Post-analytical systems
 
       const checklistItems = await this.evaluateCAPChecklist(period);
-      
+
       return {
         checklistItems,
         summary: this.summarizeCAPCompliance(checklistItems),
@@ -247,7 +247,7 @@ export class ComplianceReportingService {
   async generateHIPAAAuditReport(period: { start: Date; end: Date }): Promise<any> {
     try {
       const auditEvents = await this.getAuditEvents(period);
-      
+
       const hipaaAnalysis = {
         accessLogs: this.analyzeAccessLogs(auditEvents),
         dataBreaches: this.identifyPotentialBreaches(auditEvents),
@@ -273,7 +273,7 @@ export class ComplianceReportingService {
   async generateQualityAssuranceReport(period: { start: Date; end: Date }): Promise<any> {
     try {
       const qaMetrics = await this.getQualityAssuranceMetrics(period);
-      
+
       return {
         metrics: qaMetrics,
         trends: this.analyzeQualityTrends(qaMetrics),
@@ -293,7 +293,7 @@ export class ComplianceReportingService {
   async generatePopulationHealthReport(period: { start: Date; end: Date }): Promise<any> {
     try {
       const populationMetrics = await this.getPopulationHealthMetrics(period);
-      
+
       return {
         demographics: this.analyzePopulationDemographics(populationMetrics),
         diseasePrevalence: this.analyzeDiseasePrevalence(populationMetrics),
@@ -313,7 +313,7 @@ export class ComplianceReportingService {
   async generateClinicalOutcomesReport(period: { start: Date; end: Date }): Promise<any> {
     try {
       const outcomes = await this.getClinicalOutcomes(period);
-      
+
       return {
         outcomes,
         effectiveness: this.analyzeTestEffectiveness(outcomes),
@@ -372,7 +372,7 @@ export class ComplianceReportingService {
   private updateComplianceReport(updatedReport: ComplianceReport): void {
     const currentReports = this.complianceReports$.value;
     const index = currentReports.findIndex(r => r.id === updatedReport.id);
-    
+
     if (index >= 0) {
       currentReports[index] = updatedReport;
       this.complianceReports$.next([...currentReports]);
@@ -492,7 +492,7 @@ export class ComplianceReportingService {
       totalItems: total,
       compliantItems: compliant,
       complianceRate: (compliant / total) * 100,
-      criticalDeficiencies: checklistItems.filter(item => 
+      criticalDeficiencies: checklistItems.filter(item =>
         item.status === 'non-compliant' && item.critical
       ).length
     };
@@ -530,9 +530,9 @@ export class ComplianceReportingService {
 
   private identifyPotentialBreaches(auditEvents: AuditEvent[]): any {
     // Identify potential HIPAA breaches
-    const suspiciousEvents = auditEvents.filter(event => 
+    const suspiciousEvents = auditEvents.filter(event =>
       event.outcome === '8' || // Failure
-      event.purposeOfEvent?.some(purpose => purpose.code === 'TREAT') === false
+      event.purposeOfEvent?.some(purpose => purpose.coding?.[0]?.code === 'TREAT') === false
     );
 
     return {
@@ -549,7 +549,7 @@ export class ComplianceReportingService {
   private analyzeUserActivity(auditEvents: AuditEvent[]): any {
     // Analyze user activity patterns
     const userActivity = new Map<string, number>();
-    
+
     auditEvents.forEach(event => {
       const user = event.agent?.[0]?.who?.reference || 'unknown';
       userActivity.set(user, (userActivity.get(user) || 0) + 1);
@@ -557,7 +557,7 @@ export class ComplianceReportingService {
 
     return {
       mostActiveUsers: Array.from(userActivity.entries())
-        .sort(([,a], [,b]) => b - a)
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 10),
       averageActivityPerUser: auditEvents.length / userActivity.size
     };
@@ -601,16 +601,16 @@ export class ComplianceReportingService {
   }
 
   private generateHIPAARecommendations(analysis: any): string[] {
-    const recommendations = [];
-    
+    const recommendations: string[] = [];
+
     if (analysis.accessLogs.unauthorizedAttempts > 0) {
       recommendations.push('Review and strengthen access controls');
     }
-    
+
     if (analysis.dataBreaches.potentialBreaches > 0) {
       recommendations.push('Investigate potential security breaches');
     }
-    
+
     return recommendations;
   }
 
@@ -677,14 +677,14 @@ export class ComplianceReportingService {
   }
 
   private generateQARecommendations(metrics: QualityAssuranceMetric[]): string[] {
-    const recommendations = [];
-    
+    const recommendations: string[] = [];
+
     metrics.forEach(metric => {
       if (metric.status === 'fail') {
         recommendations.push(`Improve ${metric.metric} - currently ${metric.value}${metric.unit}, target ${metric.target}${metric.unit}`);
       }
     });
-    
+
     return recommendations;
   }
 
@@ -755,14 +755,14 @@ export class ComplianceReportingService {
   }
 
   private generatePopulationHealthRecommendations(metrics: PopulationHealthMetric[]): string[] {
-    const recommendations = [];
-    
+    const recommendations: string[] = [];
+
     metrics.forEach(metric => {
       if (metric.positivityRate > 5.0) {
         recommendations.push(`Increase screening frequency for ${metric.testType} - positivity rate is ${metric.positivityRate}%`);
       }
     });
-    
+
     return recommendations;
   }
 
@@ -795,7 +795,7 @@ export class ComplianceReportingService {
   private analyzePatientImpact(outcomes: ClinicalOutcome[]): any {
     const totalCases = outcomes.reduce((sum, o) => sum + o.totalCases, 0);
     const totalImproved = outcomes.reduce((sum, o) => sum + o.outcomes.improved, 0);
-    
+
     return {
       totalPatients: totalCases,
       improvedOutcomes: totalImproved,
@@ -813,15 +813,15 @@ export class ComplianceReportingService {
   }
 
   private generateClinicalRecommendations(outcomes: ClinicalOutcome[]): string[] {
-    const recommendations = [];
-    
+    const recommendations: string[] = [];
+
     outcomes.forEach(outcome => {
       const followUpRate = (outcome.followUpCompliance / outcome.totalCases) * 100;
       if (followUpRate < 80) {
         recommendations.push(`Improve follow-up compliance for ${outcome.condition} - currently ${followUpRate.toFixed(1)}%`);
       }
     });
-    
+
     return recommendations;
   }
 
@@ -860,7 +860,7 @@ export class ComplianceReportingService {
 
   private isAfterHours(timestamp?: string): boolean {
     if (!timestamp) return false;
-    
+
     const date = new Date(timestamp);
     const hour = date.getHours();
     return hour < 7 || hour > 18; // Before 7 AM or after 6 PM
@@ -868,35 +868,35 @@ export class ComplianceReportingService {
 
   private aggregateAgeGroups(metrics: PopulationHealthMetric[]): Record<string, number> {
     const aggregated: Record<string, number> = {};
-    
+
     metrics.forEach(metric => {
       Object.entries(metric.ageGroups).forEach(([age, count]) => {
         aggregated[age] = (aggregated[age] || 0) + count;
       });
     });
-    
+
     return aggregated;
   }
 
   private aggregateGeographicData(metrics: PopulationHealthMetric[]): Record<string, number> {
     const aggregated: Record<string, number> = {};
-    
+
     metrics.forEach(metric => {
       Object.entries(metric.geographicDistribution).forEach(([location, count]) => {
         aggregated[location] = (aggregated[location] || 0) + count;
       });
     });
-    
+
     return aggregated;
   }
 
-  private calculateTrend(trends: Array<{period: string, value: number}>): 'increasing' | 'decreasing' | 'stable' {
+  private calculateTrend(trends: Array<{ period: string, value: number }>): 'increasing' | 'decreasing' | 'stable' {
     if (trends.length < 2) return 'stable';
-    
+
     const first = trends[0].value;
     const last = trends[trends.length - 1].value;
     const change = ((last - first) / first) * 100;
-    
+
     if (change > 5) return 'increasing';
     if (change < -5) return 'decreasing';
     return 'stable';

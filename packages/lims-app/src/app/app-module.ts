@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpClientModule } from '@angular/common/http';
 import { NgModule, provideBrowserGlobalErrorListeners, provideZonelessChangeDetection } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
+import { ReactiveFormsModule, FormsModule } from '@angular/forms';
 import { BrowserModule, provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 import { AppRoutingModule } from './app-routing-module';
@@ -30,19 +30,20 @@ import { AccessDeniedComponent } from './components/access-denied/access-denied.
     PatientRegistration,
     SpecimenAccessioning,
     TestOrdering,
-    ResultEntry,
-    SampleTracking,
-    Reports,
-    PatientPortalComponent,
-    ProviderPortalComponent,
-    AccessDeniedComponent
+    ResultEntry
   ],
   imports: [
     BrowserModule,
     CommonModule,
     HttpClientModule,
     AppRoutingModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    FormsModule,
+    SampleTracking,
+    Reports,
+    PatientPortalComponent,
+    ProviderPortalComponent,
+    AccessDeniedComponent
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

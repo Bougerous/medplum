@@ -198,9 +198,17 @@ export class AuditService {
       type: SecurityEventType.SECURITY_ALERT,
       action,
       userId: currentUser?.practitioner.id,
-      outcome: 'serious-failure',
+      outcome: 'success',
       details,
     });
+  }
+
+  /**
+   * Generic log event method for backward compatibility
+   */
+  async logEvent(event: any): Promise<void> {
+    console.log('Audit event:', event);
+    // For now, just log to console. In a real implementation, this would be more sophisticated
   }
 
   /**
@@ -292,13 +300,13 @@ export class AuditService {
           },
           who: securityEvent.userId
             ? {
-                reference: `Practitioner/${securityEvent.userId}`,
-              }
+              reference: `Practitioner/${securityEvent.userId}`,
+            }
             : {
-                identifier: {
-                  value: 'anonymous',
-                },
+              identifier: {
+                value: 'anonymous',
               },
+            },
           requestor: true,
           network: {
             address: securityEvent.ipAddress,

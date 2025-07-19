@@ -81,7 +81,7 @@
         <i class="icon-calendar"></i>
         Appointments
         <span class="count" *ngIf="patientData.upcomingAppointments.length > 0">
-          {{ patientData.upcomingAppointments.length }}
+          {{ patientData?.upcomingAppointments?.length }}
         </span>
       </button>
       
@@ -287,12 +287,12 @@
             
             <div class="profile-field" *ngIf="patientData.patient.birthDate">
               <label>Date of Birth:</label>
-              <span>{{ formatDate(patientData.patient.birthDate) }}</span>
+              <span>{{ formatDate(patientData?.patient?.birthDate) }}</span>
             </div>
             
             <div class="profile-field" *ngIf="patientData.patient.gender">
               <label>Gender:</label>
-              <span>{{ patientData.patient.gender | titlecase }}</span>
+              <span>{{ patientData?.patient?.gender | titlecase }}</span>
             </div>
           </div>
 

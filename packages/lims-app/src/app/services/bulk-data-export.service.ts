@@ -161,8 +161,8 @@ export class BulkDataExportService {
 
     switch (format) {
       case 'json':
-        blob = new Blob([JSON.stringify(job.data, null, 2)], { 
-          type: 'application/json' 
+        blob = new Blob([JSON.stringify(job.data, null, 2)], {
+          type: 'application/json'
         });
         break;
       case 'csv':
@@ -172,8 +172,8 @@ export class BulkDataExportService {
       case 'xlsx':
         // This would require a library like xlsx or exceljs
         const xlsx = await this.convertToXLSX(job.data);
-        blob = new Blob([xlsx], { 
-          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        blob = new Blob([xlsx], {
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         break;
       default:
@@ -214,11 +214,11 @@ export class BulkDataExportService {
   async updateScheduledReport(report: ScheduledReport): Promise<void> {
     const currentReports = this.scheduledReports$.value;
     const index = currentReports.findIndex(r => r.id === report.id);
-    
+
     if (index >= 0) {
       currentReports[index] = report;
       this.scheduledReports$.next([...currentReports]);
-      
+
       // Reschedule if enabled
       if (report.enabled) {
         this.scheduleReport(report);
@@ -243,7 +243,7 @@ export class BulkDataExportService {
       // This would implement actual data warehouse connection
       // For now, we'll simulate the connection
       console.log('Connecting to data warehouse:', connection);
-      
+
       // Validate connection parameters
       if (!connection.host || !connection.database) {
         throw new Error('Invalid connection parameters');
@@ -251,7 +251,7 @@ export class BulkDataExportService {
 
       // Test connection (mock)
       await this.delay(2000);
-      
+
       return true;
     } catch (error) {
       this.errorHandlingService.handleError(error, 'data-warehouse-connection');
@@ -269,22 +269,22 @@ export class BulkDataExportService {
     try {
       // Process the export request
       const job = await this.processExportRequest(exportRequest);
-      
+
       if (job.request.status !== 'completed' || !job.data) {
         throw new Error('Export failed or incomplete');
       }
 
       // Transform data for data warehouse
       const transformedData = this.transformForDataWarehouse(job.data, connection);
-      
+
       // Upload to data warehouse (mock implementation)
       console.log('Uploading to data warehouse:', {
         connection: connection.type,
         records: transformedData.length
       });
-      
+
       await this.delay(5000); // Simulate upload time
-      
+
     } catch (error) {
       this.errorHandlingService.handleError(error, 'data-warehouse-export');
       throw error;
@@ -309,12 +309,12 @@ export class BulkDataExportService {
       for (const resourceType of request.resourceTypes) {
         const searchParams = this.buildSearchParams(request, resourceType);
         const bundle = await this.medplumService.searchResources(resourceType, searchParams);
-        
+
         if (bundle.entry) {
           const resources = bundle.entry
             .map(entry => entry.resource)
             .filter(Boolean) as Resource[];
-          
+
           allData.push(...resources);
           totalRecords += resources.length;
         }
@@ -337,7 +337,7 @@ export class BulkDataExportService {
         totalSize: JSON.stringify(processedData).length,
         recordCount: processedData.length,
         exportedFields: this.getExportedFields(processedData),
-        deIdentificationRules: request.deIdentify ? 
+        deIdentificationRules: request.deIdentify ?
           this.deIdentificationRules.map(rule => rule.field) : []
       };
 
@@ -370,14 +370,14 @@ export class BulkDataExportService {
         if (request.until) {
           const existingFilter = params[dateField];
           const untilFilter = `le${request.until.toISOString()}`;
-          params[dateField] = existingFilter ? 
+          params[dateField] = existingFilter ?
             `${existingFilter}&${dateField}=${untilFilter}` : untilFilter;
         }
       }
     }
 
     // Set reasonable limits for bulk export
-    params._count = '1000';
+    params['_count'] = '1000';
 
     return params;
   }
@@ -398,7 +398,7 @@ export class BulkDataExportService {
   private applyDeIdentification(data: Resource[]): Resource[] {
     return data.map(resource => {
       const deIdentified = JSON.parse(JSON.stringify(resource)); // Deep clone
-      
+
       this.deIdentificationRules.forEach(rule => {
         if (this.fieldAppliesTo(rule.field, resource.resourceType)) {
           this.applyDeIdentificationRule(deIdentified, rule);
@@ -476,7 +476,7 @@ export class BulkDataExportService {
 
   private getExportedFields(data: Resource[]): string[] {
     const fields = new Set<string>();
-    
+
     data.forEach(resource => {
       this.extractFields(resource, '', fields);
     });
@@ -489,7 +489,7 @@ export class BulkDataExportService {
       Object.keys(obj).forEach(key => {
         const fieldPath = prefix ? `${prefix}.${key}` : key;
         fields.add(fieldPath);
-        
+
         if (typeof obj[key] === 'object' && obj[key] !== null) {
           this.extractFields(obj[key], fieldPath, fields);
         }
@@ -502,14 +502,14 @@ export class BulkDataExportService {
 
     // Flatten the data for CSV export
     const flatData = data.map(item => this.flattenObject(item));
-    
+
     // Get all unique keys
     const allKeys = new Set<string>();
     flatData.forEach(item => Object.keys(item).forEach(key => allKeys.add(key)));
-    
+
     const headers = Array.from(allKeys).sort();
     const csvRows = [headers.join(',')];
-    
+
     flatData.forEach(item => {
       const row = headers.map(header => {
         const value = item[header] || '';
@@ -517,7 +517,7 @@ export class BulkDataExportService {
       });
       csvRows.push(row.join(','));
     });
-    
+
     return csvRows.join('\n');
   }
 
@@ -530,18 +530,18 @@ export class BulkDataExportService {
 
   private flattenObject(obj: any, prefix: string = ''): any {
     const flattened: any = {};
-    
+
     Object.keys(obj).forEach(key => {
       const value = obj[key];
       const newKey = prefix ? `${prefix}.${key}` : key;
-      
+
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         Object.assign(flattened, this.flattenObject(value, newKey));
       } else {
         flattened[newKey] = Array.isArray(value) ? JSON.stringify(value) : value;
       }
     });
-    
+
     return flattened;
   }
 
@@ -585,13 +585,13 @@ export class BulkDataExportService {
   private updateExportJob(job: ExportJob): void {
     const currentJobs = this.exportJobs$.value;
     const index = currentJobs.findIndex(j => j.request.id === job.request.id);
-    
+
     if (index >= 0) {
       currentJobs[index] = job;
     } else {
       currentJobs.push(job);
     }
-    
+
     this.exportJobs$.next([...currentJobs]);
   }
 
