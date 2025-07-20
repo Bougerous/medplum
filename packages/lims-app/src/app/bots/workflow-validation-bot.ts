@@ -1,18 +1,16 @@
 import { MedplumClient } from '@medplum/core';
 import {
-  DiagnosticReport,
-  OperationOutcome,
-  Task,
-  Observation,
-  Patient,
-  ServiceRequest,
-  Specimen,
-  Practitioner,
   AuditEvent,
   Communication,
+  DiagnosticReport,
+  Group, 
+  Observation,
+  OperationOutcome,
+  Patient,
+  Practitioner,
   Reference,
-  CodeableConcept,
-  Bundle
+  ServiceRequest,
+  Specimen,
 } from '@medplum/fhirtypes';
 
 /**
@@ -105,7 +103,7 @@ async function getValidationContext(
       try {
         const serviceRequest = await medplum.readReference(basedOnRef) as ServiceRequest;
         serviceRequests.push(serviceRequest);
-      } catch (error) {
+      } catch (_error) {
         console.warn('Unable to retrieve service request', { reference: basedOnRef.reference });
       }
     }
@@ -118,7 +116,7 @@ async function getValidationContext(
       try {
         const specimen = await medplum.readReference(specimenRef) as Specimen;
         specimens.push(specimen);
-      } catch (error) {
+      } catch (_error) {
         console.warn('Unable to retrieve specimen', { reference: specimenRef.reference });
       }
     }
@@ -131,7 +129,7 @@ async function getValidationContext(
       try {
         const observation = await medplum.readReference(resultRef) as Observation;
         observations.push(observation);
-      } catch (error) {
+      } catch (_error) {
         console.warn('Unable to retrieve observation', { reference: resultRef.reference });
       }
     }
@@ -142,7 +140,7 @@ async function getValidationContext(
   if (diagnosticReport.performer && diagnosticReport.performer.length > 0) {
     try {
       performer = await medplum.readReference(diagnosticReport.performer[0]) as Practitioner;
-    } catch (error) {
+    } catch (_error) {
       console.warn('Unable to retrieve performer', { reference: diagnosticReport.performer[0].reference });
     }
   }
@@ -205,7 +203,7 @@ async function runValidationChecks(
  */
 async function validateBasicStructure(
   diagnosticReport: DiagnosticReport,
-  context: ValidationContext,
+  _context: ValidationContext,
   results: ValidationResults
 ): Promise<void> {
   // Required fields
@@ -297,7 +295,13 @@ async function validateContentCompleteness(
 
   // Validate observations completeness
   for (const observation of context.observations) {
-    if (!observation.value && !observation.component) {
+    const hasValue = observation.valueQuantity || observation.valueCodeableConcept ||
+      observation.valueString || observation.valueBoolean ||
+      observation.valueInteger || observation.valueRange ||
+      observation.valueRatio || observation.valueSampledData ||
+      observation.valueTime || observation.valueDateTime ||
+      observation.valuePeriod;
+    if (!(hasValue || observation.component)) {
       results.warnings.push({
         severity: 'warning',
         code: 'incomplete-observation',
@@ -503,7 +507,7 @@ async function validateCompliance(
 async function validateStatusTransition(
   medplum: MedplumClient,
   diagnosticReport: DiagnosticReport,
-  context: ValidationContext,
+  _context: ValidationContext,
   results: ValidationResults
 ): Promise<void> {
   // Get previous version to check status transition
@@ -535,7 +539,7 @@ async function validateStatusTransition(
         });
       }
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn('Unable to retrieve report history for status validation');
   }
 
@@ -606,7 +610,7 @@ async function validatePerformer(
  */
 async function validateTiming(
   diagnosticReport: DiagnosticReport,
-  context: ValidationContext,
+  _context: ValidationContext,
   results: ValidationResults
 ): Promise<void> {
   const now = new Date();
@@ -651,7 +655,7 @@ async function validateTiming(
  */
 async function processValidationResults(
   medplum: MedplumClient,
-  diagnosticReport: DiagnosticReport,
+  _diagnosticReport: DiagnosticReport,
   validationResults: ValidationResults
 ): Promise<ProcessedValidationResults> {
   const hasErrors = validationResults.errors.length > 0;
@@ -742,7 +746,7 @@ async function generateNotifications(
         }]
       }],
       priority: 'urgent',
-      subject: diagnosticReport.subject,
+      subject: diagnosticReport.subject?.reference?.startsWith('Patient/') || diagnosticReport.subject?.reference?.startsWith('Group/') ? diagnosticReport.subject as Reference<Patient | Group> : undefined,
       topic: {
         text: 'Diagnostic Report Validation Failed'
       },
@@ -768,7 +772,7 @@ async function generateNotifications(
         }]
       }],
       priority: 'routine',
-      subject: diagnosticReport.subject,
+      subject: diagnosticReport.subject?.reference?.startsWith('Patient/') || diagnosticReport.subject?.reference?.startsWith('Group/') ? diagnosticReport.subject as Reference<Patient | Group> : undefined,
       topic: {
         text: 'Extended Turnaround Time'
       },

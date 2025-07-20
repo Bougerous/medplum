@@ -1,24 +1,22 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup } from '@angular/forms';
-import { Subject, Observable, combineLatest } from 'rxjs';
-import { takeUntil, map, startWith } from 'rxjs/operators';
-
-import { 
-  SpecimenAuditService, 
-  SpecimenAuditTrail, 
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { combineLatest, Observable, of, Subject } from 'rxjs';
+import { map, startWith, takeUntil } from 'rxjs/operators';
+import { ErrorHandlingService } from '../../services/error-handling.service';
+import { NotificationService } from '../../services/notification.service';
+import {
   ComplianceReport,
   ComplianceViolation,
   RegulatoryRequirement,
-  AuditEventSummary
+  SpecimenAuditService,
+  SpecimenAuditTrail
 } from '../../services/specimen-audit.service';
-import { NotificationService } from '../../services/notification.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 
 @Component({
   selector: 'app-compliance-dashboard',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="compliance-dashboard-container">
       <!-- Header -->
@@ -528,7 +526,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   auditTrails$: Observable<SpecimenAuditTrail[]>;
   complianceReports$: Observable<ComplianceReport[]>;
   regulatoryRequirements$: Observable<RegulatoryRequirement[]>;
-  
+
   // Computed observables
   overallComplianceRate$: Observable<number>;
   totalViolations$: Observable<number>;
@@ -575,6 +573,20 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
       endDate: [this.getDefaultEndDate()]
     });
 
+    // Initialize missing Observable properties
+    this.overallComplianceRate$ = of(0);
+    this.totalViolations$ = of(0);
+    this.criticalViolations$ = of(0);
+    this.highViolations$ = of(0);
+    this.totalSpecimens$ = of(0);
+    this.compliantSpecimens$ = of(0);
+    this.nonCompliantSpecimens$ = of(0);
+    this.chainOfCustodyIntegrity$ = of(0);
+    this.intactChains$ = of(0);
+    this.brokenChains$ = of(0);
+    this.filteredViolations$ = of([]);
+    this.filteredAuditTrails$ = of([]);
+
     this.setupComputedObservables();
   }
 
@@ -591,7 +603,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     // Overall compliance rate
     this.overallComplianceRate$ = this.auditTrails$.pipe(
       map(trails => {
-        if (trails.length === 0) return 100;
+        if (trails.length === 0) { return 100; }
         const compliant = trails.filter(t => t.complianceStatus.overall === 'compliant').length;
         return (compliant / trails.length) * 100;
       })
@@ -630,7 +642,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     // Chain of custody metrics
     this.chainOfCustodyIntegrity$ = this.auditTrails$.pipe(
       map(trails => {
-        if (trails.length === 0) return 100;
+        if (trails.length === 0) { return 100; }
         const intact = trails.filter(t => t.chainOfCustodyIntegrity.status === 'intact').length;
         return (intact / trails.length) * 100;
       })
@@ -653,10 +665,10 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
         return violations.filter(violation => {
           const matchesSeverity = !filters.severity || violation.severity === filters.severity;
           const matchesType = !filters.type || violation.type === filters.type;
-          const matchesStatus = !filters.status || 
+          const matchesStatus = !filters.status ||
             (filters.status === 'resolved' && violation.resolved) ||
             (filters.status === 'unresolved' && !violation.resolved);
-          
+
           return matchesSeverity && matchesType && matchesStatus;
         });
       })
@@ -665,10 +677,10 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     // Filtered audit trails
     this.filteredAuditTrails$ = this.auditTrails$.pipe(
       map(trails => {
-        if (!this.auditSearchTerm) return trails;
-        
+        if (!this.auditSearchTerm) { return trails; }
+
         const searchTerm = this.auditSearchTerm.toLowerCase();
-        return trails.filter(trail => 
+        return trails.filter(trail =>
           trail.specimenId.toLowerCase().includes(searchTerm) ||
           trail.accessionNumber.toLowerCase().includes(searchTerm)
         );
@@ -706,7 +718,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
       violation.resolved = true;
       violation.resolvedAt = new Date();
       violation.resolvedBy = 'Current User'; // Would get from auth service
-      
+
       this.notificationService.showSuccess(
         'Violation Resolved',
         'The violation has been marked as resolved'
@@ -737,7 +749,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     this.selectedAuditTrail = null;
   }
 
-  exportAuditTrail(trail: SpecimenAuditTrail): void {
+  exportAuditTrail(_trail: SpecimenAuditTrail): void {
     // Implementation for exporting audit trail
     this.notificationService.showInfo('Export', 'Audit trail export functionality would be implemented here');
   }
@@ -763,7 +775,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   }
 
   async generateCustomReport(): Promise<void> {
-    if (!this.reportForm.valid) return;
+    if (!this.reportForm.valid) { return; }
 
     try {
       const formValue = this.reportForm.value;
@@ -790,7 +802,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     console.log('View report:', report);
   }
 
-  downloadReport(report: ComplianceReport): void {
+  downloadReport(_report: ComplianceReport): void {
     // Implementation for downloading report
     this.notificationService.showInfo('Download', 'Report download functionality would be implemented here');
   }
@@ -819,7 +831,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
 
   getSpecimenId(violationId: string): string {
     // This would extract specimen ID from violation ID
-    return 'SP-' + violationId.substring(0, 8);
+    return `SP-${violationId.substring(0, 8)}`;
   }
 
   formatReportPeriod(period: { start: Date; end: Date }): string {
@@ -827,9 +839,9 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   }
 
   getComplianceRateClass(rate: number): string {
-    if (rate >= 95) return 'excellent';
-    if (rate >= 85) return 'good';
-    if (rate >= 70) return 'warning';
+    if (rate >= 95) { return 'excellent'; }
+    if (rate >= 85) { return 'good'; }
+    if (rate >= 70) { return 'warning'; }
     return 'poor';
   }
 

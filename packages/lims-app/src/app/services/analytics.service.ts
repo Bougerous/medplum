@@ -1,17 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, combineLatest, interval } from 'rxjs';
-import { map, switchMap, catchError, startWith } from 'rxjs/operators';
 import {
-  DiagnosticReport,
-  Specimen,
-  ServiceRequest,
-  Observation,
   Bundle,
-  Resource
+  DiagnosticReport,
+  Resource, 
+  Specimen
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, interval, Observable } from 'rxjs';
+import { catchError, map, startWith, switchMap } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
+import { AnalyticsMetric, SearchParams, TurnaroundTimeMetric } from '../types/fhir-types';
 import { ErrorHandlingService } from './error-handling.service';
-import { SearchParams, AnalyticsMetric, TurnaroundTimeMetric } from '../types/fhir-types';
 
 export interface AnalyticsQuery {
   resourceType: string;
@@ -114,7 +112,7 @@ export class AnalyticsService {
       };
 
       if (dateRange) {
-        searchParams['issued'] = `ge${dateRange.start.toISOString()}&issued=le${dateRange.end.toISOString()}`;
+        searchParams.issued = `ge${dateRange.start.toISOString()}&issued=le${dateRange.end.toISOString()}`;
       }
 
       const reports = await this.medplumService.searchDiagnosticReports(searchParams);
@@ -139,7 +137,7 @@ export class AnalyticsService {
       };
 
       if (dateRange) {
-        searchParams['receivedTime'] = `ge${dateRange.start.toISOString()}&receivedTime=le${dateRange.end.toISOString()}`;
+        searchParams.receivedTime = `ge${dateRange.start.toISOString()}&receivedTime=le${dateRange.end.toISOString()}`;
       }
 
       const specimens = await this.medplumService.searchSpecimens(searchParams);
@@ -154,7 +152,7 @@ export class AnalyticsService {
    * Get quality metrics
    */
   async getQualityMetrics(
-    dateRange?: { start: Date; end: Date }
+    _dateRange?: { start: Date; end: Date }
   ): Promise<AnalyticsMetric[]> {
     try {
       // Get rejected specimens
@@ -192,7 +190,7 @@ export class AnalyticsService {
       };
 
       if (dateRange) {
-        searchParams['issued'] = `ge${dateRange.start.toISOString()}&issued=le${dateRange.end.toISOString()}`;
+        searchParams.issued = `ge${dateRange.start.toISOString()}&issued=le${dateRange.end.toISOString()}`;
       }
 
       const reports = await this.medplumService.searchDiagnosticReports(searchParams);
@@ -320,7 +318,7 @@ export class AnalyticsService {
   private processQueryResults(bundle: Bundle, query: AnalyticsQuery): unknown[] {
     const resources = bundle.entry?.map(entry => entry.resource).filter((resource): resource is Resource => Boolean(resource)) || [];
 
-    if (!query.aggregation && !query.groupBy) {
+    if (!(query.aggregation || query.groupBy)) {
       return resources;
     }
 
@@ -425,7 +423,7 @@ export class AnalyticsService {
   }
 
   private calculateReportTurnaroundTime(report: DiagnosticReport): number {
-    if (!report.effectiveDateTime || !report.issued) {
+    if (!(report.effectiveDateTime && report.issued)) {
       return 0;
     }
 
@@ -533,14 +531,14 @@ export class AnalyticsService {
       {
         name: 'Total Revenue',
         value: totalRevenue,
-        unit: 'USD',
+        unit: 'INR',
         trend: 'up',
         period: 'current'
       },
       {
         name: 'Monthly Revenue',
         value: monthlyReports.length * estimatedRevenuePerReport,
-        unit: 'USD',
+        unit: 'INR',
         trend: 'up',
         period: 'this month'
       }

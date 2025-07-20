@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { SearchParams, UserRole } from '../types/fhir-types';
 import { AuthService } from './auth.service';
-import { UserRole, SearchParams } from '../types/fhir-types';
 
 export interface DataFilterRule {
   resourceType: string;
@@ -168,7 +168,7 @@ export class DataFilterService {
   applyDataFilters<T>(
     resourceType: string,
     data: T[],
-    searchParams?: SearchParams,
+    _searchParams?: SearchParams,
   ): Observable<FilteredData<T>> {
     return this.authService.getCurrentUser().pipe(
       map((user) => {
@@ -299,8 +299,8 @@ export class DataFilterService {
    */
   filterByCompartment<T extends { id?: string }>(
     data: T[],
-    compartmentType: 'Patient' | 'Practitioner',
-    compartmentId: string,
+    _compartmentType: 'Patient' | 'Practitioner',
+    _compartmentId: string,
   ): T[] {
     // This would implement FHIR compartment-based filtering
     // For now, return all data as this requires more complex FHIR logic
@@ -492,9 +492,9 @@ export class DataFilterService {
 
   private filterDataByUserContext<T>(
     data: T[],
-    resourceType: string,
-    userId: string,
-    userRoles: UserRole[],
+    _resourceType: string,
+    _userId: string,
+    _userRoles: UserRole[],
   ): T[] {
     // Implement user context-based filtering
     // This would include things like:

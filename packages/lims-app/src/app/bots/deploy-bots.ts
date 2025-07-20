@@ -1,7 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { MedplumClient } from '@medplum/core';
 import { Bot, Subscription } from '@medplum/fhirtypes';
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { getAllBotConfigurations } from './index';
 
 /**
@@ -87,7 +87,7 @@ export class BotDeployer {
    * Create or update a bot resource
    */
   private async createOrUpdateBot(
-    botName: string, 
+    _botName: string, 
     config: any, 
     sourceCode: string
   ): Promise<Bot> {
@@ -273,7 +273,7 @@ export async function deployBotsFromCLI(): Promise<void> {
   const deployer = new BotDeployer(medplum);
   
   switch (command) {
-    case 'deploy':
+    case 'deploy': {
       const botName = args[1];
       if (botName) {
         await deployer.deployBot(botName);
@@ -281,15 +281,17 @@ export async function deployBotsFromCLI(): Promise<void> {
         await deployer.deployAllBots();
       }
       break;
+    }
       
     case 'list':
       await deployer.listDeployedBots();
       break;
       
-    case 'monitor':
+    case 'monitor': {
       const monitorBotId = args[1];
       await deployer.monitorBotExecutions(monitorBotId);
       break;
+    }
       
     default:
       console.log('Usage:');

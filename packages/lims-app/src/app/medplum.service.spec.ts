@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import { Bundle, Patient, } from '@medplum/fhirtypes';
 import { MedplumService } from './medplum.service';
 import { ErrorHandlingService } from './services/error-handling.service';
 import { RetryService } from './services/retry.service';
-import { Patient, Specimen, ServiceRequest, DiagnosticReport, Observation, Bundle } from '@medplum/fhirtypes';
 
 describe('MedplumService', () => {
   let service: MedplumService;
   let mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
-  let mockRetryService: jasmine.SpyObj<RetryService>;
+  let _mockRetryService: jasmine.SpyObj<RetryService>;
 
   beforeEach(() => {
     const errorSpy = jasmine.createSpyObj('ErrorHandlingService', ['handleError']);
@@ -26,7 +26,7 @@ describe('MedplumService', () => {
 
     service = TestBed.inject(MedplumService);
     mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
-    mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
+    _mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
   });
 
   it('should be created', () => {
@@ -42,12 +42,12 @@ describe('MedplumService', () => {
     });
 
     it('should handle sign in errors', async () => {
-      spyOn(service['medplum'], 'signInWithPassword').and.rejectWith(new Error('Invalid credentials'));
+      spyOn(service.medplum, 'signInWithPassword').and.rejectWith(new Error('Invalid credentials'));
       
       try {
         await service.signIn('invalid@example.com', 'wrongpassword');
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalled();
       }
     });
@@ -118,7 +118,7 @@ describe('MedplumService', () => {
     });
 
     it('should handle resource operation errors', async () => {
-      spyOn(service['medplum'], 'createResource').and.rejectWith(new Error('Network error'));
+      spyOn(service.medplum, 'createResource').and.rejectWith(new Error('Network error'));
       
       const patient: Patient = {
         resourceType: 'Patient',
@@ -128,7 +128,7 @@ describe('MedplumService', () => {
       try {
         await service.createResource(patient);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalled();
       }
     });

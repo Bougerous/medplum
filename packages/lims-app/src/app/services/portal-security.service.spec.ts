@@ -1,23 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { of } from 'rxjs';
-import { PortalSecurityService } from './portal-security.service';
-import { MedplumService } from '../medplum.service';
-import { AuthService } from './auth.service';
-import { AuditService } from './audit.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { SessionService } from './session.service';
 import { 
-  Patient, 
   AccessPolicy, 
-  Bundle 
+  Bundle, 
+  Patient 
 } from '@medplum/fhirtypes';
+import { MedplumService } from '../medplum.service';
+import { AuditService } from './audit.service';
+import { AuthService } from './auth.service';
+import { ErrorHandlingService } from './error-handling.service';
+import { PortalSecurityService } from './portal-security.service';
+import { SessionService } from './session.service';
 
 describe('PortalSecurityService', () => {
   let service: PortalSecurityService;
   let mockMedplumService: jasmine.SpyObj<MedplumService>;
-  let mockAuthService: jasmine.SpyObj<AuthService>;
+  let _mockAuthService: jasmine.SpyObj<AuthService>;
   let mockAuditService: jasmine.SpyObj<AuditService>;
-  let mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
+  let _mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
   let mockSessionService: jasmine.SpyObj<SessionService>;
 
   const mockPatient: Patient = {
@@ -27,7 +26,7 @@ describe('PortalSecurityService', () => {
     generalPractitioner: [{ reference: 'Practitioner/provider-1' }]
   };
 
-  const mockAccessPolicy: AccessPolicy = {
+  const _mockAccessPolicy: AccessPolicy = {
     resourceType: 'AccessPolicy',
     id: 'policy-1',
     name: 'patient-portal-policy',
@@ -70,9 +69,9 @@ describe('PortalSecurityService', () => {
 
     service = TestBed.inject(PortalSecurityService);
     mockMedplumService = TestBed.inject(MedplumService) as jasmine.SpyObj<MedplumService>;
-    mockAuthService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
+    _mockAuthService = TestBed.inject(AuthService) as jasmine.SpyObj<AuthService>;
     mockAuditService = TestBed.inject(AuditService) as jasmine.SpyObj<AuditService>;
-    mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
+    _mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
     mockSessionService = TestBed.inject(SessionService) as jasmine.SpyObj<SessionService>;
   });
 

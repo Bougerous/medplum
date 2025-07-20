@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { AuthService, LoginCredentials, PermissionContext } from './auth.service';
+import { AccessPolicy, AuditEvent, Practitioner, ProjectMembership } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
+import { LIMSErrorType, UserProfile, } from '../types/fhir-types';
+import { AuthService, LoginCredentials, PermissionContext } from './auth.service';
 import { ErrorHandlingService } from './error-handling.service';
-import { Practitioner, AccessPolicy, ProjectMembership, AuditEvent } from '@medplum/fhirtypes';
-import { UserProfile, UserRole, LIMSErrorType } from '../types/fhir-types';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -109,12 +109,12 @@ describe('AuthService', () => {
 
     it('should logout successfully', async () => {
       // Set up authenticated state
-      service['currentUser$'].next({
+      service.currentUser$.next({
         practitioner: mockPractitioner,
         roles: ['lab-technician'],
         accessPolicies: [mockAccessPolicy]
       } as UserProfile);
-      service['isAuthenticated$'].next(true);
+      service.isAuthenticated$.next(true);
 
       mockMedplumService.signOut.and.returnValue(Promise.resolve());
       mockMedplumService.createResource.and.returnValue(Promise.resolve({} as AuditEvent));
@@ -127,7 +127,7 @@ describe('AuthService', () => {
     });
 
     it('should handle logout errors gracefully', async () => {
-      service['currentUser$'].next({
+      service.currentUser$.next({
         practitioner: mockPractitioner,
         roles: ['lab-technician'],
         accessPolicies: [mockAccessPolicy]
@@ -163,7 +163,7 @@ describe('AuthService', () => {
         return Promise.resolve({ resourceType: 'Bundle', type: 'searchset', entry: [] });
       });
 
-      await service['loadUserProfile'](mockPractitioner);
+      await service.loadUserProfile(mockPractitioner);
 
       const currentUser = service.getCurrentUserSync();
       expect(currentUser).toBeTruthy();
@@ -178,7 +178,7 @@ describe('AuthService', () => {
         { ...mockAccessPolicy, name: 'billing-staff-policy' }
       ];
 
-      const roles = service['determineUserRoles'](policies);
+      const roles = service.determineUserRoles(policies);
 
       expect(roles).toContain('pathologist');
       expect(roles).toContain('lab-manager');
@@ -191,13 +191,13 @@ describe('AuthService', () => {
         admin: true
       };
 
-      const roles = service['determineUserRoles']([], adminMembership);
+      const roles = service.determineUserRoles([], adminMembership);
 
       expect(roles).toContain('admin');
     });
 
     it('should assign default role when no specific roles found', () => {
-      const roles = service['determineUserRoles']([]);
+      const roles = service.determineUserRoles([]);
 
       expect(roles).toContain('lab-technician');
     });
@@ -205,7 +205,7 @@ describe('AuthService', () => {
 
   describe('Permission Management', () => {
     beforeEach(() => {
-      service['permissions$'].next([mockAccessPolicy]);
+      service.permissions$.next([mockAccessPolicy]);
     });
 
     it('should check permissions correctly', () => {
@@ -231,7 +231,7 @@ describe('AuthService', () => {
     });
 
     it('should check role-based permissions', () => {
-      service['currentUser$'].next({
+      service.currentUser$.next({
         practitioner: mockPractitioner,
         roles: ['lab-technician', 'pathologist'],
         accessPolicies: [mockAccessPolicy]
@@ -263,30 +263,30 @@ describe('AuthService', () => {
 
   describe('Session Management', () => {
     it('should refresh session timeout', () => {
-      service['isAuthenticated$'].next(true);
+      service.isAuthenticated$.next(true);
       spyOn(service as any, 'startSessionTimeout');
 
       service.refreshSession();
 
-      expect(service['startSessionTimeout']).toHaveBeenCalled();
+      expect(service.startSessionTimeout).toHaveBeenCalled();
     });
 
     it('should not refresh session when not authenticated', () => {
-      service['isAuthenticated$'].next(false);
+      service.isAuthenticated$.next(false);
       spyOn(service as any, 'startSessionTimeout');
 
       service.refreshSession();
 
-      expect(service['startSessionTimeout']).not.toHaveBeenCalled();
+      expect(service.startSessionTimeout).not.toHaveBeenCalled();
     });
 
     it('should handle session timeout', (done) => {
-      service['isAuthenticated$'].next(true);
+      service.isAuthenticated$.next(true);
       spyOn(service, 'logout').and.returnValue(Promise.resolve());
 
       // Set a very short timeout for testing
-      service['SESSION_TIMEOUT_MS'] = 10;
-      service['startSessionTimeout']();
+      service.SESSION_TIMEOUT_MS = 10;
+      service.startSessionTimeout();
 
       setTimeout(() => {
         expect(service.logout).toHaveBeenCalled();
@@ -299,7 +299,7 @@ describe('AuthService', () => {
     it('should create audit event for login attempt', async () => {
       mockMedplumService.createResource.and.returnValue(Promise.resolve({} as AuditEvent));
 
-      await service['createAuditEvent']('login-attempt', 'test@example.com');
+      await service.createAuditEvent('login-attempt', 'test@example.com');
 
       expect(mockMedplumService.createResource).toHaveBeenCalledWith(
         jasmine.objectContaining({
@@ -313,7 +313,7 @@ describe('AuthService', () => {
       mockMedplumService.createResource.and.returnValue(Promise.resolve({} as AuditEvent));
       const error = new Error('Test error');
 
-      await service['createAuditEvent']('login-failure', 'test@example.com', error);
+      await service.createAuditEvent('login-failure', 'test@example.com', error);
 
       expect(mockMedplumService.createResource).toHaveBeenCalledWith(
         jasmine.objectContaining({
@@ -329,7 +329,7 @@ describe('AuthService', () => {
       mockMedplumService.createResource.and.rejectWith(new Error('Audit failed'));
       spyOn(console, 'error');
 
-      await service['createAuditEvent']('test-action', 'test-user');
+      await service.createAuditEvent('test-action', 'test-user');
 
       expect(console.error).toHaveBeenCalledWith('Failed to create audit event:', jasmine.any(Error));
     });
@@ -350,7 +350,7 @@ describe('AuthService', () => {
         }
       });
 
-      service['currentUser$'].next(userProfile);
+      service.currentUser$.next(userProfile);
     });
 
     it('should provide authentication status observable', (done) => {
@@ -361,7 +361,7 @@ describe('AuthService', () => {
         }
       });
 
-      service['isAuthenticated$'].next(true);
+      service.isAuthenticated$.next(true);
     });
 
     it('should provide permissions observable', (done) => {
@@ -372,13 +372,13 @@ describe('AuthService', () => {
         }
       });
 
-      service['permissions$'].next([mockAccessPolicy]);
+      service.permissions$.next([mockAccessPolicy]);
     });
   });
 
   describe('Utility Methods', () => {
     it('should get user roles', () => {
-      service['currentUser$'].next({
+      service.currentUser$.next({
         practitioner: mockPractitioner,
         roles: ['lab-technician', 'pathologist'],
         accessPolicies: [mockAccessPolicy]
@@ -390,7 +390,7 @@ describe('AuthService', () => {
     });
 
     it('should return empty roles when no user', () => {
-      service['currentUser$'].next(null);
+      service.currentUser$.next(null);
 
       const roles = service.getUserRoles();
 
@@ -398,10 +398,10 @@ describe('AuthService', () => {
     });
 
     it('should check authentication status', () => {
-      service['isAuthenticated$'].next(true);
+      service.isAuthenticated$.next(true);
       expect(service.isAuthenticated()).toBe(true);
 
-      service['isAuthenticated$'].next(false);
+      service.isAuthenticated$.next(false);
       expect(service.isAuthenticated()).toBe(false);
     });
   });

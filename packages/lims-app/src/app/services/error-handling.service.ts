@@ -1,12 +1,14 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { LIMSError, LIMSErrorType } from '../types/fhir-types';
+
 // import { environment } from '../../environments/environment';
 
 // Temporary mock environment for development
 const environment = {
   enableDebugLogging: true
 };
+
 import { NotificationService } from './notification.service';
 
 @Injectable({
@@ -16,30 +18,30 @@ export class ErrorHandlingService {
   private errorLog$ = new BehaviorSubject<LIMSError[]>([]);
   private currentError$ = new BehaviorSubject<LIMSError | null>(null);
 
-  constructor(private notificationService: NotificationService) {}
+  private readonly notificationService = inject(NotificationService);
 
   /**
    * Handle and process errors throughout the application
    */
   handleError(error: unknown, context?: string): void {
     const limsError = this.createLIMSError(error, context);
-    
+
     // Log error to console
     if (environment.enableDebugLogging) {
       console.error('LIMS Error:', limsError);
     }
-    
+
     // Store in error log
     this.addToErrorLog(limsError);
-    
+
     // Set as current error for UI display
     this.currentError$.next(limsError);
-    
+
     // Send to monitoring service if critical
     if (this.isCriticalError(limsError)) {
       this.sendToMonitoring(limsError);
     }
-    
+
     // Show user-friendly message
     this.showUserMessage(limsError);
   }
@@ -50,22 +52,23 @@ export class ErrorHandlingService {
   private createLIMSError(error: unknown, context?: string): LIMSError {
     let errorType: LIMSErrorType;
     let message: string;
-    let details: unknown = error;
+    const details: Record<string, unknown> = this.convertErrorToRecord(error);
 
     // Determine error type based on error characteristics
-    if ((error as any)?.status === 401 || (error as any)?.message?.includes('unauthorized')) {
+    const errorObj = this.getErrorObject(error);
+    if (errorObj.status === 401 || errorObj.message?.includes('unauthorized')) {
       errorType = LIMSErrorType.AUTHENTICATION_ERROR;
       message = 'Authentication failed. Please sign in again.';
-    } else if ((error as any)?.status === 403 || (error as any)?.message?.includes('forbidden')) {
+    } else if (errorObj.status === 403 || errorObj.message?.includes('forbidden')) {
       errorType = LIMSErrorType.AUTHORIZATION_ERROR;
       message = 'You do not have permission to perform this action.';
-    } else if ((error as any)?.status >= 400 && (error as any)?.status < 500) {
+    } else if (errorObj.status >= 400 && errorObj.status < 500) {
       errorType = LIMSErrorType.VALIDATION_ERROR;
-      message = (error as any)?.message || 'Invalid data provided.';
-    } else if ((error as any)?.status >= 500 || (error as any)?.name === 'NetworkError') {
+      message = errorObj.message || 'Invalid data provided.';
+    } else if (errorObj.status >= 500 || errorObj.name === 'NetworkError') {
       errorType = LIMSErrorType.NETWORK_ERROR;
       message = 'Network error occurred. Please check your connection.';
-    } else if ((error as any)?.resourceType || (error as any)?.issue) {
+    } else if (errorObj.resourceType || errorObj.issue) {
       errorType = LIMSErrorType.FHIR_ERROR;
       message = this.extractFHIRErrorMessage(error);
     } else if (context?.includes('workflow')) {
@@ -76,7 +79,7 @@ export class ErrorHandlingService {
       message = 'External service integration error.';
     } else {
       errorType = LIMSErrorType.NETWORK_ERROR;
-      message = (error as any)?.message || 'An unexpected error occurred.';
+      message = errorObj.message || 'An unexpected error occurred.';
     }
 
     return {
@@ -85,20 +88,60 @@ export class ErrorHandlingService {
       details,
       timestamp: new Date(),
       userId: this.getCurrentUserId(),
-      resourceType: (error as any)?.resourceType,
-      resourceId: (error as any)?.id
+      resourceType: errorObj.resourceType,
+      resourceId: errorObj.id
     };
+  }
+
+  /**
+ * Convert unknown error to Record<string, unknown>
+ */
+  private convertErrorToRecord(error: unknown): Record<string, unknown> {
+    if (error === null || error === undefined) {
+      return {};
+    }
+
+    if (typeof error === 'object') {
+      return error as Record<string, unknown>;
+    }
+
+    return { message: String(error) };
+  }
+
+  /**
+   * Get error object with proper typing
+   */
+  private getErrorObject(error: unknown): {
+    status?: number;
+    message?: string;
+    name?: string;
+    resourceType?: string;
+    issue?: unknown;
+    id?: string
+  } {
+    if (error && typeof error === 'object') {
+      return error as {
+        status?: number;
+        message?: string;
+        name?: string;
+        resourceType?: string;
+        issue?: unknown;
+        id?: string
+      };
+    }
+    return {};
   }
 
   /**
    * Extract meaningful error message from FHIR OperationOutcome
    */
   private extractFHIRErrorMessage(error: unknown): string {
-    if ((error as any)?.issue && Array.isArray((error as any).issue)) {
-      const firstIssue = (error as any).issue[0];
+    const errorObj = this.getErrorObject(error);
+    if (errorObj.issue && Array.isArray(errorObj.issue)) {
+      const firstIssue = errorObj.issue[0] as { diagnostics?: string; details?: { text?: string } };
       return firstIssue?.diagnostics || firstIssue?.details?.text || 'FHIR operation failed.';
     }
-    return (error as any)?.message || 'FHIR resource error occurred.';
+    return errorObj.message || 'FHIR resource error occurred.';
   }
 
   /**
@@ -130,7 +173,7 @@ export class ErrorHandlingService {
     if (environment.enableDebugLogging) {
       console.warn('Critical error detected:', error);
     }
-    
+
     // TODO: Implement actual monitoring service integration
     // Example: this.monitoringService.reportError(error);
   }
@@ -141,7 +184,7 @@ export class ErrorHandlingService {
   private showUserMessage(error: LIMSError): void {
     // Show notification to user
     this.notificationService.showLIMSError(error);
-    
+
     if (environment.enableDebugLogging) {
       console.log('Displaying error to user:', error.message);
     }

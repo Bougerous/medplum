@@ -1,4 +1,12 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  DiagnosticReport,
+  Patient,
+  QuestionnaireResponse,
+  ServiceRequest,
+  Specimen,
+  Task
+} from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { AuthService } from '../services/auth.service';
 import { BillingService } from '../services/billing.service';
@@ -6,16 +14,6 @@ import { BotService } from '../services/bot.service';
 import { DiagnosticReportService } from '../services/diagnostic-report.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
 import { RetryService } from '../services/retry.service';
-import {
-  Patient,
-  Specimen,
-  ServiceRequest,
-  DiagnosticReport,
-  QuestionnaireResponse,
-  Task,
-  Claim,
-  Observation
-} from '@medplum/fhirtypes';
 
 // Integration test configuration
 const WORKFLOW_INTEGRATION_CONFIG = {

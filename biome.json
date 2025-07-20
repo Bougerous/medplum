@@ -57,6 +57,9 @@
       }
     }
   },
+  "files": {
+    "ignore": ["packages/lims-app/.angular/cache/**/*"]
+  },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",

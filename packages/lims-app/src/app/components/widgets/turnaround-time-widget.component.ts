@@ -1,7 +1,7 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, startWith, switchMap } from 'rxjs/operators';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { interval, Subject } from 'rxjs';
+import { startWith, switchMap, takeUntil } from 'rxjs/operators';
 import { AnalyticsService } from '../../services/analytics.service';
 import { TurnaroundTimeMetric } from '../../types/fhir-types';
 
@@ -418,14 +418,14 @@ export class TurnaroundTimeWidgetComponent implements OnInit, OnDestroy {
   }
 
   getOverallAverage(): number {
-    if (this.turnaroundMetrics.length === 0) return 0;
+    if (this.turnaroundMetrics.length === 0) { return 0; }
     
     const total = this.turnaroundMetrics.reduce((sum, metric) => sum + metric.actual, 0);
     return total / this.turnaroundMetrics.length;
   }
 
   getTargetCompliance(): number {
-    if (this.turnaroundMetrics.length === 0) return 0;
+    if (this.turnaroundMetrics.length === 0) { return 0; }
     
     const compliant = this.turnaroundMetrics.filter(metric => metric.actual <= metric.target).length;
     return (compliant / this.turnaroundMetrics.length) * 100;
@@ -434,8 +434,8 @@ export class TurnaroundTimeWidgetComponent implements OnInit, OnDestroy {
   getOverallTrend(): 'up' | 'down' | 'stable' {
     // This would typically compare with historical data
     const compliance = this.getTargetCompliance();
-    if (compliance >= 90) return 'stable';
-    if (compliance >= 75) return 'down';
+    if (compliance >= 90) { return 'stable'; }
+    if (compliance >= 75) { return 'down'; }
     return 'up';
   }
 

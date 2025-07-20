@@ -1,7 +1,6 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
 interface TimelineEvent {
   timestamp: Date;
@@ -418,7 +417,7 @@ export class SampleTracking implements OnInit {
   }
 
   // Utility methods
-  trackBySampleId(index: number, sample: Sample): string {
+  trackBySampleId(_index: number, sample: Sample): string {
     return sample.specimenId;
   }
 }

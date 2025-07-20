@@ -1,9 +1,6 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { MedplumService } from '../../medplum.service';
-import { DiagnosticReport } from '@medplum/fhirtypes';
 
 interface PendingReport {
   id: string;
@@ -309,8 +306,6 @@ export class PendingReportsWidgetComponent implements OnInit, OnDestroy {
     { key: 'stat', label: 'STAT' },
     { key: 'urgent', label: 'Urgent' }
   ];
-
-  constructor(private medplumService: MedplumService) {}
 
   ngOnInit(): void {
     this.loadReports();

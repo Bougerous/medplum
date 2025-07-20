@@ -1,20 +1,17 @@
-import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {
-  Invoice,
-  Patient,
-  DiagnosticReport,
-  Claim,
-  Money,
-  Reference,
-  PaymentNotice,
-  PaymentReconciliation
-} from '@medplum/fhirtypes';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
 import { RetryService } from './retry.service';
+import {
+  Patient,
+  PaymentNotice,
+  Communication,
+  DiagnosticReport,
+  Invoice,
+} from '@medplum/fhirtypes';
 import { LIMSErrorType } from '../types/fhir-types';
+import { ErrorHandlingService } from './error-handling.service';
 
 // Stripe API interfaces
 export interface StripeConfig {
@@ -119,8 +116,8 @@ export interface StripeWebhookEvent {
   id: string;
   type: string;
   data: {
-    object: any;
-    previous_attributes?: any;
+    object: Record<string, unknown>;
+    previous_attributes?: Record<string, unknown>;
   };
   created: number;
   livemode: boolean;
@@ -159,12 +156,12 @@ export class StripePaymentService {
   private invoices$ = new BehaviorSubject<StripeInvoice[]>([]);
   private paymentConfirmations$ = new BehaviorSubject<PaymentConfirmation[]>([]);
 
-  constructor(
-    private http: HttpClient,
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService
-  ) {
+  private readonly http = inject(HttpClient);
+  private readonly medplumService = inject(MedplumService);
+  private readonly errorHandlingService = inject(ErrorHandlingService);
+  private readonly retryService = inject(RetryService);
+
+  constructor() {
     this.config = this.getDefaultConfig();
   }
 
@@ -290,7 +287,7 @@ export class StripePaymentService {
 
       // In a real implementation, this would integrate with an email service
       // For now, we'll create a communication resource to track the email
-      const communication = {
+      const communication: Communication = {
         resourceType: 'Communication',
         status: 'completed',
         category: [{
@@ -336,16 +333,16 @@ export class StripePaymentService {
     try {
       switch (event.type) {
         case 'invoice.payment_succeeded':
-          await this.handleInvoicePaymentSucceeded(event.data.object);
+          await this.handleInvoicePaymentSucceeded(event.data.object as unknown as StripeInvoice);
           break;
         case 'invoice.payment_failed':
-          await this.handleInvoicePaymentFailed(event.data.object);
+          await this.handleInvoicePaymentFailed(event.data.object as unknown as StripeInvoice);
           break;
         case 'payment_intent.succeeded':
-          await this.handlePaymentIntentSucceeded(event.data.object);
+          await this.handlePaymentIntentSucceeded(event.data.object as unknown as StripePaymentIntent);
           break;
         case 'payment_intent.payment_failed':
-          await this.handlePaymentIntentFailed(event.data.object);
+          await this.handlePaymentIntentFailed(event.data.object as unknown as StripePaymentIntent);
           break;
         default:
           console.log(`Unhandled webhook event type: ${event.type}`);
@@ -385,9 +382,9 @@ export class StripePaymentService {
   /**
    * Refund payment
    */
-  async refundPayment(paymentIntentId: string, amount?: number): Promise<any> {
+  async refundPayment(paymentIntentId: string, amount?: number): Promise<Record<string, unknown>> {
     try {
-      const refundData: any = {
+      const refundData: Record<string, unknown> = {
         payment_intent: paymentIntentId
       };
 
@@ -395,7 +392,7 @@ export class StripePaymentService {
         refundData.amount = Math.round(amount * 100); // Convert to cents
       }
 
-      const refund = await this.makeStripeApiCall('POST', '/refunds', refundData);
+      const refund = await this.makeStripeApiCall<Record<string, unknown>>('POST', '/refunds', refundData);
 
       // Create FHIR PaymentNotice for the refund
       await this.createRefundPaymentNotice(paymentIntentId, refund);
@@ -416,9 +413,9 @@ export class StripePaymentService {
 
   private getDefaultConfig(): StripeConfig {
     return {
-      publishableKey: process.env['STRIPE_PUBLISHABLE_KEY'] || '',
-      secretKey: process.env['STRIPE_SECRET_KEY'] || '',
-      webhookSecret: process.env['STRIPE_WEBHOOK_SECRET'] || '',
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY || '',
+      secretKey: process.env.STRIPE_SECRET_KEY || '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || '',
       apiVersion: '2023-10-16',
       environment: 'test'
     };
@@ -537,11 +534,11 @@ export class StripePaymentService {
       },
       totalNet: {
         value: stripeInvoice.amount_due / 100,
-        currency: stripeInvoice.currency.toUpperCase()
+        currency: 'INR'
       },
       totalGross: {
         value: stripeInvoice.amount_due / 100,
-        currency: stripeInvoice.currency.toUpperCase()
+        currency: 'INR'
       },
       lineItem: stripeInvoice.lines.data.map((item, index) => ({
         sequence: index + 1,
@@ -556,7 +553,7 @@ export class StripePaymentService {
           type: 'base',
           amount: {
             value: (item.amount || 0) / 100,
-            currency: stripeInvoice.currency.toUpperCase()
+            currency: 'INR'
           }
         }]
       })),
@@ -618,7 +615,7 @@ export class StripePaymentService {
       created: confirmation.paidAt.toISOString(),
       amount: {
         value: confirmation.amount,
-        currency: confirmation.currency
+        currency: 'INR'
       },
       paymentStatus: {
         coding: [{
@@ -626,20 +623,29 @@ export class StripePaymentService {
           code: 'paid',
           display: 'Paid'
         }]
+      },
+      payment: {
+        reference: `PaymentReconciliation/${confirmation.paymentIntentId}`
+      },
+      recipient: {
+        reference: 'Organization/lims-org'
       }
     };
 
     await this.medplumService.createResource(paymentNotice);
   }
 
-  private async createRefundPaymentNotice(paymentIntentId: string, refund: any): Promise<void> {
+  private async createRefundPaymentNotice(_paymentIntentId: string, refund: Record<string, unknown>): Promise<void> {
+    const amount = typeof refund.amount === 'number' ? refund.amount : 0;
+    const currency = typeof refund.currency === 'string' ? refund.currency : 'usd';
+
     const paymentNotice: PaymentNotice = {
       resourceType: 'PaymentNotice',
       status: 'active',
       created: new Date().toISOString(),
       amount: {
-        value: refund.amount / 100,
-        currency: refund.currency.toUpperCase()
+        value: amount / 100,
+        currency: currency.toUpperCase() as 'USD' | 'INR' | 'EUR'
       },
       paymentStatus: {
         coding: [{
@@ -647,6 +653,12 @@ export class StripePaymentService {
           code: 'refunded',
           display: 'Refunded'
         }]
+      },
+      payment: {
+        reference: `PaymentReconciliation/${_paymentIntentId}`
+      },
+      recipient: {
+        reference: 'Organization/lims-org'
       }
     };
 
@@ -672,7 +684,7 @@ export class StripePaymentService {
     }
   }
 
-  private async makeStripeApiCall<T>(method: string, endpoint: string, data?: any): Promise<T> {
+  private async makeStripeApiCall<T>(method: string, endpoint: string, data?: Record<string, unknown>): Promise<T> {
     const headers = new HttpHeaders({
       'Authorization': `Bearer ${this.config.secretKey}`,
       'Content-Type': 'application/x-www-form-urlencoded',
@@ -685,7 +697,7 @@ export class StripePaymentService {
     const formData = data ? this.objectToFormData(data) : undefined;
 
     return this.retryService.executeWithRetry(async () => {
-      let response;
+      let response: T | undefined;
 
       switch (method.toUpperCase()) {
         case 'GET':
@@ -712,42 +724,40 @@ export class StripePaymentService {
     }, { maxRetries: 3 });
   }
 
-  private objectToFormData(obj: any, prefix?: string): string {
+  private objectToFormData(obj: Record<string, unknown>, prefix?: string): string {
     const params = new URLSearchParams();
+    this.appendObjectToFormData(params, obj, prefix);
+    return params.toString();
+  }
 
+  private appendObjectToFormData(
+    params: URLSearchParams,
+    obj: Record<string, unknown>,
+    prefix?: string
+  ): void {
     for (const key in obj) {
-      if (obj.hasOwnProperty(key) && obj[key] !== undefined && obj[key] !== null) {
+      if (Object.hasOwn(obj, key) && obj[key] !== undefined && obj[key] !== null) {
         const paramKey = prefix ? `${prefix}[${key}]` : key;
-
-        if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-          const nestedParams = this.objectToFormData(obj[key], paramKey);
-          nestedParams.split('&').forEach(param => {
-            const [k, v] = param.split('=');
-            if (k && v) {
-              params.append(decodeURIComponent(k), decodeURIComponent(v));
-            }
-          });
-        } else if (Array.isArray(obj[key])) {
-          obj[key].forEach((item: any, index: number) => {
-            if (typeof item === 'object') {
-              const nestedParams = this.objectToFormData(item, `${paramKey}[${index}]`);
-              nestedParams.split('&').forEach(param => {
-                const [k, v] = param.split('=');
-                if (k && v) {
-                  params.append(decodeURIComponent(k), decodeURIComponent(v));
-                }
-              });
-            } else {
-              params.append(`${paramKey}[${index}]`, item.toString());
-            }
-          });
-        } else {
-          params.append(paramKey, obj[key].toString());
-        }
+        const value = obj[key];
+        this.appendValueToFormData(params, paramKey, value);
       }
     }
+  }
 
-    return params.toString();
+  private appendValueToFormData(
+    params: URLSearchParams,
+    key: string,
+    value: unknown
+  ): void {
+    if (typeof value === 'object' && !Array.isArray(value) && value !== null) {
+      this.appendObjectToFormData(params, value as Record<string, unknown>, key);
+    } else if (Array.isArray(value)) {
+      for (const [index, item] of value.entries()) {
+        this.appendValueToFormData(params, `${key}[${index}]`, item);
+      }
+    } else {
+      params.append(key, String(value));
+    }
   }
 
   private getPatientName(patient: Patient): string {

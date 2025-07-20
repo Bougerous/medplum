@@ -1,17 +1,17 @@
 import { Injectable } from '@angular/core';
 import {
+  ActivatedRouteSnapshot,
   CanActivate,
   CanActivateChild,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Router
+  Router,
+  RouterStateSnapshot
 } from '@angular/router';
-import { Observable, of, from } from 'rxjs';
-import { map, catchError, switchMap } from 'rxjs/operators';
+import { from, Observable, of } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
+import { AuditService } from '../services/audit.service';
 import { AuthService } from '../services/auth.service';
 import { PortalSecurityService } from '../services/portal-security.service';
-import { AuditService } from '../services/audit.service';
-import { UserRole, UserProfile } from '../types/fhir-types';
+import { UserProfile, UserRole } from '../types/fhir-types';
 
 export interface PortalGuardConfig {
   requiredRoles: UserRole[];
@@ -69,7 +69,7 @@ export class PortalGuard implements CanActivate, CanActivateChild {
         }
 
         // Get portal configuration from route data
-        const portalConfig: PortalGuardConfig = route.data['portalConfig'] || {};
+        const portalConfig: PortalGuardConfig = route.data.portalConfig || {};
 
         // Check role requirements
         if (portalConfig.requiredRoles && portalConfig.requiredRoles.length > 0) {
@@ -99,10 +99,10 @@ export class PortalGuard implements CanActivate, CanActivateChild {
         // Check resource-specific permissions and patient relationship
         return from(this.checkResourcePermissions(user, portalConfig, route, state));
       }),
-      catchError(async (error) => {
+      catchError((error) => {
         console.error('Error in portal guard:', error);
 
-        await this.auditService.logAuthorizationEvent(
+        this.auditService.logAuthorizationEvent(
           'access-denied',
           'Portal',
           undefined,
@@ -127,13 +127,13 @@ export class PortalGuard implements CanActivate, CanActivateChild {
   ): Promise<boolean> {
     // Check resource-specific permissions
     if (portalConfig.resourceType && portalConfig.allowedActions) {
-      const resourceId = route.params['id'];
+      const resourceId = route.params.id;
 
       for (const action of portalConfig.allowedActions) {
         const hasAccess = await this.portalSecurityService.checkPortalAccess(
-          user.practitioner.id!,
+          user.practitioner.id || '',
           user.roles[0], // Primary role
-          portalConfig.resourceType!,
+          portalConfig.resourceType,
           action,
           resourceId
         );
@@ -141,7 +141,7 @@ export class PortalGuard implements CanActivate, CanActivateChild {
         if (!hasAccess) {
           await this.auditService.logAuthorizationEvent(
             'access-denied',
-            portalConfig.resourceType!,
+            portalConfig.resourceType,
             resourceId,
             {
               reason: 'Resource access denied',
@@ -159,12 +159,12 @@ export class PortalGuard implements CanActivate, CanActivateChild {
 
     // Check patient-provider relationship if required
     if (portalConfig.requiresPatientRelationship) {
-      const patientId = route.params['patientId'] || route.params['id'];
+      const patientId = route.params.patientId || route.params.id;
 
       if (patientId && user.roles.includes('provider')) {
         const hasRelationship = await this.portalSecurityService.validatePatientProviderRelationship(
           patientId,
-          user.practitioner.id!
+          user.practitioner.id || ''
         );
 
         if (!hasRelationship) {

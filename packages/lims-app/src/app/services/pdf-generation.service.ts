@@ -1,20 +1,19 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
 import {
-  DiagnosticReport,
-  Binary,
-  Patient,
-  Specimen,
-  Observation,
-  Practitioner,
   Attachment,
-  Reference
+  Binary,
+  DiagnosticReport,
+  Observation,
+  Patient,
+  Practitioner,
+  Specimen
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable, map } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
+import { LIMSErrorType } from '../types/fhir-types';
 import { AuditService } from './audit.service';
 import { DiagnosticReportService, ReportTemplate } from './diagnostic-report.service';
-import { LIMSErrorType } from '../types/fhir-types';
+import { ErrorHandlingService } from './error-handling.service';
 
 // PDF generation library interfaces (would be actual imports in real implementation)
 interface PDFDocument {
@@ -93,15 +92,15 @@ export class PdfGenerationService {
     private errorHandlingService: ErrorHandlingService,
     private auditService: AuditService,
     private diagnosticReportService: DiagnosticReportService
-  ) {}
+  ) { }
 
   // Main PDF Generation Method
   async generateReportPDF(
-    reportId: string, 
+    reportId: string,
     options?: Partial<PDFGenerationOptions>
   ): Promise<PDFGenerationResult> {
     const startTime = Date.now();
-    
+
     try {
       // Add to generation queue
       this.addToQueue(reportId);
@@ -109,30 +108,30 @@ export class PdfGenerationService {
       // Get report and related data
       const report = await this.medplumService.readResource<DiagnosticReport>('DiagnosticReport', reportId);
       const reportData = await this.gatherReportData(report);
-      
+
       // Get template
       const template = await this.getReportTemplate(report, options?.template);
-      
+
       // Set default options
       const pdfOptions = this.getDefaultOptions(template, options);
-      
+
       // Generate PDF content
       const pdfBuffer = await this.createPDFDocument(reportData, pdfOptions);
-      
+
       // Calculate checksum
       const checksum = await this.calculateChecksum(pdfBuffer);
-      
+
       // Store as FHIR Binary resource
       const binary = await this.storePDFAsBinary(report, pdfBuffer, checksum);
-      
+
       // Update DiagnosticReport with presentedForm
       await this.attachPDFToReport(report, binary);
-      
+
       // Create version record
       await this.createVersionRecord(reportId, binary.id!, 'Generated PDF report');
-      
+
       const generationTime = Date.now() - startTime;
-      
+
       // Create audit event
       await this.auditService.logEvent({
         action: 'generate-pdf',
@@ -230,9 +229,9 @@ export class PdfGenerationService {
     });
   }
 
-  private generateMockPDFContent(data: ReportData, options: PDFGenerationOptions): string {
+  private generateMockPDFContent(data: ReportData, _options: PDFGenerationOptions): string {
     const { report, patient, specimen, observations, performer } = data;
-    
+
     let content = `%PDF-1.4
 1 0 obj
 <<
@@ -355,7 +354,7 @@ startxref
   }
 
   private getPatientName(patient: Patient | null): string {
-    if (!patient?.name || patient.name.length === 0) return 'Unknown Patient';
+    if (!patient?.name || patient.name.length === 0) { return 'Unknown Patient'; }
     const name = patient.name[0];
     const given = name.given?.join(' ') || '';
     const family = name.family || '';
@@ -363,7 +362,7 @@ startxref
   }
 
   private getPractitionerName(practitioner: Practitioner | null): string {
-    if (!practitioner?.name || practitioner.name.length === 0) return 'Unknown Practitioner';
+    if (!practitioner?.name || practitioner.name.length === 0) { return 'Unknown Practitioner'; }
     const name = practitioner.name[0];
     const given = name.given?.join(' ') || '';
     const family = name.family || '';
@@ -371,22 +370,22 @@ startxref
   }
 
   private getObservationValue(observation: Observation): string {
-    if (observation.valueString) return observation.valueString;
+    if (observation.valueString) { return observation.valueString; }
     if (observation.valueQuantity) {
       return `${observation.valueQuantity.value} ${observation.valueQuantity.unit || ''}`;
     }
     if (observation.valueCodeableConcept) {
-      return observation.valueCodeableConcept.text || 
-             observation.valueCodeableConcept.coding?.[0]?.display || 
-             'Coded value';
+      return observation.valueCodeableConcept.text ||
+        observation.valueCodeableConcept.coding?.[0]?.display ||
+        'Coded value';
     }
     return 'No value';
   }
 
   // Binary Storage
   private async storePDFAsBinary(
-    report: DiagnosticReport, 
-    pdfBuffer: Buffer, 
+    report: DiagnosticReport,
+    pdfBuffer: Buffer,
     checksum: string
   ): Promise<Binary> {
     try {
@@ -401,18 +400,8 @@ startxref
             display: 'Diagnostic Report PDF'
           }]
         },
-        extension: [{
-          url: 'http://lims.local/fhir/StructureDefinition/checksum',
-          valueString: checksum
-        }, {
-          url: 'http://lims.local/fhir/StructureDefinition/source-report',
-          valueReference: {
-            reference: `DiagnosticReport/${report.id}`
-          }
-        }, {
-          url: 'http://lims.local/fhir/StructureDefinition/generation-timestamp',
-          valueDateTime: new Date().toISOString()
-        }]
+        // Note: Binary resource doesn't support extensions in FHIR R4
+        // Metadata is stored in the documentVersions$ BehaviorSubject instead
       };
 
       return await this.medplumService.createResource(binary);
@@ -456,7 +445,7 @@ startxref
     try {
       const versions = this.documentVersions$.value;
       const reportVersions = versions.get(reportId) || [];
-      
+
       const newVersion: DocumentVersion = {
         version: reportVersions.length + 1,
         binaryId,
@@ -484,10 +473,10 @@ startxref
     try {
       // Archive current version
       await this.archiveCurrentVersion(reportId, reason);
-      
+
       // Generate new version
       const result = await this.generateReportPDF(reportId, options);
-      
+
       // Create audit event for regeneration
       await this.auditService.logEvent({
         action: 'regenerate-pdf',
@@ -517,7 +506,7 @@ startxref
   private async archiveCurrentVersion(reportId: string, reason: string): Promise<void> {
     try {
       const report = await this.medplumService.readResource<DiagnosticReport>('DiagnosticReport', reportId);
-      
+
       if (report.presentedForm) {
         const pdfAttachment = report.presentedForm.find(form => form.contentType === 'application/pdf');
         if (pdfAttachment?.url) {
@@ -525,7 +514,7 @@ startxref
           const versions = this.documentVersions$.value;
           const reportVersions = versions.get(reportId) || [];
           const currentVersion = reportVersions[reportVersions.length - 1];
-          
+
           if (currentVersion) {
             currentVersion.reason = `Archived: ${reason}`;
           }
@@ -539,7 +528,7 @@ startxref
   // Utility Methods
   private async calculateChecksum(buffer: Buffer): Promise<string> {
     // In a real implementation, use proper cryptographic hashing
-    const crypto = require('crypto');
+    const crypto = require('node:crypto');
     return crypto.createHash('sha256').update(buffer).digest('hex');
   }
 
@@ -549,12 +538,12 @@ startxref
   }
 
   private async getReportTemplate(report: DiagnosticReport, providedTemplate?: ReportTemplate): Promise<ReportTemplate> {
-    if (providedTemplate) return providedTemplate;
-    
+    if (providedTemplate) { return providedTemplate; }
+
     // Get template based on report category
     const category = report.category?.[0]?.coding?.[0]?.code;
     const templates = await this.diagnosticReportService.getReportTemplates().toPromise();
-    
+
     const template = templates?.find(t => {
       switch (category) {
         case 'PAT': return t.specialty === 'histopathology';
@@ -618,7 +607,7 @@ startxref
 
   getDocumentVersions(reportId: string): Observable<DocumentVersion[]> {
     return this.documentVersions$.pipe(
-      map(versions => versions.get(reportId) || [])
+      map((versions: Map<string, DocumentVersion[]>) => versions.get(reportId) || [])
     );
   }
 
@@ -626,9 +615,9 @@ startxref
     try {
       const versions = this.documentVersions$.value.get(reportId) || [];
       const targetVersion = version ? versions.find(v => v.version === version) : versions[versions.length - 1];
-      
-      if (!targetVersion) return null;
-      
+
+      if (!targetVersion) { return null; }
+
       return await this.medplumService.readResource<Binary>('Binary', targetVersion.binaryId);
     } catch (error) {
       console.error('Failed to get PDF binary:', error);

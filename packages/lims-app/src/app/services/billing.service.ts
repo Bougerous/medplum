@@ -1,26 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
 import {
   Claim,
   ClaimResponse,
-  DiagnosticReport,
-  Patient,
+  CodeableConcept,
   Coverage,
-  ServiceRequest,
+  Device,
+  DiagnosticReport,
+  Encounter,
+  Money,
   Organization,
+  Patient,
   Practitioner,
   Reference,
-  CodeableConcept,
-  Money,
-  Bundle,
-  Task,
-  Device,
-  Encounter
+  ServiceRequest,
+  Task
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { RetryService } from './retry.service';
 import { BillingRule, LIMSErrorType } from '../types/fhir-types';
+import { CurrencyService } from './currency.service';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface ClaimItem {
   sequence: number;
@@ -110,13 +109,16 @@ export class BillingService {
   constructor(
     private medplumService: MedplumService,
     private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService
+    private currencyService: CurrencyService
   ) {
-    this.loadBillingRules();
+    this.loadBillingRules().catch(console.error);
   }
 
   /**
    * Create FHIR Claim resource from finalized DiagnosticReport
+   * @param diagnosticReport - The finalized diagnostic report to create a claim for
+   * @param context - Optional billing context information
+   * @returns Promise resolving to the created Claim resource
    */
   async createClaimFromDiagnosticReport(
     diagnosticReport: DiagnosticReport,
@@ -225,52 +227,22 @@ export class BillingService {
 
   /**
    * Validate claim before submission
+   * @param claim - The claim to validate
+   * @returns Promise resolving to validation result with errors and warnings
    */
   async validateClaim(claim: Claim): Promise<{ isValid: boolean; errors: string[]; warnings: string[] }> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
     try {
-      // Required field validation
-      if (!claim.patient?.reference) {
-        errors.push('Patient reference is required');
-      }
-
-      if (!claim.provider?.reference) {
-        errors.push('Provider reference is required');
-      }
-
-      if (!claim.item || claim.item.length === 0) {
-        errors.push('At least one claim item is required');
-      }
-
-      if (!claim.total?.value || claim.total.value <= 0) {
-        errors.push('Claim total must be greater than zero');
-      }
+      // Validate required fields
+      this.validateRequiredFields(claim, errors);
 
       // Validate claim items
-      if (claim.item) {
-        for (const item of claim.item) {
-          if (!item.productOrService?.coding?.[0]?.code) {
-            errors.push(`Item ${item.sequence}: Product or service code is required`);
-          }
-
-          if (!item.unitPrice?.value || item.unitPrice.value <= 0) {
-            warnings.push(`Item ${item.sequence}: Unit price should be specified`);
-          }
-        }
-      }
+      this.validateClaimItems(claim, errors, warnings);
 
       // Validate insurance information
-      if (claim.insurance && claim.insurance.length > 0) {
-        for (const insurance of claim.insurance) {
-          if (!insurance.coverage?.reference) {
-            errors.push(`Insurance ${insurance.sequence}: Coverage reference is required`);
-          }
-        }
-      } else {
-        warnings.push('No insurance information provided - claim may be patient responsibility');
-      }
+      this.validateInsuranceInfo(claim, errors, warnings);
 
       // Business rule validation
       const ruleValidation = await this.validateBusinessRules(claim);
@@ -300,6 +272,8 @@ export class BillingService {
 
   /**
    * Submit claim for processing
+   * @param claim - The claim to submit
+   * @returns Promise resolving to submission result
    */
   async submitClaim(claim: Claim): Promise<{ success: boolean; claimResponse?: ClaimResponse; error?: string }> {
     try {
@@ -371,6 +345,7 @@ export class BillingService {
 
   /**
    * Process claim response from clearinghouse
+   * @param claimResponse - The claim response to process
    */
   async processClaimResponse(claimResponse: ClaimResponse): Promise<void> {
     try {
@@ -415,6 +390,7 @@ export class BillingService {
 
   /**
    * Get billing rules
+   * @returns Observable of billing rules
    */
   getBillingRules(): Observable<BillingRule[]> {
     return this.billingRules$.asObservable();
@@ -422,6 +398,8 @@ export class BillingService {
 
   /**
    * Add or update billing rule
+   * @param rule - The billing rule to save
+   * @returns Promise resolving to the saved billing rule
    */
   async saveBillingRule(rule: BillingRule): Promise<BillingRule> {
     try {
@@ -451,6 +429,7 @@ export class BillingService {
 
   /**
    * Get pending claims
+   * @returns Observable of pending claims
    */
   getPendingClaims(): Observable<Claim[]> {
     return this.pendingClaims$.asObservable();
@@ -458,6 +437,7 @@ export class BillingService {
 
   /**
    * Trigger automated billing bot
+   * @param diagnosticReport - The diagnostic report to trigger billing for
    */
   async triggerBillingBot(diagnosticReport: DiagnosticReport): Promise<void> {
     try {
@@ -567,14 +547,8 @@ export class BillingService {
                 value: 1,
                 unit: 'each'
               },
-              unitPrice: {
-                value: rule.price,
-                currency: 'USD'
-              },
-              net: {
-                value: rule.price * (rule.insuranceMultiplier || 1),
-                currency: 'USD'
-              }
+              unitPrice: this.currencyService.createINRMoney(rule.price),
+              net: this.currencyService.createINRMoney(rule.price * (rule.insuranceMultiplier || 1))
             };
             items.push(item);
           }
@@ -587,15 +561,20 @@ export class BillingService {
 
   private calculateClaimTotal(items: ClaimItem[]): Money {
     const total = items.reduce((sum, item) => sum + (item.net?.value || 0), 0);
-    return {
-      value: total,
-      currency: 'USD'
-    };
+    return this.currencyService.createINRMoney(total);
   }
 
-  private async extractDiagnoses(diagnosticReport: DiagnosticReport) {
+  private async extractDiagnoses(diagnosticReport: DiagnosticReport): Promise<{
+    sequence: number;
+    diagnosisCodeableConcept: CodeableConcept;
+    type: { coding: { system: string; code: string; display: string }[] }[];
+  }[]> {
     // Extract diagnosis information from diagnostic report
-    const diagnoses = [];
+    const diagnoses: {
+      sequence: number;
+      diagnosisCodeableConcept: CodeableConcept;
+      type: { coding: { system: string; code: string; display: string }[] }[];
+    }[] = [];
 
     if (diagnosticReport.conclusionCode) {
       for (let i = 0; i < diagnosticReport.conclusionCode.length; i++) {
@@ -617,8 +596,18 @@ export class BillingService {
     return diagnoses;
   }
 
-  private async extractProcedures(serviceRequests: ServiceRequest[]) {
-    const procedures = [];
+  private async extractProcedures(serviceRequests: ServiceRequest[]): Promise<{
+    sequence: number;
+    type: { coding: { system: string; code: string; display: string }[] }[];
+    date?: string;
+    procedureCodeableConcept: CodeableConcept;
+  }[]> {
+    const procedures: {
+      sequence: number;
+      type: { coding: { system: string; code: string; display: string }[] }[];
+      date?: string;
+      procedureCodeableConcept: CodeableConcept;
+    }[] = [];
 
     for (let i = 0; i < serviceRequests.length; i++) {
       const serviceRequest = serviceRequests[i];
@@ -641,7 +630,7 @@ export class BillingService {
     return procedures;
   }
 
-  private async validateBusinessRules(claim: Claim): Promise<{ errors: string[]; warnings: string[] }> {
+  private async validateBusinessRules(_claim: Claim): Promise<{ errors: string[]; warnings: string[] }> {
     const errors: string[] = [];
     const warnings: string[] = [];
 
@@ -689,7 +678,7 @@ export class BillingService {
       });
 
       return coverageBundle.entry?.[0]?.resource;
-    } catch (error) {
+    } catch (_error) {
       console.warn('No coverage found for patient', patient.id);
       return undefined;
     }
@@ -715,7 +704,8 @@ export class BillingService {
     // Get the provider who performed or is responsible for the diagnostic report
     if (diagnosticReport.performer?.[0]?.reference?.startsWith('Practitioner/')) {
       const id = diagnosticReport.performer[0].reference.split('/')[1];
-      return await this.medplumService.readResource<Practitioner>('Practitioner', id);
+      const practitioner = await this.medplumService.readResource<Practitioner>('Practitioner', id);
+      return practitioner;
     }
 
     // Return default provider if none specified
@@ -759,5 +749,49 @@ export class BillingService {
     ];
 
     this.billingRules$.next(defaultRules);
+  }
+
+  private validateRequiredFields(claim: Claim, errors: string[]): void {
+    if (!claim.patient?.reference) {
+      errors.push('Patient reference is required');
+    }
+
+    if (!claim.provider?.reference) {
+      errors.push('Provider reference is required');
+    }
+
+    if (!claim.item || claim.item.length === 0) {
+      errors.push('At least one claim item is required');
+    }
+
+    if (!claim.total?.value || claim.total.value <= 0) {
+      errors.push('Claim total must be greater than zero');
+    }
+  }
+
+  private validateClaimItems(claim: Claim, errors: string[], warnings: string[]): void {
+    if (claim.item) {
+      for (const item of claim.item) {
+        if (!item.productOrService?.coding?.[0]?.code) {
+          errors.push(`Item ${item.sequence}: Product or service code is required`);
+        }
+
+        if (!item.unitPrice?.value || item.unitPrice.value <= 0) {
+          warnings.push(`Item ${item.sequence}: Unit price should be specified`);
+        }
+      }
+    }
+  }
+
+  private validateInsuranceInfo(claim: Claim, errors: string[], warnings: string[]): void {
+    if (claim.insurance && claim.insurance.length > 0) {
+      for (const insurance of claim.insurance) {
+        if (!insurance.coverage?.reference) {
+          errors.push(`Insurance ${insurance.sequence}: Coverage reference is required`);
+        }
+      }
+    } else {
+      warnings.push('No insurance information provided - claim may be patient responsibility');
+    }
   }
 }

@@ -1,10 +1,10 @@
-import { Injectable } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
+import { AuditEvent, } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { AuditEvent, Reference } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
+import { LIMSErrorType } from '../types/fhir-types';
 import { AuthService } from './auth.service';
 import { ErrorHandlingService } from './error-handling.service';
-import { LIMSErrorType } from '../types/fhir-types';
 
 export interface SecurityEvent {
   id: string;
@@ -32,7 +32,7 @@ export enum SecurityEventType {
 @Injectable({
   providedIn: 'root',
 })
-export class AuditService {
+export class AuditService implements OnDestroy {
   private securityEvents$ = new BehaviorSubject<SecurityEvent[]>([]);
   private eventQueue: SecurityEvent[] = [];
   private batchSize = 10;

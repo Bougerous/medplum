@@ -1,11 +1,14 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef, Output, EventEmitter, Input } from '@angular/core';
+import { CommonModule, DatePipe } from '@angular/common';
+import { Component, ElementRef, EventEmitter, inject, Input, OnDestroy, OnInit, Output, ViewChild } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Subject, takeUntil } from 'rxjs';
-import { QrScannerService, ScanResult, ScannerConfig } from '../../services/qr-scanner.service';
 import { NotificationService } from '../../services/notification.service';
+import { CameraDevice, QrScannerService, ScannerConfig, ScanResult } from '../../services/qr-scanner.service';
 
 @Component({
   selector: 'app-qr-scanner',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule, DatePipe],
   template: `
     <div class="qr-scanner-container">
       <div class="scanner-header">
@@ -161,7 +164,7 @@ import { NotificationService } from '../../services/notification.service';
               (change)="onCameraChange()"
               class="form-control">
               <option value="">Default Camera</option>
-              <option *ngFor="let camera of availableCameras" [value]="camera.deviceId">
+              <option *ngFor="let camera of availableCameras" [value]="camera.id">
                 {{ camera.label || 'Camera ' + (availableCameras.indexOf(camera) + 1) }}
               </option>
             </select>
@@ -211,7 +214,7 @@ import { NotificationService } from '../../services/notification.service';
 export class QrScannerComponent implements OnInit, OnDestroy {
   @ViewChild('videoElement', { static: false }) videoElement!: ElementRef<HTMLVideoElement>;
   @ViewChild('fileInput', { static: false }) fileInput!: ElementRef<HTMLInputElement>;
-  
+
   @Input() autoProcess: boolean = true;
   @Output() scanResult = new EventEmitter<ScanResult>();
   @Output() specimenFound = new EventEmitter<any>();
@@ -219,7 +222,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   isScanning = false;
   cameraPermission = false;
   permissionChecked = false;
-  availableCameras: MediaDeviceInfo[] = [];
+  availableCameras: CameraDevice[] = [];
   selectedCameraId = '';
   lastScanResult: ScanResult | null = null;
   showSettings = false;
@@ -232,16 +235,13 @@ export class QrScannerComponent implements OnInit, OnDestroy {
     qrbox: { width: 250, height: 250 }
   };
 
-  private destroy$ = new Subject<void>();
-
-  constructor(
-    private qrScannerService: QrScannerService,
-    private notificationService: NotificationService
-  ) {}
+  private readonly destroy$ = new Subject<void>();
+  private readonly qrScannerService = inject(QrScannerService);
+  private readonly notificationService = inject(NotificationService);
 
   ngOnInit(): void {
-    this.checkCameraPermission();
-    this.loadAvailableCameras();
+    void this.checkCameraPermission();
+    void this.loadAvailableCameras();
     this.subscribeToScanResults();
   }
 
@@ -306,7 +306,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
         next: (result) => {
           this.lastScanResult = result;
           this.scanResult.emit(result);
-          
+
           if (result.isValid && this.autoProcess) {
             this.processResult();
           }
@@ -329,12 +329,12 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   async startScanning(): Promise<void> {
     if (!this.cameraPermission) {
       await this.requestCameraPermission();
-      if (!this.cameraPermission) return;
+      if (!this.cameraPermission) { return; }
     }
 
     try {
       await this.qrScannerService.startScanning(
-        this.videoElement.nativeElement,
+        this.videoElement.nativeElement.id || 'qr-scanner-video',
         this.scannerConfig
       );
     } catch (error) {
@@ -357,14 +357,14 @@ export class QrScannerComponent implements OnInit, OnDestroy {
    * Switch camera
    */
   async switchCamera(): Promise<void> {
-    if (this.availableCameras.length <= 1) return;
+    if (this.availableCameras.length <= 1) { return; }
 
     const currentIndex = this.availableCameras.findIndex(
-      camera => camera.deviceId === this.selectedCameraId
+      camera => camera.id === this.selectedCameraId
     );
     const nextIndex = (currentIndex + 1) % this.availableCameras.length;
-    this.selectedCameraId = this.availableCameras[nextIndex].deviceId;
-    
+    this.selectedCameraId = this.availableCameras[nextIndex].id;
+
     if (this.isScanning) {
       this.stopScanning();
       setTimeout(() => this.startScanning(), 500);
@@ -386,7 +386,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
    */
   onConfigChange(): void {
     this.scannerConfig.height = Math.round(this.scannerConfig.width * 0.75);
-    
+
     if (this.isScanning) {
       this.stopScanning();
       setTimeout(() => this.startScanning(), 500);
@@ -399,14 +399,14 @@ export class QrScannerComponent implements OnInit, OnDestroy {
   async onFileSelected(event: Event): Promise<void> {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
-    
-    if (!file) return;
+
+    if (!file) { return; }
 
     try {
       const result = await this.qrScannerService.scanFromFile(file);
       this.lastScanResult = result;
       this.scanResult.emit(result);
-      
+
       if (result.isValid && this.autoProcess) {
         this.processResult();
       }
@@ -417,7 +417,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
         'Failed to scan QR code from file. Please try a different image.'
       );
     }
-    
+
     // Clear file input
     input.value = '';
   }
@@ -426,7 +426,7 @@ export class QrScannerComponent implements OnInit, OnDestroy {
    * Process scan result
    */
   async processResult(): Promise<void> {
-    if (!this.lastScanResult || !this.lastScanResult.isValid) return;
+    if (!(this.lastScanResult?.isValid)) { return; }
 
     try {
       await this.qrScannerService.processScannedSpecimen(this.lastScanResult);

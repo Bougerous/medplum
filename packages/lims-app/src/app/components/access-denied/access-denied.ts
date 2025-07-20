@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
 import { AuditService } from '../../services/audit.service';
+import { AuthService } from '../../services/auth.service';
 import { UserProfile } from '../../types/fhir-types';
 
 @Component({
@@ -34,8 +34,8 @@ export class AccessDeniedComponent implements OnInit {
 
     // Get query parameters
     this.route.queryParams.subscribe(params => {
-      this.attemptedUrl = params['url'] || '';
-      this.reason = params['reason'] || 'You do not have permission to access this resource.';
+      this.attemptedUrl = params.url || '';
+      this.reason = params.reason || 'You do not have permission to access this resource.';
     });
 
     // Determine if user can request access

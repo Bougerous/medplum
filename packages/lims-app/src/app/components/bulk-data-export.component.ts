@@ -1,14 +1,13 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { 
   BulkDataExportService, 
-  ExportRequest, 
+  DataWarehouseConnection, 
   ExportJob, 
-  ScheduledReport,
-  DataWarehouseConnection 
+  ScheduledReport
 } from '../services/bulk-data-export.service';
 
 @Component({
@@ -819,7 +818,8 @@ import {
   `]
 })
 export class BulkDataExportComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly bulkDataExportService = inject(BulkDataExportService);
+  private readonly destroy$ = new Subject<void>();
 
   exportJobs: ExportJob[] = [];
   scheduledReports: ScheduledReport[] = [];
@@ -862,8 +862,6 @@ export class BulkDataExportComponent implements OnInit, OnDestroy {
     { key: 'completed', label: 'Completed' },
     { key: 'failed', label: 'Failed' }
   ];
-
-  constructor(private bulkDataExportService: BulkDataExportService) {}
 
   ngOnInit(): void {
     this.loadExportJobs();
@@ -1038,21 +1036,21 @@ export class BulkDataExportComponent implements OnInit, OnDestroy {
   }
 
   formatFileSize(bytes: number): string {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) { return '0 B'; }
     
     const k = 1024;
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    return `${parseFloat((bytes / k ** i).toFixed(1))} ${sizes[i]}`;
   }
 
   formatSchedule(schedule: string): string {
     // Convert cron expression to human readable format
     // This is a simplified version
-    if (schedule === '0 8 * * *') return 'Daily at 8:00 AM';
-    if (schedule === '0 9 * * 1') return 'Weekly on Monday at 9:00 AM';
-    if (schedule === '0 10 1 * *') return 'Monthly on 1st at 10:00 AM';
+    if (schedule === '0 8 * * *') { return 'Daily at 8:00 AM'; }
+    if (schedule === '0 9 * * 1') { return 'Weekly on Monday at 9:00 AM'; }
+    if (schedule === '0 10 1 * *') { return 'Monthly on 1st at 10:00 AM'; }
     return schedule;
   }
 

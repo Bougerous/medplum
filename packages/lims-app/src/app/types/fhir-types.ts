@@ -1,37 +1,37 @@
 // FHIR Resource Types and Extensions for LIMS
 import {
-  Patient,
-  Specimen,
-  ServiceRequest,
-  DiagnosticReport,
-  Observation,
-  Procedure,
-  Practitioner,
-  Organization,
-  Coverage,
-  Consent,
-  Subscription,
-  Bundle,
-  Resource,
-  Reference,
-  Identifier,
-  CodeableConcept,
-  Quantity,
-  Extension,
+  AccessPolicy,
   AuditEvent,
-  Task,
+  Binary,
+  Bot,
+  Bundle,
   Claim,
   ClaimResponse,
-  Invoice,
-  PaymentReconciliation,
+  CodeableConcept,
+  Coding, 
+  Consent,
+  Coverage,
+  DiagnosticReport,
+  Extension,
+  Identifier,
   ImagingStudy,
-  Binary,
-  QuestionnaireResponse,
-  Questionnaire,
-  AccessPolicy,
+  Invoice,
+  Observation,
+  Organization,
+  Patient,
+  PaymentReconciliation,
+  Practitioner,
+  Procedure,
   ProjectMembership,
-  Bot,
-  Coding
+  Quantity,
+  Questionnaire,
+  QuestionnaireResponse,
+  Reference,
+  Resource,
+  ServiceRequest,
+  Specimen,
+  Subscription,
+  Task
 } from '@medplum/fhirtypes';
 
 // Re-export commonly used FHIR types
@@ -165,7 +165,7 @@ export interface DashboardWidget {
   id: string;
   type: string;
   title: string;
-  config: any;
+  config: Record<string, unknown>;
   roles: UserRole[];
   position: { x: number; y: number; width: number; height: number };
 }
@@ -184,7 +184,7 @@ export enum LIMSErrorType {
 export interface LIMSError {
   type: LIMSErrorType;
   message: string;
-  details?: any;
+  details?: Record<string, unknown>;
   timestamp: Date;
   userId?: string;
   resourceType?: string;

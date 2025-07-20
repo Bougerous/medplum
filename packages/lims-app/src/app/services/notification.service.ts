@@ -19,8 +19,6 @@ export class NotificationService {
   private notifications$ = new BehaviorSubject<Notification[]>([]);
   private notificationCounter = 0;
 
-  constructor() {}
-
   /**
    * Get observable of current notifications
    */

@@ -1,23 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { Subject, Subscription } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
 import {
-  Patient,
   DiagnosticReport,
-  ServiceRequest,
+  Patient,
   Practitioner,
+  ServiceRequest,
   Task
 } from '@medplum/fhirtypes';
-import { AuthService } from '../../services/auth.service';
+import { Subject, Subscription } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { MedplumService } from '../../medplum.service';
+import { AuditService } from '../../services/audit.service';
+import { AuthService } from '../../services/auth.service';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import { NotificationService } from '../../services/notification.service';
-import { AuditService } from '../../services/audit.service';
 import { TestOrderingService } from '../../services/test-ordering.service';
-import { UserProfile, LIMSErrorType } from '../../types/fhir-types';
+import { LIMSErrorType, UserProfile } from '../../types/fhir-types';
 
 interface ProviderPortalData {
   provider: Practitioner;

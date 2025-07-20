@@ -1,8 +1,7 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, CurrencyPipe, DecimalPipe } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { MedplumService } from '../../medplum.service';
 
 interface BillingSummary {
   totalRevenue: number;
@@ -27,7 +26,7 @@ interface RecentClaim {
 @Component({
   selector: 'app-billing-summary-widget',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, DecimalPipe],
+  imports: [CommonModule, CurrencyPipe, DecimalPipe, FormsModule],
   template: `
     <div class="widget-container">
       <div class="widget-header">
@@ -285,8 +284,6 @@ export class BillingSummaryWidgetComponent implements OnInit, OnDestroy {
   };
 
   recentClaims: RecentClaim[] = [];
-
-  constructor(private medplumService: MedplumService) {}
 
   ngOnInit(): void {
     this.selectedPeriod = this.config.period || 'month';

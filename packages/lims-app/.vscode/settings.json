@@ -1,15 +1,113 @@
 {
+  // TypeScript preferences
   "typescript.preferences.includePackageJsonAutoImports": "on",
   "typescript.suggest.autoImports": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+
+  // Angular Language Server settings
   "angular.enable-strict-mode-prompt": false,
   "angular.experimental-ivy": true,
+  "angular.suggest.includeCompletionsWithSnippetText": true,
+  "angular.suggest.includeAutomaticOptionalChainCompletions": true,
+  "angular.suggest.includeCompletionsForModuleExports": true,
+  "angular.suggest.includeCompletionsWithInsertText": true,
+  "angular.suggest.includeCompletionsWithClassMemberSnippets": true,
+  "angular.suggest.includeCompletionsWithObjectLiteralMethodSnippets": true,
+  "angular.suggest.autoImports": true,
+  "angular.suggest.includeCompletionsForImportStatements": true,
+  "angular.suggest.includeCompletionsWithInsertText": true,
+  "angular.suggest.includeCompletionsWithSnippetText": true,
+  "angular.suggest.includeCompletionsForModuleExports": true,
+  "angular.suggest.includeCompletionsWithClassMemberSnippets": true,
+  "angular.suggest.includeCompletionsWithObjectLiteralMethodSnippets": true,
+  "angular.suggest.autoImports": true,
+  "angular.suggest.includeCompletionsForImportStatements": true,
+
+  // HTML settings for Angular templates
   "html.suggest.html5": true,
+  "html.suggest.includeCompletionsWithSnippetText": true,
+  "html.suggest.includeCompletionsWithInsertText": true,
+  "html.suggest.includeCompletionsForModuleExports": true,
+  "html.suggest.includeCompletionsWithClassMemberSnippets": true,
+  "html.suggest.includeCompletionsWithObjectLiteralMethodSnippets": true,
+  "html.suggest.autoImports": true,
+  "html.suggest.includeCompletionsForImportStatements": true,
+
+  // Emmet configuration
   "emmet.includeLanguages": {
-    "typescript": "html"
+    "typescript": "html",
+    "typescriptreact": "html"
   },
+  "emmet.triggerExpansionOnTab": true,
+  "emmet.showSuggestionsAsSnippets": true,
+
+  // File associations
   "files.associations": {
     "*.component.html": "html",
-    "*.component.ts": "typescript"
-  }
+    "*.component.ts": "typescript",
+    "*.component.scss": "scss",
+    "*.component.css": "css",
+    "*.service.ts": "typescript",
+    "*.module.ts": "typescript",
+    "*.directive.ts": "typescript",
+    "*.pipe.ts": "typescript",
+    "*.guard.ts": "typescript",
+    "*.resolver.ts": "typescript",
+    "*.interceptor.ts": "typescript"
+  },
+
+  // Editor settings
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit",
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.formatOnSave": true,
+  "editor.formatOnPaste": true,
+  "editor.formatOnType": true,
+
+  // Search settings
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true,
+    "**/coverage": true
+  },
+
+  // Files settings
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true
+  },
+
+  // Angular specific file watching
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/dist/**": true,
+    "**/.angular/**": true,
+    "**/coverage/**": true
+  },
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript",
+    "typescriptreact"
+  ],
+  "eslint.workingDirectories": [
+    "."
+  ],
+  "eslint.format.enable": true
 }

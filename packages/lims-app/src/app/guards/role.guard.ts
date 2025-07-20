@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { 
+  ActivatedRouteSnapshot, 
   CanActivate, 
   CanActivateChild, 
-  ActivatedRouteSnapshot, 
-  RouterStateSnapshot, 
-  Router 
+  Router, 
+  RouterStateSnapshot 
 } from '@angular/router';
 import { Observable, of } from 'rxjs';
-import { map, take, catchError } from 'rxjs/operators';
+import { catchError, map, take } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { RoleService } from '../services/role.service';
 import { UserRole } from '../types/fhir-types';
@@ -53,12 +53,12 @@ export class RoleGuard implements CanActivate, CanActivateChild {
         }
 
         // Get required roles from route data
-        const requiredRoles = route.data['roles'] as UserRole[];
-        const requiredPermissions = route.data['permissions'] as string[];
-        const requireAll = route.data['requireAll'] as boolean || false;
+        const requiredRoles = route.data.roles as UserRole[];
+        const requiredPermissions = route.data.permissions as string[];
+        const requireAll = route.data.requireAll as boolean;
 
         // If no specific requirements, allow access for authenticated users
-        if (!requiredRoles && !requiredPermissions) {
+        if (!(requiredRoles || requiredPermissions)) {
           return true;
         }
 

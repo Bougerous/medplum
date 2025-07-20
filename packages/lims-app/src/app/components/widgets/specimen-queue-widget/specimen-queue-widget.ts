@@ -1,8 +1,8 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { interval, Subject } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 import { MedplumService } from '../../../medplum.service';
 import { Specimen } from '../../../types/fhir-types';
 
@@ -155,7 +155,7 @@ export class SpecimenQueueWidget implements OnInit, OnDestroy {
     }));
   }
 
-  private getPatientName(specimen: Specimen): string {
+  private getPatientName(_specimen: Specimen): string {
     // This would typically involve a lookup to the Patient resource
     // For now, return a placeholder
     return 'Patient Name'; // TODO: Implement patient lookup
@@ -183,7 +183,7 @@ export class SpecimenQueueWidget implements OnInit, OnDestroy {
     return assignmentExtension?.valueString;
   }
 
-  private getEstimatedCompletion(specimen: Specimen): Date | undefined {
+  private getEstimatedCompletion(_specimen: Specimen): Date | undefined {
     // Calculate based on specimen type and current workload
     // This is a simplified implementation
     const baseTime = new Date();

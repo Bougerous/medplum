@@ -1,14 +1,14 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
-import { takeUntil, debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CodeableConcept } from '@medplum/fhirtypes';
+import { Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { 
-  TerminologyService, 
+  SNOMED_CT_SYSTEM, 
   StagingConcept, 
-  ValidationResult,
-  SNOMED_CT_SYSTEM
+  TerminologyService, 
+  ValidationResult
 } from '../../services/terminology.service';
 
 export interface StagingSelection {
@@ -347,7 +347,7 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
   }
 
   selectStage(stage: StagingConcept): void {
-    if (this.disabled) return;
+    if (this.disabled) { return; }
 
     this.selectedStage = stage;
     this.emitStagingSelection();
@@ -355,13 +355,13 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
   }
 
   private calculateOverallStage(): void {
-    if (!this.showTNMComponents()) return;
+    if (!this.showTNMComponents()) { return; }
 
     const t = this.stagingForm.get('tComponent')?.value;
     const n = this.stagingForm.get('nComponent')?.value;
     const m = this.stagingForm.get('mComponent')?.value;
 
-    if (!t || !n || !m) {
+    if (!((t && n ) && m)) {
       this.calculatedStage = null;
       return;
     }
@@ -382,14 +382,14 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
 
   private calculateStageFromTNM(t: string, n: string, m: string): string {
     // Simplified TNM to stage calculation
-    if (m === 'M1') return 'Stage IV';
-    if (t === 'Tis' && n === 'N0' && m === 'M0') return 'Stage 0';
-    if (t === 'T1' && n === 'N0' && m === 'M0') return 'Stage I';
-    if ((t === 'T2' || t === 'T1') && n === 'N0' && m === 'M0') return 'Stage I';
-    if ((t === 'T3' || t === 'T2') && n === 'N0' && m === 'M0') return 'Stage II';
-    if (n === 'N1' || n === 'N2') return 'Stage III';
-    if (n === 'N3') return 'Stage III';
-    if (t === 'T4') return 'Stage III';
+    if (m === 'M1') { return 'Stage IV'; }
+    if (t === 'Tis' && n === 'N0' && m === 'M0') { return 'Stage 0'; }
+    if (t === 'T1' && n === 'N0' && m === 'M0') { return 'Stage I'; }
+    if ((t === 'T2' || t === 'T1') && n === 'N0' && m === 'M0') { return 'Stage I'; }
+    if ((t === 'T3' || t === 'T2') && n === 'N0' && m === 'M0') { return 'Stage II'; }
+    if (n === 'N1' || n === 'N2') { return 'Stage III'; }
+    if (n === 'N3') { return 'Stage III'; }
+    if (t === 'T4') { return 'Stage III'; }
     
     return 'Stage Unknown';
   }
@@ -399,13 +399,13 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
     const n = this.stagingForm.get('nComponent')?.value || '';
     const m = this.stagingForm.get('mComponent')?.value || '';
     
-    if (!t && !n && !m) return '';
+    if (!((t || n ) || m)) { return ''; }
     
     return `${t}${n}${m}`.trim();
   }
 
   private emitStagingSelection(): void {
-    if (!this.selectedStage) return;
+    if (!this.selectedStage) { return; }
 
     const stagingSystem = this.stagingForm.get('stagingSystem')?.value;
     const additionalNotes = this.stagingForm.get('additionalNotes')?.value;
@@ -443,7 +443,7 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
       const n = this.stagingForm.get('nComponent')?.value;
       const m = this.stagingForm.get('mComponent')?.value;
 
-      if (stagingSystem && (!t || !n || !m)) {
+      if (stagingSystem && (!((t && n ) && m))) {
         warnings.push('All TNM components should be specified for complete staging');
       }
 
@@ -467,7 +467,7 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
           errors.push(...conceptValidation.errors);
         }
         warnings.push(...conceptValidation.warnings);
-      } catch (error) {
+      } catch (_error) {
         errors.push('Failed to validate staging concept');
       }
     }
@@ -537,7 +537,7 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
   }
 
   getCurrentSelection(): StagingSelection | null {
-    if (!this.hasValidSelection()) return null;
+    if (!this.hasValidSelection()) { return null; }
 
     return {
       stagingSystem: this.stagingForm.get('stagingSystem')?.value,

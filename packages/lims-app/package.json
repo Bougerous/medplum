@@ -12,7 +12,13 @@
     "test:performance": "ng test --karma-config=src/test-config/karma.performance.conf.js --browsers=ChromeHeadlessPerformance --watch=false",
     "test:all": "npm run test:unit && npm run test:integration && npm run test:performance",
     "test:ci": "ng test --browsers=ChromeHeadless --watch=false --code-coverage",
-    "serve:ssr:lims-app": "node dist/lims-app/server/server.mjs"
+    "serve:ssr:lims-app": "node dist/lims-app/server/server.mjs",
+    "lint": "ng lint",
+    "lint:fix": "ng lint --fix",
+    "lint:watch": "eslint src/**/*.ts --watch",
+    "lint:fix-all": "eslint src/**/*.ts --fix",
+    "lint:auto-fix": "node scripts/fix-lint-issues.js",
+    "prepare": "husky"
   },
   "prettier": {
     "overrides": [
@@ -22,6 +28,20 @@
           "parser": "angular"
         }
       }
+    ]
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.tsx": [
+      "eslint --fix",
+      "git add"
+    ],
+    "*.html": [
+      "eslint --fix",
+      "git add"
     ]
   },
   "overrides": {
@@ -52,18 +72,28 @@
     "tslib": "^2.3.0"
   },
   "devDependencies": {
+    "@angular-eslint/builder": "20.1.1",
+    "@angular-eslint/eslint-plugin": "20.1.1",
+    "@angular-eslint/eslint-plugin-template": "20.1.1",
+    "@angular-eslint/schematics": "20.1.1",
+    "@angular-eslint/template-parser": "20.1.1",
     "@angular/build": "^20.0.0",
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
     "@types/express": "^5.0.1",
     "@types/jasmine": "~5.1.0",
     "@types/node": "^20.17.19",
+    "@typescript-eslint/eslint-plugin": "7.11.0",
+    "@typescript-eslint/parser": "7.11.0",
+    "eslint": "8.57.1",
+    "husky": "^9.1.7",
     "jasmine-core": "~5.8.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "lint-staged": "^16.1.2",
     "typescript": "~5.8.2"
   }
 }

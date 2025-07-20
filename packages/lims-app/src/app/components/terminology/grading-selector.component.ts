@@ -1,12 +1,12 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
-import { takeUntil, debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CodeableConcept } from '@medplum/fhirtypes';
+import { BehaviorSubject, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, takeUntil } from 'rxjs/operators';
 import { 
-  TerminologyService, 
   GradingConcept, 
+  TerminologyService, 
   ValidationResult 
 } from '../../services/terminology.service';
 
@@ -225,7 +225,7 @@ export class GradingSelectorComponent implements OnInit, OnDestroy {
   }
 
   selectGrade(grade: GradingConcept): void {
-    if (this.disabled) return;
+    if (this.disabled) { return; }
 
     this.selectedGrade = grade;
     this.emitGradingSelection();
@@ -233,7 +233,7 @@ export class GradingSelectorComponent implements OnInit, OnDestroy {
   }
 
   private emitGradingSelection(): void {
-    if (!this.selectedGrade) return;
+    if (!this.selectedGrade) { return; }
 
     const gradingSystem = this.gradingForm.get('gradingSystem')?.value;
     const additionalNotes = this.gradingForm.get('additionalNotes')?.value;
@@ -351,7 +351,7 @@ export class GradingSelectorComponent implements OnInit, OnDestroy {
   }
 
   getCurrentSelection(): GradingSelection | null {
-    if (!this.selectedGrade) return null;
+    if (!this.selectedGrade) { return null; }
 
     return {
       gradingSystem: this.gradingForm.get('gradingSystem')?.value,

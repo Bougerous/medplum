@@ -5,9 +5,9 @@
  * Each bot is a TypeScript function that can be deployed to Medplum as a Bot resource.
  */
 
-export { handler as patientRegistrationBot } from './patient-registration-bot';
-export { handler as orderSplittingBot } from './order-splitting-bot';
 export { handler as billingAutomationBot } from './billing-automation-bot';
+export { handler as orderSplittingBot } from './order-splitting-bot';
+export { handler as patientRegistrationBot } from './patient-registration-bot';
 export { handler as workflowValidationBot } from './workflow-validation-bot';
 
 /**
@@ -24,7 +24,7 @@ export const BOT_CONFIGURATIONS = {
     }],
     sourceCodePath: './patient-registration-bot.ts'
   },
-  
+
   orderSplitting: {
     name: 'Order Splitting Bot',
     description: 'Automatically split service requests into multiple specimens',
@@ -35,7 +35,7 @@ export const BOT_CONFIGURATIONS = {
     }],
     sourceCodePath: './order-splitting-bot.ts'
   },
-  
+
   billingAutomation: {
     name: 'Billing Automation Bot',
     description: 'Automatically create claims for finalized diagnostic reports',
@@ -46,7 +46,7 @@ export const BOT_CONFIGURATIONS = {
     }],
     sourceCodePath: './billing-automation-bot.ts'
   },
-  
+
   workflowValidation: {
     name: 'Workflow Validation Bot',
     description: 'Validate diagnostic reports for completeness and quality',
@@ -57,7 +57,7 @@ export const BOT_CONFIGURATIONS = {
     }],
     sourceCodePath: './workflow-validation-bot.ts'
   }
-} as const;
+};
 
 /**
  * Bot deployment helper

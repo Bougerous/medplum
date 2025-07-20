@@ -1,17 +1,15 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  DiagnosticReport,
+  Patient,
+  Specimen
+} from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { AuthService } from '../services/auth.service';
 import { BillingService } from '../services/billing.service';
 import { DiagnosticReportService } from '../services/diagnostic-report.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
 import { RetryService } from '../services/retry.service';
-import {
-  Patient,
-  Specimen,
-  ServiceRequest,
-  DiagnosticReport,
-  Observation
-} from '@medplum/fhirtypes';
 
 // Performance test configuration
 const PERFORMANCE_TEST_CONFIG = {
@@ -55,8 +53,8 @@ interface LoadTestResult {
 describe('Load Testing', () => {
   let medplumService: MedplumService;
   let authService: AuthService;
-  let billingService: BillingService;
-  let diagnosticReportService: DiagnosticReportService;
+  let _billingService: BillingService;
+  let _diagnosticReportService: DiagnosticReportService;
 
   // Test resources to clean up
   let testResources: { type: string; id: string }[] = [];
@@ -79,8 +77,8 @@ describe('Load Testing', () => {
 
     medplumService = TestBed.inject(MedplumService);
     authService = TestBed.inject(AuthService);
-    billingService = TestBed.inject(BillingService);
-    diagnosticReportService = TestBed.inject(DiagnosticReportService);
+    _billingService = TestBed.inject(BillingService);
+    _diagnosticReportService = TestBed.inject(DiagnosticReportService);
 
     testResources = [];
   });
@@ -308,7 +306,7 @@ describe('Load Testing', () => {
   });
 
   describe('Specimen Workflow Load Tests', () => {
-    let testPatients: Patient[] = [];
+    const testPatients: Patient[] = [];
 
     beforeEach(async () => {
       await authService.login({
@@ -576,7 +574,7 @@ describe('Load Testing', () => {
       const memoryGrowth = finalMemory - initialMemory;
       const memoryGrowthMB = memoryGrowth / (1024 * 1024);
 
-      console.log(`Memory Usage Analysis:`);
+      console.log('Memory Usage Analysis:');
       console.log(`Initial Memory: ${(initialMemory / (1024 * 1024)).toFixed(2)} MB`);
       console.log(`Final Memory: ${(finalMemory / (1024 * 1024)).toFixed(2)} MB`);
       console.log(`Max Memory: ${(maxMemory / (1024 * 1024)).toFixed(2)} MB`);

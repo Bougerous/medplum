@@ -1,15 +1,13 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from, throwError, of } from 'rxjs';
-import { map, catchError, switchMap, tap } from 'rxjs/operators';
 import { 
-  Practitioner, 
   AccessPolicy, 
+  AuditEvent, 
+  Practitioner, 
   ProjectMembership,
-  Reference,
-  AuditEvent
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable, } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { UserRole, UserProfile, LIMSErrorType } from '../types/fhir-types';
+import { LIMSErrorType, UserProfile, UserRole } from '../types/fhir-types';
 import { ErrorHandlingService } from './error-handling.service';
 
 export interface LoginCredentials {

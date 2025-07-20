@@ -1,0 +1,246 @@
+<div class="widget-container">
+  <div class="widget-header">
+    <h3>Revenue Analytics</h3>
+    <div class="header-controls">
+      <div class="view-toggle">
+        <button 
+          *ngFor="let view of viewTypes" 
+          [class.active]="activeView === view.key"
+          (click)="setView(view.key)"
+          class="toggle-btn">
+          {{ view.label }}
+        </button>
+      </div>
+      <div class="refresh-indicator" [class.refreshing]="isRefreshing">
+        <span class="refresh-icon">⟳</span>
+      </div>
+    </div>
+  </div>
+  
+  <div class="widget-content">
+    <!-- Revenue Overview -->
+    <div class="revenue-overview" *ngIf="activeView === 'overview'">
+      <div class="revenue-summary">
+        <div class="summary-cards">
+          <div class="summary-card total-revenue">
+            <div class="card-header">
+              <span class="card-title">Total Revenue</span>
+              <span class="card-icon">💰</span>
+            </div>
+            <div class="card-content">
+              <div class="metric-value">${{ getTotalRevenue() | number:'1.0-0' }}</div>
+              <div class="metric-change" [class]="getRevenueTrend()">
+                <span class="change-icon">{{ getChangeIcon(getRevenueTrend()) }}</span>
+                <span class="change-text">{{ getRevenueChangeText() }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="summary-card monthly-revenue">
+            <div class="card-header">
+              <span class="card-title">This Month</span>
+              <span class="card-icon">📅</span>
+            </div>
+            <div class="card-content">
+              <div class="metric-value">${{ getMonthlyRevenue() | number:'1.0-0' }}</div>
+              <div class="metric-change" [class]="getMonthlyTrend()">
+                <span class="change-icon">{{ getChangeIcon(getMonthlyTrend()) }}</span>
+                <span class="change-text">{{ getMonthlyChangeText() }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="summary-card collection-rate">
+            <div class="card-header">
+              <span class="card-title">Collection Rate</span>
+              <span class="card-icon">📊</span>
+            </div>
+            <div class="card-content">
+              <div class="metric-value">{{ getCollectionRate() | number:'1.1-1' }}%</div>
+              <div class="metric-change" [class]="getCollectionTrend()">
+                <span class="change-icon">{{ getChangeIcon(getCollectionTrend()) }}</span>
+                <span class="change-text">{{ getCollectionChangeText() }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="revenue-breakdown">
+        <div class="section-header">
+          <h4>Revenue by Category</h4>
+          <div class="period-filter">
+            <button 
+              *ngFor="let period of timePeriods" 
+              [class.active]="activePeriod === period.key"
+              (click)="setTimePeriod(period.key)"
+              class="filter-btn">
+              {{ period.label }}
+            </button>
+          </div>
+        </div>
+        
+        <div class="breakdown-chart">
+          <div class="chart-container">
+            <div class="pie-chart">
+              <div class="chart-center">
+                <div class="center-value">${{ getTotalRevenue() | number:'1.0-0' }}</div>
+                <div class="center-label">Total</div>
+              </div>
+            </div>
+            <div class="chart-legend">
+              <div 
+                *ngFor="let item of getRevenueBreakdown(); let i = index" 
+                class="legend-item">
+                <span class="legend-color" [style.background-color]="getChartColor(i)"></span>
+                <span class="legend-label">{{ item.category }}</span>
+                <span class="legend-value">${{ item.amount | number:'1.0-0' }}</span>
+                <span class="legend-percent">({{ item.percentage | number:'1.0-0' }}%)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Analysis -->
+    <div class="payment-analysis" *ngIf="activeView === 'payments'">
+      <div class="section-header">
+        <h4>Payment Analysis</h4>
+      </div>
+      
+      <div class="payment-metrics">
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-label">Total Billed</div>
+            <div class="metric-value">${{ getPaymentMetrics().totalBilled | number:'1.0-0' }}</div>
+            <div class="metric-description">Amount billed to payers</div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-label">Total Collected</div>
+            <div class="metric-value">${{ getPaymentMetrics().totalCollected | number:'1.0-0' }}</div>
+            <div class="metric-description">Amount actually received</div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-label">Avg Reimbursement</div>
+            <div class="metric-value">${{ getPaymentMetrics().averageReimbursement | number:'1.0-0' }}</div>
+            <div class="metric-description">Per test reimbursement</div>
+          </div>
+          
+          <div class="metric-card">
+            <div class="metric-label">Days in A/R</div>
+            <div class="metric-value">{{ getPaymentMetrics().daysInAR | number:'1.0-0' }}</div>
+            <div class="metric-description">Average collection time</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="payment-trends">
+        <div class="section-header">
+          <h5>Payment Trends</h5>
+        </div>
+        
+        <div class="trends-chart">
+          <div class="chart-container">
+            <div class="chart-area">
+              <div class="chart-bars">
+                <div 
+                  *ngFor="let data of getPaymentTrendData()" 
+                  class="trend-bar">
+                  <div class="bar-group">
+                    <div 
+                      class="bar billed" 
+                      [style.height.%]="(data.billed / getMaxPaymentValue()) * 100">
+                    </div>
+                    <div 
+                      class="bar collected" 
+                      [style.height.%]="(data.collected / getMaxPaymentValue()) * 100">
+                    </div>
+                  </div>
+                  <div class="bar-label">{{ data.period }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-color billed"></span>
+                <span class="legend-text">Billed</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color collected"></span>
+                <span class="legend-text">Collected</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Performance Targets -->
+    <div class="performance-targets" *ngIf="activeView === 'targets'">
+      <div class="section-header">
+        <h4>Performance vs Targets</h4>
+      </div>
+      
+      <div class="targets-list">
+        <div 
+          *ngFor="let target of getRevenueTargets()" 
+          class="target-item"
+          [class.over-target]="target.actual > target.target"
+          [class.under-target]="target.actual < target.target">
+          
+          <div class="target-info">
+            <div class="target-period">{{ target.period }}</div>
+            <div class="target-details">
+              <span class="actual-value">${{ target.actual | number:'1.0-0' }} actual</span>
+              <span class="target-value">${{ target.target | number:'1.0-0' }} target</span>
+            </div>
+          </div>
+          
+          <div class="target-progress">
+            <div class="progress-bar">
+              <div 
+                class="progress-fill" 
+                [style.width.%]="getTargetProgressPercentage(target)"
+                [class.over-target]="target.actual > target.target">
+              </div>
+            </div>
+            <div class="progress-text">
+              {{ getTargetProgressText(target) }}
+            </div>
+          </div>
+          
+          <div class="target-variance">
+            <div class="variance-amount" [class]="target.variance >= 0 ? 'positive' : 'negative'">
+              {{ target.variance >= 0 ? '+' : '' }}${{ target.variance | number:'1.0-0' }}
+            </div>
+            <div class="variance-percent" [class]="target.variancePercent >= 0 ? 'positive' : 'negative'">
+              {{ target.variancePercent >= 0 ? '+' : '' }}{{ target.variancePercent | number:'1.1-1' }}%
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="targets-summary">
+        <div class="summary-item">
+          <span class="summary-label">Targets Met:</span>
+          <span class="summary-value">{{ getTargetsMet() }}/{{ getRevenueTargets().length }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Overall Performance:</span>
+          <span class="summary-value" [class]="getOverallPerformanceClass()">
+            {{ getOverallPerformance() | number:'1.1-1' }}%
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="revenueMetrics.length === 0" class="empty-state">
+      <div class="empty-icon">💰</div>
+      <p>No revenue data available</p>
+      <button (click)="refreshData()" class="refresh-btn">Refresh Data</button>
+    </div>
+  </div>
+</div> 

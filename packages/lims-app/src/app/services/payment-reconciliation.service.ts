@@ -1,23 +1,16 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
 import {
-  PaymentReconciliation,
-  PaymentNotice,
-  Invoice,
-  Claim,
+  ChargeItem,
   ClaimResponse,
-  Patient,
   Money,
-  Reference,
-  Account,
-  ChargeItem
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { CandidHealthService, CandidHealthClaimResponse } from './candid-health.service';
-import { StripePaymentService, PaymentConfirmation } from './stripe-payment.service';
 import { LIMSErrorType } from '../types/fhir-types';
+import { CandidHealthService } from './candid-health.service';
+import { CurrencyService } from './currency.service';
+import { ErrorHandlingService } from './error-handling.service';
+import { StripePaymentService } from './stripe-payment.service';
 
 export interface PaymentAllocation {
   id: string;
@@ -105,7 +98,8 @@ export class PaymentReconciliationService {
     private medplumService: MedplumService,
     private errorHandlingService: ErrorHandlingService,
     private candidHealthService: CandidHealthService,
-    private stripePaymentService: StripePaymentService
+    private stripePaymentService: StripePaymentService,
+    private currencyService: CurrencyService
   ) {
     this.initializeReconciliation();
   }
@@ -113,17 +107,17 @@ export class PaymentReconciliationService {
   /**
    * Process insurance payment from claim response
    */
-  async processInsurancePayment(claimResponse: ClaimResponse): Promise<PaymentReconciliation> {
+  async processInsurancePayment(claimResponse: ClaimResponse): Promise<any> {
     try {
       // Extract payment information from claim response
       const paymentInfo = this.extractPaymentInfo(claimResponse);
-      
+
       if (!paymentInfo.amount || paymentInfo.amount.value <= 0) {
         throw new Error('No payment amount found in claim response');
       }
 
       // Create payment reconciliation resource
-      const reconciliation: PaymentReconciliation = {
+      const reconciliation: any = {
         resourceType: 'PaymentReconciliation',
         status: 'active',
         period: {
@@ -172,17 +166,17 @@ export class PaymentReconciliationService {
   /**
    * Process patient payment from Stripe
    */
-  async processPatientPayment(paymentConfirmation: PaymentConfirmation): Promise<PaymentReconciliation> {
+  async processPatientPayment(paymentConfirmation: any): Promise<any> {
     try {
       // Find related invoice
       const invoice = await this.findInvoiceByStripeId(paymentConfirmation.invoiceId || '');
-      
+
       if (!invoice) {
         throw new Error('Related invoice not found for patient payment');
       }
 
       // Create payment reconciliation resource
-      const reconciliation: PaymentReconciliation = {
+      const reconciliation: any = {
         resourceType: 'PaymentReconciliation',
         status: 'active',
         period: {
@@ -258,21 +252,19 @@ export class PaymentReconciliationService {
       const adjustments = await this.getPatientAdjustments(patientId);
 
       // Calculate totals
-      const totalCharges = this.sumAmounts(charges.map(c => c.totalNet || { value: 0, currency: 'USD' }));
-      const totalPayments = this.sumAmounts(payments.map(p => p.paymentAmount || { value: 0, currency: 'USD' }));
-      const totalAdjustments = this.sumAmounts(adjustments.map(a => a.amount || { value: 0, currency: 'USD' }));
+      const totalCharges = this.sumAmounts(charges.map(c => c.totalNet || this.currencyService.createINRMoney(0)));
+      const totalPayments = this.sumAmounts(payments.map(p => p.paymentAmount || this.currencyService.createINRMoney(0)));
+      const totalAdjustments = this.sumAmounts(adjustments.map(a => a.amount || this.currencyService.createINRMoney(0)));
 
-      const currentBalance: Money = {
-        value: totalCharges.value - totalPayments.value - totalAdjustments.value,
-        currency: 'USD'
-      };
+      const currentBalance: Money = this.currencyService.createINRMoney(
+        (totalCharges.value || 0) - (totalPayments.value || 0) - (totalAdjustments.value || 0)
+      );
 
       // Calculate insurance vs patient balance
       const insuranceBalance = await this.calculateInsuranceBalance(patientId);
-      const patientBalance: Money = {
-        value: currentBalance.value - insuranceBalance.value,
-        currency: 'USD'
-      };
+      const patientBalance: Money = this.currencyService.createINRMoney(
+        (currentBalance.value || 0) - (insuranceBalance.value || 0)
+      );
 
       // Calculate aging buckets
       const agingBuckets = await this.calculateAgingBuckets(patientId, charges);
@@ -321,23 +313,22 @@ export class PaymentReconciliationService {
       const adjustments = await this.getAdjustmentsInDateRange(startDate, endDate);
 
       // Calculate totals
-      const totalCollections = this.sumAmounts(payments.map(p => p.paymentAmount || { value: 0, currency: 'USD' }));
-      const totalAdjustments = this.sumAmounts(adjustments.map(a => a.amount || { value: 0, currency: 'USD' }));
-      
+      const totalCollections = this.sumAmounts(payments.map(p => p.paymentAmount || this.currencyService.createINRMoney(0)));
+      const totalAdjustments = this.sumAmounts(adjustments.map(a => a.amount || this.currencyService.createINRMoney(0)));
+
       const insurancePayments = payments.filter(p => this.isInsurancePayment(p));
       const patientPayments = payments.filter(p => !this.isInsurancePayment(p));
-      
-      const insuranceCollections = this.sumAmounts(insurancePayments.map(p => p.paymentAmount || { value: 0, currency: 'USD' }));
-      const patientCollections = this.sumAmounts(patientPayments.map(p => p.paymentAmount || { value: 0, currency: 'USD' }));
 
-      const netCollections: Money = {
-        value: totalCollections.value - totalAdjustments.value,
-        currency: 'USD'
-      };
+      const insuranceCollections = this.sumAmounts(insurancePayments.map(p => p.paymentAmount || this.currencyService.createINRMoney(0)));
+      const patientCollections = this.sumAmounts(patientPayments.map(p => p.paymentAmount || this.currencyService.createINRMoney(0)));
+
+      const netCollections: Money = this.currencyService.createINRMoney(
+        (totalCollections.value || 0) - (totalAdjustments.value || 0)
+      );
 
       // Group by payer
       const collectionsByPayer = await this.groupPaymentsByPayer(insurancePayments);
-      
+
       // Group by service type
       const collectionsByServiceType = await this.groupPaymentsByServiceType(payments);
 
@@ -485,13 +476,13 @@ export class PaymentReconciliationService {
     }
   }
 
-  private async processInsurancePaymentFromCandid(candidClaim: CandidHealthClaimResponse): Promise<void> {
+  private async processInsurancePaymentFromCandid(candidClaim: any): Promise<void> {
     // Convert Candid Health claim response to FHIR ClaimResponse
     const claimResponse = await this.convertCandidToClaimResponse(candidClaim);
     await this.processInsurancePayment(claimResponse);
   }
 
-  private async convertCandidToClaimResponse(candidClaim: CandidHealthClaimResponse): Promise<ClaimResponse> {
+  private async convertCandidToClaimResponse(candidClaim: any): Promise<any> {
     // Implementation to convert Candid Health response to FHIR ClaimResponse
     return {
       resourceType: 'ClaimResponse',
@@ -513,7 +504,7 @@ export class PaymentReconciliationService {
     };
   }
 
-  private extractPaymentInfo(claimResponse: ClaimResponse): any {
+  private extractPaymentInfo(claimResponse: any): any {
     return {
       amount: claimResponse.payment?.amount,
       paymentDate: claimResponse.payment?.date,
@@ -521,7 +512,7 @@ export class PaymentReconciliationService {
     };
   }
 
-  private createPaymentDetails(claimResponse: ClaimResponse): any[] {
+  private createPaymentDetails(claimResponse: any): any[] {
     return [{
       type: {
         coding: [{
@@ -537,7 +528,7 @@ export class PaymentReconciliationService {
   }
 
   private async createPaymentAllocation(
-    claimResponse: ClaimResponse,
+    claimResponse: any,
     paymentInfo: any,
     paymentSource: 'insurance' | 'patient' | 'other'
   ): Promise<void> {
@@ -549,7 +540,7 @@ export class PaymentReconciliationService {
       paymentMethod: 'eft',
       totalAmount: paymentInfo.amount,
       allocatedAmount: paymentInfo.amount,
-      remainingAmount: { value: 0, currency: paymentInfo.amount.currency },
+      remainingAmount: this.currencyService.createMoney(0, paymentInfo.amount.currency),
       paymentDate: new Date(paymentInfo.paymentDate || new Date()),
       status: 'allocated',
       adjustments: []
@@ -560,8 +551,8 @@ export class PaymentReconciliationService {
   }
 
   private async createPatientPaymentAllocation(
-    paymentConfirmation: PaymentConfirmation,
-    invoice: Invoice
+    paymentConfirmation: any,
+    invoice: any
   ): Promise<void> {
     const allocation: PaymentAllocation = {
       id: `alloc-${Date.now()}`,
@@ -588,13 +579,13 @@ export class PaymentReconciliationService {
     this.paymentAllocations$.next([...currentAllocations, allocation]);
   }
 
-  private async findInvoiceByStripeId(stripeInvoiceId: string): Promise<Invoice | null> {
+  private async findInvoiceByStripeId(stripeInvoiceId: string): Promise<any | null> {
     try {
-      const invoices = await this.medplumService.searchResources<Invoice>('Invoice', {
+      const invoices = await this.medplumService.searchResources<any>('Invoice', {
         identifier: stripeInvoiceId
       });
       return invoices.entry?.[0]?.resource || null;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
@@ -607,21 +598,21 @@ export class PaymentReconciliationService {
     }
   }
 
-  private async getPatientCharges(patientId: string): Promise<Invoice[]> {
-    const invoices = await this.medplumService.searchResources<Invoice>('Invoice', {
+  private async getPatientCharges(patientId: string): Promise<any[]> {
+    const invoices = await this.medplumService.searchResources<any>('Invoice', {
       subject: `Patient/${patientId}`
     });
     return invoices.entry?.map(e => e.resource!).filter(Boolean) || [];
   }
 
-  private async getPatientPayments(patientId: string): Promise<PaymentReconciliation[]> {
-    const payments = await this.medplumService.searchResources<PaymentReconciliation>('PaymentReconciliation', {
+  private async getPatientPayments(_patientId: string): Promise<any[]> {
+    const payments = await this.medplumService.searchResources<any>('PaymentReconciliation', {
       // This would need a proper search parameter for patient
     });
     return payments.entry?.map(e => e.resource!).filter(Boolean) || [];
   }
 
-  private async getPatientAdjustments(patientId: string): Promise<PaymentAdjustment[]> {
+  private async getPatientAdjustments(_patientId: string): Promise<PaymentAdjustment[]> {
     // Implementation to get patient adjustments
     return [];
   }
@@ -634,28 +625,28 @@ export class PaymentReconciliationService {
     };
   }
 
-  private async calculateInsuranceBalance(patientId: string): Promise<Money> {
+  private async calculateInsuranceBalance(_patientId: string): Promise<Money> {
     // Implementation to calculate insurance balance
-    return { value: 0, currency: 'USD' };
+    return this.currencyService.createINRMoney(0);
   }
 
-  private async calculateAgingBuckets(patientId: string, charges: Invoice[]): Promise<AgingBucket[]> {
+  private async calculateAgingBuckets(_patientId: string, charges: any[]): Promise<AgingBucket[]> {
     const now = new Date();
     const buckets: AgingBucket[] = [
-      { label: 'Current', daysRange: { min: 0, max: 30 }, amount: { value: 0, currency: 'USD' }, count: 0 },
-      { label: '31-60 days', daysRange: { min: 31, max: 60 }, amount: { value: 0, currency: 'USD' }, count: 0 },
-      { label: '61-90 days', daysRange: { min: 61, max: 90 }, amount: { value: 0, currency: 'USD' }, count: 0 },
-      { label: '90+ days', daysRange: { min: 91 }, amount: { value: 0, currency: 'USD' }, count: 0 }
+      { label: 'Current', daysRange: { min: 0, max: 30 }, amount: this.currencyService.createINRMoney(0), count: 0 },
+      { label: '31-60 days', daysRange: { min: 31, max: 60 }, amount: this.currencyService.createINRMoney(0), count: 0 },
+      { label: '61-90 days', daysRange: { min: 61, max: 90 }, amount: this.currencyService.createINRMoney(0), count: 0 },
+      { label: '90+ days', daysRange: { min: 91 }, amount: this.currencyService.createINRMoney(0), count: 0 }
     ];
 
     charges.forEach(charge => {
       const chargeDate = new Date(charge.date || '');
       const daysDiff = Math.floor((now.getTime() - chargeDate.getTime()) / (1000 * 60 * 60 * 24));
-      
-      const bucket = buckets.find(b => 
+
+      const bucket = buckets.find(b =>
         daysDiff >= b.daysRange.min && (b.daysRange.max === undefined || daysDiff <= b.daysRange.max)
       );
-      
+
       if (bucket && charge.totalNet) {
         bucket.amount.value += charge.totalNet.value || 0;
         bucket.count++;
@@ -665,37 +656,37 @@ export class PaymentReconciliationService {
     return buckets;
   }
 
-  private getLastPaymentDate(payments: PaymentReconciliation[]): Date | undefined {
-    if (payments.length === 0) return undefined;
-    
+  private getLastPaymentDate(payments: any[]): Date | undefined {
+    if (payments.length === 0) { return undefined; }
+
     const dates = payments
       .map(p => new Date(p.paymentDate || ''))
-      .filter(d => !isNaN(d.getTime()))
+      .filter(d => !Number.isNaN(d.getTime()))
       .sort((a, b) => b.getTime() - a.getTime());
-    
+
     return dates[0];
   }
 
-  private async getPaymentsInDateRange(startDate: Date, endDate: Date): Promise<PaymentReconciliation[]> {
+  private async getPaymentsInDateRange(_startDate: Date, _endDate: Date): Promise<any[]> {
     // Implementation to get payments in date range
     return [];
   }
 
-  private async getAdjustmentsInDateRange(startDate: Date, endDate: Date): Promise<PaymentAdjustment[]> {
+  private async getAdjustmentsInDateRange(_startDate: Date, _endDate: Date): Promise<PaymentAdjustment[]> {
     // Implementation to get adjustments in date range
     return [];
   }
 
-  private isInsurancePayment(payment: PaymentReconciliation): boolean {
+  private isInsurancePayment(payment: any): boolean {
     return payment.paymentIssuer?.display !== 'Patient Payment';
   }
 
-  private async groupPaymentsByPayer(payments: PaymentReconciliation[]): Promise<PayerCollection[]> {
+  private async groupPaymentsByPayer(_payments: any[]): Promise<PayerCollection[]> {
     // Implementation to group payments by payer
     return [];
   }
 
-  private async groupPaymentsByServiceType(payments: PaymentReconciliation[]): Promise<ServiceTypeCollection[]> {
+  private async groupPaymentsByServiceType(_payments: any[]): Promise<ServiceTypeCollection[]> {
     // Implementation to group payments by service type
     return [];
   }

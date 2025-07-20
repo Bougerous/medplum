@@ -1,19 +1,17 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
 import {
   Bot,
-  Task,
   DiagnosticReport,
   QuestionnaireResponse,
   ServiceRequest,
   Subscription,
-  Bundle,
-  Reference
+  Task
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { BillingService } from './billing.service';
 import { LIMSErrorType } from '../types/fhir-types';
+import { BillingService } from './billing.service';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface BotConfiguration {
   id: string;

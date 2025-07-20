@@ -1,10 +1,9 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
-import { MedplumService } from '../../../medplum.service';
+import { RouterModule } from '@angular/router';
+import { interval, Subject } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 
 interface BillingSummaryData {
   totalRevenue: number;
@@ -172,8 +171,6 @@ export class BillingSummaryWidget implements OnInit, OnDestroy {
   isLoading = true;
   selectedPeriod = 'month';
 
-  constructor(private medplumService: MedplumService) {}
-
   ngOnInit(): void {
     this.selectedPeriod = this.config.period || 'month';
     this.loadBillingData();
@@ -218,8 +215,8 @@ export class BillingSummaryWidget implements OnInit, OnDestroy {
   }
 
   getTrendClass(trend: number): string {
-    if (trend > 0) return 'trend-positive';
-    if (trend < 0) return 'trend-negative';
+    if (trend > 0) { return 'trend-positive'; }
+    if (trend < 0) { return 'trend-negative'; }
     return 'trend-neutral';
   }
 
@@ -234,8 +231,8 @@ export class BillingSummaryWidget implements OnInit, OnDestroy {
   }
 
   getAmountClass(type: string): string {
-    if (type === 'payment_received') return 'amount-positive';
-    if (type === 'claim_denied' || type === 'adjustment') return 'amount-negative';
+    if (type === 'payment_received') { return 'amount-positive'; }
+    if (type === 'claim_denied' || type === 'adjustment') { return 'amount-negative'; }
     return 'amount-neutral';
   }
 

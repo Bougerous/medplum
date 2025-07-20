@@ -1,8 +1,8 @@
-import { TestBed, ComponentFixture } from '@angular/core/testing';
-import { Component, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Binary, ImagingStudy, Specimen } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
-import { Specimen, ImagingStudy, Binary } from '@medplum/fhirtypes';
 
 // Mock WSI Viewer Component for testing
 @Component({
@@ -313,7 +313,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(metrics.totalTilesLoaded).toBe(testConfig.tiles);
       expect(metrics.currentMemoryUsage).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxMemoryUsage);
 
-      console.log(`Small Image Performance:`, {
+      console.log('Small Image Performance:', {
         totalLoadTime: loadTime,
         averageTileLoadTime: metrics.averageTileLoadTime,
         tilesLoaded: metrics.totalTilesLoaded,
@@ -367,7 +367,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(metrics.averageTileLoadTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxTileLoadTime);
       expect(metrics.totalTilesLoaded).toBe(testConfig.tiles);
 
-      console.log(`Medium Image Performance:`, {
+      console.log('Medium Image Performance:', {
         totalLoadTime: loadTime,
         averageTileLoadTime: metrics.averageTileLoadTime,
         tilesLoaded: metrics.totalTilesLoaded,
@@ -420,7 +420,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(averageZoomTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxZoomTime);
       expect(maxZoomTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxZoomTime * 2);
 
-      console.log(`Zoom Performance:`, {
+      console.log('Zoom Performance:', {
         averageZoomTime,
         maxZoomTime,
         zoomOperations: zoomTimes.length
@@ -453,7 +453,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(averageZoomTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxZoomTime);
       expect(performanceDegradation).toBeLessThan(2); // Performance shouldn't degrade more than 2x
 
-      console.log(`Rapid Zoom Performance:`, {
+      console.log('Rapid Zoom Performance:', {
         averageZoomTime,
         performanceDegradation,
         operations: rapidZoomCount
@@ -512,7 +512,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(averagePanTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxPanTime);
       expect(maxPanTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxPanTime * 2);
 
-      console.log(`Pan Performance:`, {
+      console.log('Pan Performance:', {
         averagePanTime,
         maxPanTime,
         panOperations: panTimes.length
@@ -560,7 +560,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(finalMemory).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxMemoryUsage);
       expect(memoryGrowth).toBeLessThan(100); // Memory growth should be limited
 
-      console.log(`Memory Management:`, {
+      console.log('Memory Management:', {
         initialMemory,
         finalMemory,
         memoryGrowth,
@@ -600,7 +600,7 @@ describe('WSI Viewer Performance Tests', () => {
       expect(memoryAfterClear).toBeLessThan(memoryBeforeClear);
       expect(tilesAfterClear).toBe(0);
 
-      console.log(`Cache Clearing:`, {
+      console.log('Cache Clearing:', {
         memoryBeforeClear,
         memoryAfterClear,
         tilesBeforeClear,
@@ -650,7 +650,7 @@ describe('WSI Viewer Performance Tests', () => {
         expect(totalTime).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxRenderTime * 5);
         expect(metrics.currentMemoryUsage).toBeLessThan(WSI_PERFORMANCE_CONFIG.maxMemoryUsage * 2);
 
-        console.log(`Stress Test Results:`, {
+        console.log('Stress Test Results:', {
           totalTime,
           memoryUsage: metrics.currentMemoryUsage,
           tilesLoaded: metrics.totalTilesLoaded,
@@ -659,7 +659,7 @@ describe('WSI Viewer Performance Tests', () => {
       } catch (error) {
         // Stress test may fail, but should fail gracefully
         expect(error).toBeDefined();
-        console.log(`Stress test failed gracefully:`, error);
+        console.log('Stress test failed gracefully:', error);
       }
     }, 30000); // 30 second timeout for stress test
   });

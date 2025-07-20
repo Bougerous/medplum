@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+
 
 // Performance test configuration interface
 export interface PerformanceTestConfig {
@@ -49,10 +49,10 @@ export const DEFAULT_PERFORMANCE_CONFIG: PerformanceTestConfig = {
   environment: 'development',
   medplum: {
     baseUrl: 'https://api.medplum.com/',
-    projectId: process.env['MEDPLUM_TEST_PROJECT_ID'] || 'test-project-id',
+    projectId: process.env.MEDPLUM_TEST_PROJECT_ID || 'test-project-id',
     credentials: {
-      email: process.env['MEDPLUM_TEST_EMAIL'] || 'test@example.com',
-      password: process.env['MEDPLUM_TEST_PASSWORD'] || 'test-password'
+      email: process.env.MEDPLUM_TEST_EMAIL || 'test@example.com',
+      password: process.env.MEDPLUM_TEST_PASSWORD || 'test-password'
     }
   },
   thresholds: {

@@ -1,19 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { 
-  Patient, 
-  CodeableConcept 
+  CodeableConcept, 
+  Patient 
 } from '@medplum/fhirtypes';
+import { Subject, takeUntil } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { SpecimenService, SpecimenAccessionData, SpecimenLabelData } from '../services/specimen.service';
-import { NotificationService } from '../services/notification.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
-import { Specimen } from '../types/fhir-types';
+import { NotificationService } from '../services/notification.service';
+import { SpecimenAccessionData, SpecimenService } from '../services/specimen.service';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-specimen-accessioning',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './specimen-accessioning.html',
   styleUrl: './specimen-accessioning.scss'
 })
@@ -102,8 +104,8 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
   /**
    * Search for patients
    */
-  async searchPatients(event: any): Promise<void> {
-    const searchTerm = event.target.value;
+  async searchPatients(event: Event): Promise<void> {
+    const searchTerm = (event.target as HTMLInputElement).value;
     if (searchTerm.length < 2) {
       this.searchResults = [];
       return;
@@ -150,7 +152,7 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
    */
   getSelectedContainerType(): CodeableConcept | null {
     const selectedValue = this.specimenForm.get('containerType')?.value;
-    if (!selectedValue) return null;
+    if (!selectedValue) { return null; }
     
     return this.availableContainerTypes.find(type => 
       type.coding?.[0]?.code === selectedValue || type.text === selectedValue
@@ -193,10 +195,12 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
         notes: formValue.notes
       };
 
-      this.accessionResult = await this.specimenService.createSpecimen(
-        this.selectedPatient.id!,
-        specimenData
-      );
+      if (this.selectedPatient?.id) {
+        this.accessionResult = await this.specimenService.createSpecimen(
+          this.selectedPatient.id,
+          specimenData
+        );
+      }
 
       this.notificationService.showSuccess(
         'Specimen Accessioned Successfully',
@@ -220,7 +224,7 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
    * Print specimen label
    */
   printLabel(): void {
-    if (!this.accessionResult) return;
+    if (!this.accessionResult) { return; }
     
     const labelData = this.accessionResult.labelData;
     const printWindow = window.open('', '_blank');
@@ -327,7 +331,7 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
    * Generate new specimen for same patient
    */
   newSpecimenForPatient(): void {
-    if (!this.selectedPatient) return;
+    if (!this.selectedPatient) { return; }
     
     // Reset form but keep patient selected
     this.specimenForm.reset();
@@ -363,10 +367,10 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
    * Mark all form controls as touched to show validation errors
    */
   private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
+    for (const key of Object.keys(formGroup.controls)) {
       const control = formGroup.get(key);
       control?.markAsTouched();
-    });
+    }
   }
 
   /**
@@ -375,7 +379,7 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
   getFieldError(fieldName: string): string {
     const field = this.specimenForm.get(fieldName);
     if (field?.errors && field.touched) {
-      if (field.errors['required']) return `${fieldName} is required`;
+      if (field.errors.required) { return `${fieldName} is required`; }
     }
     return '';
   }

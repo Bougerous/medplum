@@ -1,25 +1,20 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, combineLatest } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
 import {
+  CodeableConcept,
   DiagnosticReport,
   Observation,
-  Specimen,
   Patient,
-  ServiceRequest,
-  Practitioner,
   Reference,
-  CodeableConcept,
-  Bundle,
-  Binary,
-  AuditEvent
+  Specimen
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
+import { LIMSErrorType, SearchParams } from '../types/fhir-types';
+import { AuditService } from './audit.service';
+import { AuthService } from './auth.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { RetryService } from './retry.service';
-import { AuthService } from './auth.service';
-import { AuditService } from './audit.service';
-import { SearchParams, LIMSErrorType } from '../types/fhir-types';
 
 export interface ReportTemplate {
   id: string;
@@ -161,7 +156,7 @@ export class DiagnosticReportService {
       // Get the specimen and related data
       const specimen = await this.medplumService.readResource<Specimen>('Specimen', request.specimenId);
       const patient = await this.medplumService.readResource<Patient>('Patient', specimen.subject?.reference?.split('/')[1] || '');
-      
+
       // Get the template
       const template = this.reportTemplates$.value.find(t => t.id === request.templateId);
       if (!template) {
@@ -170,10 +165,10 @@ export class DiagnosticReportService {
 
       // Gather all observations
       const observations = await this.gatherObservations(request.observations);
-      
+
       // Validate completeness
       const validationResult = await this.validateReportData(template, observations);
-      
+
       // Create the diagnostic report
       const diagnosticReport = await this.assembleDiagnosticReport(
         specimen,
@@ -220,7 +215,7 @@ export class DiagnosticReportService {
 
   private async gatherObservations(observationRefs: Reference[]): Promise<Observation[]> {
     const observations: Observation[] = [];
-    
+
     for (const ref of observationRefs) {
       try {
         const observationId = ref.reference?.split('/')[1];
@@ -232,7 +227,7 @@ export class DiagnosticReportService {
         console.warn(`Failed to load observation: ${ref.reference}`, error);
       }
     }
-    
+
     return observations;
   }
 
@@ -243,8 +238,8 @@ export class DiagnosticReportService {
     observations: Observation[],
     request: ReportGenerationRequest
   ): Promise<DiagnosticReport> {
-    const currentUser = this.authService.getCurrentUser();
-    
+    const currentUser = this.authService.getCurrentUserSync();
+
     const diagnosticReport: DiagnosticReport = {
       resourceType: 'DiagnosticReport',
       status: 'preliminary',
@@ -269,8 +264,8 @@ export class DiagnosticReportService {
       effectiveDateTime: new Date().toISOString(),
       issued: new Date().toISOString(),
       performer: currentUser ? [{
-        reference: `Practitioner/${currentUser.id}`,
-        display: currentUser.name?.[0]?.text || 'Unknown'
+        reference: `Practitioner/${currentUser.practitioner.id}`,
+        display: currentUser.practitioner.name?.[0]?.text || 'Unknown'
       }] : [],
       specimen: [{
         reference: `Specimen/${specimen.id}`,
@@ -304,11 +299,11 @@ export class DiagnosticReportService {
   async validateReportData(template: ReportTemplate, observations: Observation[]): Promise<ReportValidationResult> {
     const errors: ValidationError[] = [];
     const warnings: ValidationError[] = [];
-    
+
     // Check required observations
     const missingObservations: string[] = [];
     for (const requiredObs of template.requiredObservations) {
-      const found = observations.some(obs => 
+      const found = observations.some(obs =>
         obs.code?.coding?.some(coding => coding.code === requiredObs)
       );
       if (!found) {
@@ -361,12 +356,12 @@ export class DiagnosticReportService {
   }
 
   private async evaluateValidationRule(
-    rule: ValidationRule, 
+    rule: ValidationRule,
     observations: Observation[]
   ): Promise<{ passed: boolean; field?: string; observationId?: string }> {
     // Simplified validation rule evaluation
     // In a real implementation, this would use FHIRPath evaluation
-    
+
     switch (rule.id) {
       case 'numeric-range':
         return this.validateNumericRange(observations);
@@ -384,20 +379,20 @@ export class DiagnosticReportService {
       if (obs.valueQuantity && obs.referenceRange) {
         const value = obs.valueQuantity.value;
         const range = obs.referenceRange[0];
-        
+
         if (range.low?.value && value! < range.low.value) {
-          return { 
-            passed: false, 
-            field: 'valueQuantity', 
-            observationId: obs.id 
+          return {
+            passed: false,
+            field: 'valueQuantity',
+            observationId: obs.id
           };
         }
-        
+
         if (range.high?.value && value! > range.high.value) {
-          return { 
-            passed: false, 
-            field: 'valueQuantity', 
-            observationId: obs.id 
+          return {
+            passed: false,
+            field: 'valueQuantity',
+            observationId: obs.id
           };
         }
       }
@@ -407,19 +402,19 @@ export class DiagnosticReportService {
 
   private validateRequiredFields(observations: Observation[]): { passed: boolean; field?: string; observationId?: string } {
     for (const obs of observations) {
-      if (!obs.code || !obs.code.coding || obs.code.coding.length === 0) {
-        return { 
-          passed: false, 
-          field: 'code', 
-          observationId: obs.id 
+      if (!(obs.code && obs.code.coding) || obs.code.coding.length === 0) {
+        return {
+          passed: false,
+          field: 'code',
+          observationId: obs.id
         };
       }
-      
-      if (!obs.valueQuantity && !obs.valueCodeableConcept && !obs.valueString) {
-        return { 
-          passed: false, 
-          field: 'value', 
-          observationId: obs.id 
+
+      if (!((obs.valueQuantity || obs.valueCodeableConcept) || obs.valueString)) {
+        return {
+          passed: false,
+          field: 'value',
+          observationId: obs.id
         };
       }
     }
@@ -431,11 +426,11 @@ export class DiagnosticReportService {
     for (const obs of observations) {
       if (obs.valueCodeableConcept?.coding) {
         for (const coding of obs.valueCodeableConcept.coding) {
-          if (!coding.system || !coding.code) {
-            return { 
-              passed: false, 
-              field: 'valueCodeableConcept', 
-              observationId: obs.id 
+          if (!(coding.system && coding.code)) {
+            return {
+              passed: false,
+              field: 'valueCodeableConcept',
+              observationId: obs.id
             };
           }
         }
@@ -448,14 +443,14 @@ export class DiagnosticReportService {
   async updateReportStatus(reportId: string, status: DiagnosticReport['status'], notes?: string): Promise<DiagnosticReport> {
     try {
       const report = await this.medplumService.readResource<DiagnosticReport>('DiagnosticReport', reportId);
-      
+
       // Validate status transition
       if (!this.isValidStatusTransition(report.status, status)) {
         throw new Error(`Invalid status transition from ${report.status} to ${status}`);
       }
 
       report.status = status;
-      
+
       // Add status change note
       if (notes) {
         if (!report.extension) report.extension = [];
@@ -505,7 +500,7 @@ export class DiagnosticReportService {
       'cancelled': []
     };
 
-    return validTransitions[currentStatus || '']?.includes(newStatus || '') || false;
+    return validTransitions[currentStatus || '']?.includes(newStatus || '');
   }
 
   // Report Queries
@@ -519,7 +514,7 @@ export class DiagnosticReportService {
 
       const bundle = await this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', searchParams);
       const reports = bundle.entry?.map(entry => entry.resource!).filter(Boolean) || [];
-      
+
       this.pendingReports$.next(reports);
     } catch (error) {
       this.errorHandlingService.handleError({
@@ -580,13 +575,13 @@ export class DiagnosticReportService {
     try {
       const [totalBundle, pendingBundle, completedBundle] = await Promise.all([
         this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', { _summary: 'count' }),
-        this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', { 
-          status: 'preliminary,registered', 
-          _summary: 'count' 
+        this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', {
+          status: 'preliminary,registered',
+          _summary: 'count'
         }),
-        this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', { 
-          status: 'final', 
-          _summary: 'count' 
+        this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', {
+          status: 'final',
+          _summary: 'count'
         })
       ]);
 
@@ -625,7 +620,7 @@ export class DiagnosticReportService {
       })
       .filter(Boolean);
 
-    return findings.length > 0 
+    return findings.length > 0
       ? `Clinical findings: ${findings.join('; ')}`
       : 'No significant findings documented.';
   }

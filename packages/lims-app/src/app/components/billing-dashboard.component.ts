@@ -1,23 +1,22 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Observable, Subject, combineLatest } from 'rxjs';
-import { takeUntil, map } from 'rxjs/operators';
-import { Claim, DiagnosticReport, Invoice, Patient } from '@medplum/fhirtypes';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Claim } from '@medplum/fhirtypes';
+import { combineLatest, Observable, Subject } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
+import { MedplumService } from '../medplum.service';
 import { BillingService } from '../services/billing.service';
 import {
-  CandidHealthService,
   CandidHealthClaimResponse,
+  CandidHealthService,
 } from '../services/candid-health.service';
 import {
-  StripePaymentService,
-  PaymentConfirmation,
-} from '../services/stripe-payment.service';
-import {
-  PaymentReconciliationService,
   AccountBalance,
-  PaymentReport,
+  PaymentReconciliationService,
 } from '../services/payment-reconciliation.service';
-import { MedplumService } from '../medplum.service';
+import {
+  PaymentConfirmation,
+  StripePaymentService,
+} from '../services/stripe-payment.service';
 
 interface BillingDashboardData {
   pendingClaims: Claim[];
@@ -51,13 +50,13 @@ interface BillingDashboardData {
         <div class="metric-card">
           <h3>Total Outstanding</h3>
           <div class="metric-value">
-            \${{ data.totalOutstanding | number: '1.2-2' }}
+            ₹{{ data.totalOutstanding | number: '1.2-2' }}
           </div>
         </div>
         <div class="metric-card">
           <h3>Total Collected</h3>
           <div class="metric-value">
-            \${{ data.totalCollected | number: '1.2-2' }}
+            ₹{{ data.totalCollected | number: '1.2-2' }}
           </div>
         </div>
         <div class="metric-card">
@@ -80,9 +79,9 @@ interface BillingDashboardData {
               <div class="claim-info">
                 <span class="claim-id">{{ claim.id }}</span>
                 <span class="patient-name">{{ getPatientName(claim) }}</span>
-                <span class="claim-amount"
-                  >\${{ getClaimAmount(claim) | number: '1.2-2' }}</span
-                >
+                <span class="claim-amount">
+                  ₹{{ getClaimAmount(claim) | number: '1.2-2' }}
+                </span>
               </div>
               <div class="claim-actions">
                 <button
@@ -110,17 +109,18 @@ interface BillingDashboardData {
               class="payment-item"
             >
               <div class="payment-info">
-                <span class="payment-amount"
-                  >\${{ payment.amount | number: '1.2-2' }}</span
-                >
-                <span class="payment-date">{{
-                  payment.paidAt | date: 'short'
-                }}</span>
+                <span class="payment-amount">
+                  ₹{{ payment.amount | number: '1.2-2' }}
+                </span>
+                <span class="payment-date">
+                  {{ payment.paidAt | date: 'short' }}
+                </span>
                 <span
                   class="payment-status"
                   [class]="'status-' + payment.status"
-                  >{{ payment.status }}</span
                 >
+                  {{ payment.status }}
+                </span>
               </div>
             </div>
           </div>
@@ -135,12 +135,12 @@ interface BillingDashboardData {
             >
               <div class="balance-info">
                 <span class="patient-id">{{ balance.patientId }}</span>
-                <span class="current-balance"
-                  >\${{ balance.currentBalance.value | number: '1.2-2' }}</span
-                >
-                <span class="patient-balance"
-                  >\${{ balance.patientBalance.value | number: '1.2-2' }}</span
-                >
+                <span class="current-balance">
+                  ₹{{ balance.currentBalance.value | number: '1.2-2' }}
+                </span>
+                <span class="patient-balance">
+                  ₹{{ balance.patientBalance.value | number: '1.2-2' }}
+                </span>
               </div>
               <div class="balance-actions">
                 <button
@@ -354,21 +354,18 @@ interface BillingDashboardData {
   ],
 })
 export class BillingDashboardComponent implements OnInit, OnDestroy {
-  dashboardData$: Observable<BillingDashboardData>;
+  dashboardData$!: Observable<BillingDashboardData>;
   isLoading = false;
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
 
-  constructor(
-    private billingService: BillingService,
-    private candidHealthService: CandidHealthService,
-    private stripePaymentService: StripePaymentService,
-    private paymentReconciliationService: PaymentReconciliationService,
-    private medplumService: MedplumService,
-  ) {
-    this.dashboardData$ = this.createDashboardData();
-  }
+  private readonly billingService = inject(BillingService);
+  private readonly candidHealthService = inject(CandidHealthService);
+  private readonly stripePaymentService = inject(StripePaymentService);
+  private readonly paymentReconciliationService = inject(PaymentReconciliationService);
+  private readonly medplumService = inject(MedplumService);
 
   ngOnInit(): void {
+    this.dashboardData$ = this.createDashboardData();
     this.refreshData();
   }
 
@@ -388,7 +385,7 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
       map(
         ([pendingClaims, submittedClaims, recentPayments, accountBalances]) => {
           const totalOutstanding = accountBalances.reduce(
-            (sum, balance) => sum + balance.currentBalance.value,
+            (sum, balance) => sum + (balance.currentBalance.value || 0),
             0,
           );
 
@@ -405,8 +402,8 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
           return {
             pendingClaims,
             submittedClaims,
-            recentPayments: recentPayments.slice(0, 10), // Show last 10
-            accountBalances: accountBalances.slice(0, 10), // Show first 10
+            recentPayments: recentPayments.slice(0, 10),
+            accountBalances: accountBalances.slice(0, 10),
             totalOutstanding,
             totalCollected,
             collectionRate,
@@ -419,9 +416,10 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
   async refreshData(): Promise<void> {
     this.isLoading = true;
     try {
-      // Trigger data refresh - in a real implementation, this would refresh the underlying data
       console.log('Refreshing billing dashboard data...');
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate loading
+      await new Promise<void>((resolve) => {
+        void setTimeout(() => resolve(), 1000);
+      });
     } catch (error) {
       console.error('Failed to refresh data:', error);
     } finally {
@@ -433,7 +431,7 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - 1); // Last month
+      startDate.setMonth(startDate.getMonth() - 1);
 
       const report =
         await this.paymentReconciliationService.generatePaymentReport(
@@ -441,8 +439,6 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
           endDate,
         );
       console.log('Generated payment report:', report);
-
-      // In a real implementation, this would download or display the report
       alert('Payment report generated successfully!');
     } catch (error) {
       console.error('Failed to generate report:', error);
@@ -468,15 +464,13 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  viewClaim(claim: Claim): void {
-    console.log('Viewing claim:', claim);
-    // In a real implementation, this would navigate to a claim detail view
+  viewClaim(_claim: Claim): void {
+    console.log('Viewing claim:', _claim);
   }
 
   async sendStatement(balance: AccountBalance): Promise<void> {
     try {
       console.log('Sending statement for patient:', balance.patientId);
-      // In a real implementation, this would generate and send a patient statement
       alert('Statement sent successfully!');
     } catch (error) {
       console.error('Failed to send statement:', error);
@@ -490,8 +484,8 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
 
       const paymentRequest = {
         patientId: balance.patientId,
-        amount: balance.patientBalance.value,
-        currency: balance.patientBalance.currency,
+        amount: balance.patientBalance.value || 0,
+        currency: balance.patientBalance.currency || 'INR',
         description: 'Laboratory Services Payment',
         metadata: {
           source: 'billing-dashboard',
@@ -501,7 +495,6 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
       const result =
         await this.stripePaymentService.generatePaymentLink(paymentRequest);
 
-      // Send payment link via email
       await this.stripePaymentService.sendPaymentLinkEmail(
         balance.patientId,
         result.paymentLink,
@@ -518,7 +511,6 @@ export class BillingDashboardComponent implements OnInit, OnDestroy {
   }
 
   getPatientName(claim: Claim): string {
-    // In a real implementation, this would fetch patient name from the claim
     return 'Patient Name';
   }
 

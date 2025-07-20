@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Observable, throwError, timer } from 'rxjs';
-import { mergeMap, finalize, retryWhen, tap } from 'rxjs/operators';
+import { finalize, mergeMap, retryWhen, tap } from 'rxjs/operators';
+
 // import { environment } from '../../environments/environment';
 
 // Temporary mock environment for development
@@ -29,8 +30,6 @@ export class RetryService {
     backoffMultiplier: 2,
     retryCondition: (error: any) => this.shouldRetry(error)
   };
-
-  constructor() {}
 
   /**
    * Execute a promise-based operation with retry logic
@@ -152,7 +151,7 @@ export class RetryService {
    */
   private calculateDelay(attempt: number, config: Required<RetryConfig>): number {
     // Exponential backoff: delay = baseDelay * (multiplier ^ attempt)
-    const exponentialDelay = config.backoffMs * Math.pow(config.backoffMultiplier, attempt);
+    const exponentialDelay = config.backoffMs * config.backoffMultiplier ** attempt;
     
     // Add jitter (random factor) to prevent thundering herd
     const jitter = Math.random() * 0.1 * exponentialDelay;

@@ -1,14 +1,14 @@
-import { Injectable } from '@angular/core';
 import {
-  HttpInterceptor,
-  HttpRequest,
-  HttpHandler,
+  HttpErrorResponse, 
   HttpEvent,
-  HttpErrorResponse
+  HttpHandler,
+  HttpInterceptor,
+  HttpRequest
 } from '@angular/common/http';
+import { Injectable } from '@angular/core';
+import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap, take } from 'rxjs/operators';
-import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
 import { LIMSErrorType } from '../types/fhir-types';
@@ -83,7 +83,7 @@ export class AuthInterceptor implements HttpInterceptor {
     // In a real Medplum implementation, this would include the access token
     const accessToken = this.getAccessToken();
     if (accessToken) {
-      headers['Authorization'] = `Bearer ${accessToken}`;
+      headers.Authorization = `Bearer ${accessToken}`;
     }
 
     // Add user context headers
@@ -118,7 +118,7 @@ export class AuthInterceptor implements HttpInterceptor {
   private handleAuthError(
     error: HttpErrorResponse,
     originalRequest: HttpRequest<any>,
-    next: HttpHandler
+    _next: HttpHandler
   ): Observable<HttpEvent<any>> {
     
     if (error.status === 401) {

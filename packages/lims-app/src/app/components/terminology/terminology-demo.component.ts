@@ -1,11 +1,11 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { GradingSelection, GradingSelectorComponent } from './grading-selector.component';
-import { StagingSelection, StagingSelectorComponent } from './staging-selector.component';
-import { SpecimenDescription, SpecimenDescriptionComponent } from './specimen-description.component';
-import { ValidationResult } from '../../services/terminology.service';
 import { TerminologyValidatorDirective } from '../../directives/terminology-validator.directive';
+import { ValidationResult } from '../../services/terminology.service';
+import { GradingSelection, GradingSelectorComponent } from './grading-selector.component';
+import { SpecimenDescription, SpecimenDescriptionComponent } from './specimen-description.component';
+import { StagingSelection, StagingSelectorComponent } from './staging-selector.component';
 
 @Component({
   selector: 'app-terminology-demo',

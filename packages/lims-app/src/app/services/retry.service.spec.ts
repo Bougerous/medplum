@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { RetryService, RetryConfig } from './retry.service';
+import { RetryService } from './retry.service';
 
 describe('RetryService', () => {
   let service: RetryService;
@@ -103,7 +103,7 @@ describe('RetryService', () => {
   describe('Jitter', () => {
     it('should add jitter to delay when enabled', async () => {
       const delays: number[] = [];
-      const originalDelay = service['delay'];
+      const originalDelay = service.delay;
       
       spyOn(service as any, 'delay').and.callFake((ms: number) => {
         delays.push(ms);
@@ -131,7 +131,7 @@ describe('RetryService', () => {
 
     it('should not add jitter when disabled', async () => {
       const delays: number[] = [];
-      const originalDelay = service['delay'];
+      const originalDelay = service.delay;
       
       spyOn(service as any, 'delay').and.callFake((ms: number) => {
         delays.push(ms);
@@ -172,7 +172,7 @@ describe('RetryService', () => {
           shouldRetry
         });
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockOperation).toHaveBeenCalledTimes(1); // Should not retry
       }
     });
@@ -316,7 +316,7 @@ describe('RetryService', () => {
 
       try {
         await service.executeWithRetry(mockOperation, { maxRetries: 1 });
-      } catch (error) {
+      } catch (_error) {
         // Expected to fail
       }
 
@@ -354,7 +354,7 @@ describe('RetryService', () => {
             enableCircuitBreaker: true,
             circuitBreakerThreshold: 3
           });
-        } catch (error) {
+        } catch (_error) {
           // Expected to fail
         }
       }

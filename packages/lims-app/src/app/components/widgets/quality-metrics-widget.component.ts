@@ -1,7 +1,7 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, startWith, switchMap } from 'rxjs/operators';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { interval, Subject } from 'rxjs';
+import { startWith, switchMap, takeUntil } from 'rxjs/operators';
 import { AnalyticsService } from '../../services/analytics.service';
 import { AnalyticsMetric } from '../../types/fhir-types';
 
@@ -749,7 +749,7 @@ export class QualityMetricsWidgetComponent implements OnInit, OnDestroy {
 
   getOverallQualityScore(): number {
     // Calculate overall quality score from metrics
-    if (this.qualityMetrics.length === 0) return 0;
+    if (this.qualityMetrics.length === 0) { return 0; }
     
     const rejectionRate = this.qualityMetrics.find(m => m.name.includes('Rejection'))?.value || 0;
     const amendmentRate = this.qualityMetrics.find(m => m.name.includes('Amendment'))?.value || 0;
@@ -761,16 +761,16 @@ export class QualityMetricsWidgetComponent implements OnInit, OnDestroy {
 
   getOverallQualityStatus(): 'good' | 'warning' | 'critical' {
     const score = this.getOverallQualityScore();
-    if (score >= 85) return 'good';
-    if (score >= 70) return 'warning';
+    if (score >= 85) { return 'good'; }
+    if (score >= 70) { return 'warning'; }
     return 'critical';
   }
 
   getQualityTrend(): 'up' | 'down' | 'stable' {
     // This would compare with historical data
     const score = this.getOverallQualityScore();
-    if (score >= 85) return 'stable';
-    if (score >= 70) return 'down';
+    if (score >= 85) { return 'stable'; }
+    if (score >= 70) { return 'down'; }
     return 'up';
   }
 

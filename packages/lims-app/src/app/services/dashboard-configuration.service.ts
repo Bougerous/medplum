@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { UserRole, DashboardWidget } from '../types/fhir-types';
 import { MedplumService } from '../medplum.service';
+import { DashboardWidget, UserRole } from '../types/fhir-types';
+import { Basic } from '@medplum/fhirtypes';
 
 export interface DashboardConfiguration {
   id: string;
@@ -27,7 +27,7 @@ export interface DashboardLayout {
   providedIn: 'root'
 })
 export class DashboardConfigurationService {
-  
+
   private readonly defaultConfigurations: Record<UserRole, DashboardConfiguration> = {
     'admin': {
       id: 'admin-dashboard',
@@ -381,7 +381,7 @@ export class DashboardConfigurationService {
     }
   };
 
-  constructor(private medplumService: MedplumService) {}
+  constructor(private medplumService: MedplumService) { }
 
   /**
    * Get dashboard configuration for specific roles
@@ -407,7 +407,7 @@ export class DashboardConfigurationService {
   async getDefaultConfigurationForRoles(roles: UserRole[]): Promise<DashboardConfiguration> {
     // Use the highest priority role for configuration
     const priorityOrder: UserRole[] = ['admin', 'lab-manager', 'pathologist', 'billing-staff', 'lab-technician', 'provider', 'patient'];
-    
+
     for (const role of priorityOrder) {
       if (roles.includes(role)) {
         return this.defaultConfigurations[role];
@@ -424,7 +424,7 @@ export class DashboardConfigurationService {
   async saveConfiguration(userId: string, config: DashboardConfiguration): Promise<void> {
     try {
       // Save as a custom FHIR resource or extension
-      const configResource = {
+      const configResource: Basic = {
         resourceType: 'Basic',
         id: `dashboard-config-${userId}`,
         code: {
@@ -452,7 +452,7 @@ export class DashboardConfigurationService {
   /**
    * Load custom dashboard configuration from FHIR resources
    */
-  private async loadCustomConfiguration(roles: UserRole[]): Promise<DashboardConfiguration | null> {
+  private async loadCustomConfiguration(_roles: UserRole[]): Promise<DashboardConfiguration | null> {
     try {
       // Search for custom dashboard configurations
       const bundle = await this.medplumService.searchResources('Basic', {
@@ -460,7 +460,7 @@ export class DashboardConfigurationService {
       });
 
       if (bundle.entry && bundle.entry.length > 0) {
-        const configResource = bundle.entry[0].resource;
+        const configResource = bundle.entry[0].resource as Basic;
         const configExtension = configResource?.extension?.find(
           ext => ext.url === 'http://lims.local/dashboard/configuration'
         );
@@ -481,7 +481,7 @@ export class DashboardConfigurationService {
    */
   getAvailableWidgetTypes(roles: UserRole[]): string[] {
     const allWidgetTypes = new Set<string>();
-    
+
     roles.forEach(role => {
       const config = this.defaultConfigurations[role];
       if (config) {
@@ -536,9 +536,9 @@ export class DashboardConfigurationService {
    * Check if two widget positions overlap
    */
   private positionsOverlap(pos1: { x: number; y: number; width: number; height: number }, pos2: { x: number; y: number; width: number; height: number }): boolean {
-    return !(pos1.x + pos1.width <= pos2.x || 
-             pos2.x + pos2.width <= pos1.x || 
-             pos1.y + pos1.height <= pos2.y || 
-             pos2.y + pos2.height <= pos1.y);
+    return !(pos1.x + pos1.width <= pos2.x ||
+      pos2.x + pos2.width <= pos1.x ||
+      pos1.y + pos1.height <= pos2.y ||
+      pos2.y + pos2.height <= pos1.y);
   }
 }

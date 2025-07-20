@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subject } from 'rxjs';
-import { map, filter } from 'rxjs/operators';
-import { Specimen, AuditEvent, Task, Reference, CodeableConcept } from '../types/fhir-types';
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
+import { AuditEvent, CodeableConcept, Reference, Specimen, } from '../types/fhir-types';
+import { AuthService } from './auth.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { NotificationService } from './notification.service';
-import { AuthService } from './auth.service';
 
 export interface SpecimenLocation {
   id: string;
@@ -83,12 +83,12 @@ export class SpecimenTrackingService {
   private workflowStations$ = new BehaviorSubject<WorkflowStation[]>([]);
   private chainOfCustodyEvents$ = new Subject<ChainOfCustodyEvent>();
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService,
-    private authService: AuthService
-  ) {
+  private readonly medplumService = inject(MedplumService);
+  private readonly errorHandlingService = inject(ErrorHandlingService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly authService = inject(AuthService);
+
+  constructor() {
     this.initializeLocations();
     this.initializeWorkflowStations();
   }
@@ -136,20 +136,20 @@ export class SpecimenTrackingService {
    * Check in specimen at workflow station
    */
   async checkInSpecimen(
-    specimenId: string, 
-    stationId: string, 
+    specimenId: string,
+    stationId: string,
     qrCodeScanned: boolean = false,
     comments?: string
   ): Promise<void> {
     try {
       const specimen = await this.medplumService.readResource<Specimen>('Specimen', specimenId);
       const station = this.workflowStations$.value.find(s => s.id === stationId);
-      
+
       if (!station) {
         throw new Error(`Workflow station ${stationId} not found`);
       }
 
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -180,7 +180,7 @@ export class SpecimenTrackingService {
         timestamp: new Date(),
         toLocation: station.location.id,
         toStatus: 'available',
-        performedBy: { reference: `Practitioner/${currentUser.id}` },
+        performedBy: { reference: `Practitioner/${currentUser.practitioner.id}` },
         comments,
         qrCodeScanned
       };
@@ -202,11 +202,11 @@ export class SpecimenTrackingService {
         recorded: new Date().toISOString(),
         outcome: '0',
         agent: [{
-          who: { reference: `Practitioner/${currentUser.id}` },
+          who: { reference: `Practitioner/${currentUser.practitioner.id}` },
           requestor: true
         }],
         source: {
-          observer: { reference: `Organization/${currentUser.project}` },
+          observer: { reference: `Organization/${currentUser.projectMembership?.project}` },
           type: [{
             system: 'http://terminology.hl7.org/CodeSystem/security-source-type',
             code: '4',
@@ -254,7 +254,7 @@ export class SpecimenTrackingService {
    * Check out specimen from workflow station
    */
   async checkOutSpecimen(
-    specimenId: string, 
+    specimenId: string,
     fromStationId: string,
     toStationId?: string,
     comments?: string
@@ -263,12 +263,12 @@ export class SpecimenTrackingService {
       const specimen = await this.medplumService.readResource<Specimen>('Specimen', specimenId);
       const fromStation = this.workflowStations$.value.find(s => s.id === fromStationId);
       const toStation = toStationId ? this.workflowStations$.value.find(s => s.id === toStationId) : null;
-      
+
       if (!fromStation) {
         throw new Error(`Source workflow station ${fromStationId} not found`);
       }
 
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -278,7 +278,7 @@ export class SpecimenTrackingService {
         ...specimen,
         status: toStation ? 'available' : 'unavailable',
         extension: [
-          ...(specimen.extension || []).filter(ext => 
+          ...(specimen.extension || []).filter(ext =>
             ext.url !== 'http://lims.local/specimen-location'
           ),
           ...(toStation ? [{
@@ -303,7 +303,7 @@ export class SpecimenTrackingService {
         toLocation: toStation?.location.id || 'in-transit',
         fromStatus: 'available',
         toStatus: toStation ? 'available' : 'in-transit',
-        performedBy: { reference: `Practitioner/${currentUser.id}` },
+        performedBy: { reference: `Practitioner/${currentUser.practitioner.id}` },
         comments
       };
 
@@ -336,18 +336,18 @@ export class SpecimenTrackingService {
     try {
       const specimen = await this.medplumService.readResource<Specimen>('Specimen', specimenId);
       const location = this.locations$.value.find(l => l.id === locationId);
-      
+
       if (!location) {
         throw new Error(`Location ${locationId} not found`);
       }
 
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
 
       // Get current location from specimen
-      const currentLocationExt = specimen.extension?.find(ext => 
+      const currentLocationExt = specimen.extension?.find(ext =>
         ext.url === 'http://lims.local/specimen-location'
       );
       const currentLocation = currentLocationExt?.valueString;
@@ -355,9 +355,9 @@ export class SpecimenTrackingService {
       // Update specimen
       const updatedSpecimen: Specimen = {
         ...specimen,
-        status: status as any,
+        status: status as 'available' | 'unavailable' | 'unsatisfactory' | 'entered-in-error',
         extension: [
-          ...(specimen.extension || []).filter(ext => 
+          ...(specimen.extension || []).filter(ext =>
             ext.url !== 'http://lims.local/specimen-location'
           ),
           {
@@ -381,7 +381,7 @@ export class SpecimenTrackingService {
         fromLocation: currentLocation,
         toLocation: locationId,
         toStatus: status,
-        performedBy: { reference: `Practitioner/${currentUser.id}` },
+        performedBy: { reference: `Practitioner/${currentUser.practitioner.id}` },
         comments
       };
 
@@ -407,7 +407,7 @@ export class SpecimenTrackingService {
       });
 
       const trackingData: SpecimenTrackingData[] = [];
-      
+
       for (const specimen of specimens.entry || []) {
         if (specimen.resource) {
           const tracking = await this.buildTrackingData(specimen.resource);
@@ -551,11 +551,24 @@ export class SpecimenTrackingService {
    */
   private initializeWorkflowStations(): void {
     const locations = this.locations$.value;
+    const receptionLocation = locations.find(l => l.id === 'reception');
+    const processingLocation = locations.find(l => l.id === 'processing');
+    const chemistryLocation = locations.find(l => l.id === 'chemistry');
+    const hematologyLocation = locations.find(l => l.id === 'hematology');
+
+    if (!(receptionLocation && processingLocation && chemistryLocation && hematologyLocation)) {
+      this.errorHandlingService.handleError(
+        new Error('Default locations not found during workflow station initialization'),
+        'workflow-station-init'
+      );
+      return;
+    }
+
     const defaultStations: WorkflowStation[] = [
       {
         id: 'reception-desk',
         name: 'Reception Desk',
-        location: locations.find(l => l.id === 'reception')!,
+        location: receptionLocation,
         requiredRoles: ['lab-technician', 'reception-clerk'],
         equipment: ['barcode-scanner', 'label-printer'],
         procedures: [],
@@ -566,7 +579,7 @@ export class SpecimenTrackingService {
       {
         id: 'processing-station-1',
         name: 'Processing Station 1',
-        location: locations.find(l => l.id === 'processing')!,
+        location: processingLocation,
         requiredRoles: ['lab-technician'],
         equipment: ['centrifuge', 'pipettes', 'aliquot-tubes'],
         procedures: [],
@@ -577,7 +590,7 @@ export class SpecimenTrackingService {
       {
         id: 'chemistry-analyzer-1',
         name: 'Chemistry Analyzer 1',
-        location: locations.find(l => l.id === 'chemistry')!,
+        location: chemistryLocation,
         requiredRoles: ['lab-technician', 'chemist'],
         equipment: ['chemistry-analyzer', 'quality-controls'],
         procedures: [],
@@ -588,7 +601,7 @@ export class SpecimenTrackingService {
       {
         id: 'hematology-analyzer-1',
         name: 'Hematology Analyzer 1',
-        location: locations.find(l => l.id === 'hematology')!,
+        location: hematologyLocation,
         requiredRoles: ['lab-technician', 'hematologist'],
         equipment: ['hematology-analyzer', 'microscope'],
         procedures: [],
@@ -638,24 +651,29 @@ export class SpecimenTrackingService {
    */
   private async buildTrackingData(specimen: Specimen): Promise<SpecimenTrackingData> {
     // Get current location
-    const locationExt = specimen.extension?.find(ext => 
+    const locationExt = specimen.extension?.find(ext =>
       ext.url === 'http://lims.local/specimen-location'
     );
     const locationId = locationExt?.valueString;
-    const currentLocation = locationId ? 
-      this.locations$.value.find(l => l.id === locationId) : 
-      this.locations$.value[0]; // Default to first location
+    const currentLocation = locationId
+      ? this.locations$.value.find(l => l.id === locationId)
+      : this.locations$.value[0]; // Default to first location
+
+    if (!currentLocation) {
+      throw new Error(`Location not found for specimen ${specimen.id}`);
+    }
 
     // Get chain of custody events (would be loaded from audit events in real implementation)
     const chainOfCustody: ChainOfCustodyEvent[] = [];
 
-    // Determine priority from specimen
-    const priority = specimen.priority?.coding?.[0]?.code === 'urgent' ? 'urgent' : 
-                    specimen.priority?.coding?.[0]?.code === 'stat' ? 'stat' : 'routine';
+    // Determine priority from specimen (using extension or default to routine)
+    const priorityExt = specimen.extension?.find(ext => ext.url === 'http://lims.local/specimen-priority');
+    const priority = priorityExt?.valueString === 'urgent' ? 'urgent' :
+      priorityExt?.valueString === 'stat' ? 'stat' : 'routine';
 
     const trackingData: SpecimenTrackingData = {
       specimen,
-      currentLocation: currentLocation!,
+      currentLocation: currentLocation,
       currentStatus: {
         code: specimen.status || 'available',
         display: this.getStatusDisplay(specimen.status || 'available'),

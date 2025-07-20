@@ -1,21 +1,21 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
-import { PatientPortalComponent } from './patient-portal';
-import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
+import {
+  Appointment,
+  Bundle,
+  Communication,
+  DiagnosticReport,
+  Patient,
+} from '@medplum/fhirtypes';
+import { of, } from 'rxjs';
 import { MedplumService } from '../../medplum.service';
+import { AuditService } from '../../services/audit.service';
+import { AuthService } from '../../services/auth.service';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import { NotificationService } from '../../services/notification.service';
-import { AuditService } from '../../services/audit.service';
-import {
-  Patient,
-  DiagnosticReport,
-  Appointment,
-  Communication,
-  Bundle,
-} from '@medplum/fhirtypes';
 import { UserProfile } from '../../types/fhir-types';
+import { PatientPortalComponent } from './patient-portal';
 
 describe('PatientPortalComponent', () => {
   let component: PatientPortalComponent;
@@ -331,7 +331,7 @@ describe('PatientPortalComponent', () => {
     it('should handle errors gracefully', () => {
       const error = new Error('Test error');
 
-      component['handleError']('Test message', error);
+      component.handleError('Test message', error);
 
       expect(component.error).toBe('Test message');
       expect(mockErrorHandlingService.handleError).toHaveBeenCalled();

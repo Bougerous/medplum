@@ -1,6 +1,6 @@
-import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, DatePipe } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 interface ReportData {
   id: string;
@@ -409,7 +409,7 @@ export class Reports implements OnInit {
   }
 
   // Utility methods
-  trackByReportId(index: number, report: ReportData): string {
+  trackByReportId(_index: number, report: ReportData): string {
     return report.id;
   }
 }

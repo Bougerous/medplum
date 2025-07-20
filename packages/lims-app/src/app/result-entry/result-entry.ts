@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup, FormArray, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
 
 interface TestResult {
   specimenId: string;
@@ -25,7 +26,8 @@ interface TestParameter {
 
 @Component({
   selector: 'app-result-entry',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './result-entry.html',
   styleUrl: './result-entry.scss'
 })
@@ -301,7 +303,7 @@ export class ResultEntry implements OnInit {
   }
 
   // Utility methods
-  trackBySpecimenId(index: number, result: TestResult): string {
+  trackBySpecimenId(_index: number, result: TestResult): string {
     return result.specimenId;
   }
 

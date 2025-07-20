@@ -1,7 +1,9 @@
-import { Component, Input, Output, EventEmitter, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
-import { Subject, takeUntil } from 'rxjs';
+import { CommonModule } from '@angular/common';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import * as QRCode from 'qrcode';
-import { QRCodeData, SpecimenLabelData } from '../../types/fhir-types';
+import { Subject } from 'rxjs';
+import { QRCodeData } from '../../types/fhir-types';
 
 export interface QRCodeOptions {
   size: number;
@@ -13,7 +15,8 @@ export interface QRCodeOptions {
 
 @Component({
   selector: 'app-qr-code-generator',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   template: `
     <div class="qr-code-container">
       <div class="qr-code-display" *ngIf="qrCodeDataUrl">
@@ -121,16 +124,16 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
   @Input() specimenId: string = '';
   @Input() patientName: string = '';
   @Input() collectionDate: Date | string = '';
-  @Input() labelData: SpecimenLabelData | null = null;
+  @Input() labelData: any | null = null; // Changed to any as SpecimenLabelData is removed
   @Input() qrData: string | QRCodeData = '';
   @Input() showOptions: boolean = false;
   @Input() autoGenerate: boolean = true;
-  
+
   @Output() qrCodeGenerated = new EventEmitter<string>();
   @Output() labelPrinted = new EventEmitter<void>();
   @Output() qrCodeDownloaded = new EventEmitter<string>();
 
-  @ViewChild('qrCanvas', { static: false }) qrCanvas!: ElementRef<HTMLCanvasElement>;
+  // Removed ViewChild('qrCanvas', { static: false }) qrCanvas!: ElementRef<HTMLCanvasElement>;
 
   qrCodeDataUrl: string = '';
   isGenerating: boolean = false;
@@ -145,8 +148,6 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
   };
 
   private destroy$ = new Subject<void>();
-
-  constructor() {}
 
   ngOnInit(): void {
     if (this.autoGenerate && (this.qrData || this.specimenId)) {
@@ -163,7 +164,7 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
    * Generate QR code from provided data
    */
   async generateQRCode(): Promise<void> {
-    if (this.isGenerating) return;
+    if (this.isGenerating) { return; }
 
     const dataToEncode = this.getQRCodeData();
     if (!dataToEncode) {
@@ -188,7 +189,7 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
 
       this.qrCodeDataUrl = await QRCode.toDataURL(dataToEncode, qrOptions);
       this.qrCodeGenerated.emit(this.qrCodeDataUrl);
-      
+
     } catch (error) {
       console.error('Error generating QR code:', error);
       this.qrCodeDataUrl = '';
@@ -259,7 +260,7 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
     }
 
     const labelContent = this.generateLabelHTML();
-    
+
     printWindow.document.write(`
       <html>
         <head>
@@ -411,7 +412,7 @@ export class QrCodeGeneratorComponent implements OnInit, OnDestroy {
    * Get QR code as blob for further processing
    */
   async getQRCodeBlob(): Promise<Blob | null> {
-    if (!this.qrCodeDataUrl) return null;
+    if (!this.qrCodeDataUrl) { return null; }
 
     try {
       const response = await fetch(this.qrCodeDataUrl);

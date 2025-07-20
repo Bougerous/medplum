@@ -1,21 +1,12 @@
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
-import { catchError, retry, timeout } from 'rxjs/operators';
-import { throwError } from 'rxjs';
-import {
-  Claim,
-  ClaimResponse,
-  Patient,
-  Coverage,
-  Organization,
-  Practitioner,
-  Money
-} from '@medplum/fhirtypes';
+import { Claim, ClaimResponse, Coverage, Patient, Practitioner } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
+import { LIMSErrorType } from '../types/fhir-types';
+import { CurrencyService } from './currency.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { RetryService } from './retry.service';
-import { LIMSErrorType } from '../types/fhir-types';
 
 // Candid Health API interfaces
 export interface CandidHealthConfig {
@@ -227,7 +218,8 @@ export class CandidHealthService {
     private http: HttpClient,
     private medplumService: MedplumService,
     private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService
+    private retryService: RetryService,
+    private currencyService: CurrencyService
   ) {
     this.config = this.getDefaultConfig();
     this.initializeAuthentication();
@@ -365,7 +357,7 @@ export class CandidHealthService {
             errors.push(`Service line ${item.sequence}: Procedure code is required`);
           }
 
-          if (!item.servicedDate && !item.servicedPeriod) {
+          if (!(item.servicedDate || item.servicedPeriod)) {
             errors.push(`Service line ${item.sequence}: Service date is required`);
           }
 
@@ -390,7 +382,7 @@ export class CandidHealthService {
         errors,
         warnings
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         isValid: false,
         errors: ['Validation failed due to system error'],
@@ -404,8 +396,8 @@ export class CandidHealthService {
   private getDefaultConfig(): CandidHealthConfig {
     return {
       baseUrl: 'https://api.candidhealth.com/api',
-      clientId: process.env['CANDID_CLIENT_ID'] || '',
-      clientSecret: process.env['CANDID_CLIENT_SECRET'] || '',
+      clientId: process.env.CANDID_CLIENT_ID || '',
+      clientSecret: process.env.CANDID_CLIENT_SECRET || '',
       environment: 'sandbox',
       timeout: 30000,
       retryAttempts: 3
@@ -603,10 +595,7 @@ export class CandidHealthService {
             code: 'complete'
           }]
         },
-        amount: {
-          value: candidResponse.payment_info.amount_cents / 100,
-          currency: 'USD'
-        },
+        amount: this.currencyService.createINRMoney(candidResponse.payment_info.amount_cents / 100),
         date: candidResponse.payment_info.payment_date
       } : undefined
     };
@@ -634,10 +623,7 @@ export class CandidHealthService {
               code: 'complete'
             }]
           },
-          amount: {
-            value: candidResponse.payment_info.amount_cents / 100,
-            currency: 'USD'
-          },
+          amount: this.currencyService.createINRMoney(candidResponse.payment_info.amount_cents / 100),
           date: candidResponse.payment_info.payment_date
         } : undefined
       };

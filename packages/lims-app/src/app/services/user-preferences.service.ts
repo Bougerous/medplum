@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { UserRole } from '../types/fhir-types';
+import { Basic } from '@medplum/fhirtypes';
 
 export interface UserPreferences {
   userId: string;
@@ -13,13 +13,13 @@ export interface UserPreferences {
 }
 
 export interface DashboardPreferences {
-  layout?: any;
+  layout?: Record<string, unknown>;
   hiddenWidgets?: string[];
-  widgetConfigurations?: { [widgetId: string]: any };
+  widgetConfigurations?: { [widgetId: string]: Record<string, unknown> };
   refreshInterval?: number;
   compactMode?: boolean;
   theme?: string;
-  customizations?: any;
+  customizations?: Record<string, unknown>;
 }
 
 export interface UIPreferences {
@@ -64,29 +64,30 @@ export class UserPreferencesService {
   private preferencesCache = new Map<string, UserPreferences>();
   private preferencesSubject = new BehaviorSubject<UserPreferences | null>(null);
 
-  constructor(private medplumService: MedplumService) {}
+  constructor(private medplumService: MedplumService) { }
 
   /**
    * Get user preferences
    */
   async getUserPreferences(userId: string): Promise<UserPreferences> {
     // Check cache first
-    if (this.preferencesCache.has(userId)) {
-      return this.preferencesCache.get(userId)!;
+    const cachedPreferences = this.preferencesCache.get(userId);
+    if (cachedPreferences) {
+      return cachedPreferences;
     }
 
     try {
       // Load from FHIR resources
       const preferences = await this.loadPreferencesFromFHIR(userId);
-      
+
       // Cache the preferences
       this.preferencesCache.set(userId, preferences);
       this.preferencesSubject.next(preferences);
-      
+
       return preferences;
     } catch (error) {
       console.error('Failed to load user preferences:', error);
-      
+
       // Return default preferences
       const defaultPreferences = this.getDefaultPreferences(userId);
       this.preferencesCache.set(userId, defaultPreferences);
@@ -97,15 +98,15 @@ export class UserPreferencesService {
   /**
    * Save user preferences
    */
-  async saveUserPreferences(
-    userId: string, 
-    category: keyof UserPreferences, 
-    preferences: any
+  async saveUserPreferences<T extends keyof UserPreferences>(
+    userId: string,
+    category: T,
+    preferences: UserPreferences[T]
   ): Promise<void> {
     try {
       // Get current preferences
       const currentPreferences = await this.getUserPreferences(userId);
-      
+
       // Update specific category
       const updatedPreferences: UserPreferences = {
         ...currentPreferences,
@@ -115,11 +116,11 @@ export class UserPreferencesService {
 
       // Save to FHIR
       await this.savePreferencesToFHIR(userId, updatedPreferences);
-      
+
       // Update cache
       this.preferencesCache.set(userId, updatedPreferences);
       this.preferencesSubject.next(updatedPreferences);
-      
+
     } catch (error) {
       console.error('Failed to save user preferences:', error);
       throw error;
@@ -139,7 +140,7 @@ export class UserPreferencesService {
           [category]: undefined,
           lastUpdated: new Date().toISOString()
         };
-        
+
         await this.savePreferencesToFHIR(userId, updatedPreferences);
         this.preferencesCache.set(userId, updatedPreferences);
         this.preferencesSubject.next(updatedPreferences);
@@ -169,22 +170,22 @@ export class UserPreferencesService {
    * Update dashboard widget configuration
    */
   async updateWidgetConfiguration(
-    userId: string, 
-    widgetId: string, 
-    configuration: any
+    userId: string,
+    widgetId: string,
+    configuration: Record<string, unknown>
   ): Promise<void> {
     const preferences = await this.getUserPreferences(userId);
-    
+
     if (!preferences.dashboard) {
       preferences.dashboard = {};
     }
-    
+
     if (!preferences.dashboard.widgetConfigurations) {
       preferences.dashboard.widgetConfigurations = {};
     }
-    
+
     preferences.dashboard.widgetConfigurations[widgetId] = configuration;
-    
+
     await this.saveUserPreferences(userId, 'dashboard', preferences.dashboard);
   }
 
@@ -193,24 +194,24 @@ export class UserPreferencesService {
    */
   async toggleWidgetVisibility(userId: string, widgetId: string): Promise<void> {
     const preferences = await this.getUserPreferences(userId);
-    
+
     if (!preferences.dashboard) {
       preferences.dashboard = {};
     }
-    
+
     if (!preferences.dashboard.hiddenWidgets) {
       preferences.dashboard.hiddenWidgets = [];
     }
-    
+
     const hiddenWidgets = preferences.dashboard.hiddenWidgets;
     const index = hiddenWidgets.indexOf(widgetId);
-    
+
     if (index > -1) {
       hiddenWidgets.splice(index, 1);
     } else {
       hiddenWidgets.push(widgetId);
     }
-    
+
     await this.saveUserPreferences(userId, 'dashboard', preferences.dashboard);
   }
 
@@ -219,13 +220,13 @@ export class UserPreferencesService {
    */
   async updateTheme(userId: string, theme: 'light' | 'dark' | 'auto'): Promise<void> {
     const preferences = await this.getUserPreferences(userId);
-    
+
     if (!preferences.ui) {
       preferences.ui = {};
     }
-    
+
     preferences.ui.theme = theme;
-    
+
     await this.saveUserPreferences(userId, 'ui', preferences.ui);
   }
 
@@ -233,7 +234,7 @@ export class UserPreferencesService {
    * Update notification preferences
    */
   async updateNotificationPreferences(
-    userId: string, 
+    userId: string,
     notifications: NotificationPreferences
   ): Promise<void> {
     await this.saveUserPreferences(userId, 'notifications', notifications);
@@ -243,7 +244,7 @@ export class UserPreferencesService {
    * Update accessibility preferences
    */
   async updateAccessibilityPreferences(
-    userId: string, 
+    userId: string,
     accessibility: AccessibilityPreferences
   ): Promise<void> {
     await this.saveUserPreferences(userId, 'accessibility', accessibility);
@@ -260,7 +261,7 @@ export class UserPreferencesService {
       });
 
       if (bundle.entry && bundle.entry.length > 0) {
-        const preferencesResource = bundle.entry[0].resource;
+        const preferencesResource = bundle.entry[0].resource as Basic;
         const preferencesExtension = preferencesResource?.extension?.find(
           ext => ext.url === 'http://lims.local/preferences/data'
         );
@@ -285,7 +286,7 @@ export class UserPreferencesService {
    */
   private async savePreferencesToFHIR(userId: string, preferences: UserPreferences): Promise<void> {
     try {
-      const preferencesResource = {
+      const preferencesResource: Basic = {
         resourceType: 'Basic',
         id: `user-preferences-${userId}`,
         code: {
@@ -378,7 +379,7 @@ export class UserPreferencesService {
       const preferences = JSON.parse(preferencesJson);
       preferences.userId = userId;
       preferences.lastUpdated = new Date().toISOString();
-      
+
       await this.savePreferencesToFHIR(userId, preferences);
       this.preferencesCache.set(userId, preferences);
       this.preferencesSubject.next(preferences);

@@ -1,14 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
 import { 
-  ServiceRequest, 
-  Patient, 
-  Specimen,
   Questionnaire,
   QuestionnaireResponse,
-  CodeableConcept,
-  Reference
+  ServiceRequest, 
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from './error-handling.service';
 
@@ -347,7 +343,7 @@ export class TestOrderingService {
       test.name.toLowerCase().includes(searchTerm) ||
       test.code.toLowerCase().includes(searchTerm) ||
       test.description.toLowerCase().includes(searchTerm) ||
-      (test.loincCode && test.loincCode.toLowerCase().includes(searchTerm))
+      (test.loincCode?.toLowerCase().includes(searchTerm))
     );
   }
 
@@ -458,7 +454,7 @@ export class TestOrderingService {
    */
   getAskOnOrderEntryQuestionnaire(testId: string): AskOnOrderEntryData | null {
     const test = this.getTestById(testId);
-    if (!test || !test.askOnOrderEntry) {
+    if (!(test?.askOnOrderEntry)) {
       return null;
     }
 
@@ -498,7 +494,7 @@ export class TestOrderingService {
    * Get estimated turnaround time for test combination
    */
   getEstimatedTurnaroundTime(selectedTests: LabTest[]): number {
-    if (selectedTests.length === 0) return 0;
+    if (selectedTests.length === 0) { return 0; }
     return Math.max(...selectedTests.map(test => test.turnaroundTime || 24));
   }
 

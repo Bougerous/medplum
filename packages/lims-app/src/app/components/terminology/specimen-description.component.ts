@@ -1,27 +1,27 @@
+import { CommonModule } from '@angular/common';
 import {
   Component,
-  Input,
-  Output,
   EventEmitter,
-  OnInit,
+  Input,
   OnDestroy,
+  OnInit,
+  Output,
 } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CodeableConcept } from '@medplum/fhirtypes';
+import { Subject } from 'rxjs';
 import {
-  takeUntil,
   debounceTime,
   distinctUntilChanged,
   switchMap,
+  takeUntil,
 } from 'rxjs/operators';
-import { CodeableConcept } from '@medplum/fhirtypes';
 import {
-  TerminologyService,
-  SpecimenConcept,
   SnomedConcept,
-  ValidationResult,
+  SpecimenConcept,
   TerminologySearchParams,
+  TerminologyService,
+  ValidationResult,
 } from '../../services/terminology.service';
 
 export interface SpecimenDescription {
@@ -496,7 +496,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
 
   // Search methods
   private async searchSpecimenTypes(query: string): Promise<SpecimenConcept[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) { return []; }
 
     try {
       const specimens = await this.terminologyService.getSpecimenConcepts();
@@ -512,7 +512,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   private async searchAnatomicalSites(query: string): Promise<SnomedConcept[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) { return []; }
 
     try {
       const params: TerminologySearchParams = {
@@ -528,7 +528,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   private async searchMorphology(query: string): Promise<SnomedConcept[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) { return []; }
 
     try {
       const params: TerminologySearchParams = {
@@ -544,7 +544,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   private async searchProcedures(query: string): Promise<SnomedConcept[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) { return []; }
 
     try {
       const params: TerminologySearchParams = {
@@ -560,7 +560,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   private async searchDescriptors(query: string): Promise<SnomedConcept[]> {
-    if (!query || query.length < 2) return [];
+    if (!query || query.length < 2) { return []; }
 
     try {
       const params: TerminologySearchParams = {
@@ -643,7 +643,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   private emitDescription(): void {
-    if (!this.selectedSpecimenType) return;
+    if (!this.selectedSpecimenType) { return; }
 
     const codeableConcepts: CodeableConcept[] = [];
 
@@ -731,7 +731,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
           errors.push(...validation.errors);
         }
         warnings.push(...validation.warnings);
-      } catch (error) {
+      } catch (_error) {
         errors.push('Failed to validate specimen type');
       }
     }
@@ -750,7 +750,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   getGeneratedDescription(): string {
-    if (!this.selectedSpecimenType) return '';
+    if (!this.selectedSpecimenType) { return ''; }
 
     let description = this.selectedSpecimenType.display;
 
@@ -799,7 +799,7 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
   }
 
   getCurrentDescription(): SpecimenDescription | null {
-    if (!this.hasValidDescription()) return null;
+    if (!this.hasValidDescription()) { return null; }
 
     const codeableConcepts: CodeableConcept[] = [];
 

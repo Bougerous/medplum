@@ -1,24 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { Subject, Observable } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-
-import { 
-  LabelPrintingService, 
-  LabelTemplate, 
-  LabelElement, 
-  PrintJob, 
+import { Component, inject, OnDestroy, OnInit, } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, Subject } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
+import { ErrorHandlingService } from '../../services/error-handling.service';
+import {
+  LabelElement,
+  LabelInventory, 
+  LabelPrintingService,
+  LabelTemplate,
   PrinterInfo,
-  LabelInventory
+  PrintJob
 } from '../../services/label-printing.service';
 import { NotificationService } from '../../services/notification.service';
-import { ErrorHandlingService } from '../../services/error-handling.service';
 
 @Component({
   selector: 'app-label-management',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="label-management-container">
       <!-- Header -->
@@ -429,13 +428,17 @@ import { ErrorHandlingService } from '../../services/error-handling.service';
   styleUrls: ['./label-management.component.scss']
 })
 export class LabelManagementComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly destroy$ = new Subject<void>();
+  private readonly fb = inject(FormBuilder);
+  private readonly labelPrintingService = inject(LabelPrintingService);
+  private readonly notificationService = inject(NotificationService);
+  private readonly errorHandlingService = inject(ErrorHandlingService);
 
   // Observables
-  templates$: Observable<LabelTemplate[]>;
-  printJobs$: Observable<PrintJob[]>;
-  printers$: Observable<PrinterInfo[]>;
-  inventoryItems$: Observable<LabelInventory[]>;
+  templates$!: Observable<LabelTemplate[]>;
+  printJobs$!: Observable<PrintJob[]>;
+  printers$!: Observable<PrinterInfo[]>;
+  inventoryItems$!: Observable<LabelInventory[]>;
 
   // UI State
   activeTab: 'templates' | 'print-jobs' | 'inventory' | 'printers' = 'templates';
@@ -450,21 +453,13 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
   // Constants
   private readonly CANVAS_SCALE = 3; // Scale factor for design canvas
 
-  constructor(
-    private fb: FormBuilder,
-    private labelPrintingService: LabelPrintingService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  ngOnInit(): void {
     this.templates$ = this.labelPrintingService.getTemplates();
     this.printJobs$ = this.labelPrintingService.getPrintJobs();
     this.printers$ = this.labelPrintingService.getPrinters();
     this.inventoryItems$ = this.labelPrintingService.getInventory().pipe(
       map(inventoryMap => Array.from(inventoryMap.values()))
     );
-  }
-
-  ngOnInit(): void {
     this.setupPrintJobUpdates();
   }
 
@@ -520,8 +515,8 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
         name: `${template.name} (Copy)`,
         id: undefined as any
       };
-      delete duplicated.id;
-      
+      duplicated.id = undefined;
+
       await this.labelPrintingService.createTemplate(duplicated);
       this.notificationService.showSuccess('Template Duplicated', 'Template has been duplicated successfully');
     } catch (error) {
@@ -609,7 +604,7 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
         await this.labelPrintingService.createTemplate(templateData);
         this.notificationService.showSuccess('Template Created', 'Template has been created successfully');
       }
-      
+
       this.closeTemplateEditor();
     } catch (error) {
       this.errorHandlingService.handleError(error, 'template-save');
@@ -684,11 +679,11 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
 
   // Inventory management
   isLowStock(item: LabelInventory): boolean {
-    return item.estimatedRemaining !== undefined && 
-           item.estimatedRemaining < item.lowStockThreshold;
+    return item.estimatedRemaining !== undefined &&
+      item.estimatedRemaining < item.lowStockThreshold;
   }
 
-  reorderLabels(templateId: string): void {
+  reorderLabels(_templateId: string): void {
     // Implementation for reordering labels
     this.notificationService.showInfo('Reorder', 'Reorder functionality would be implemented here');
   }
@@ -699,7 +694,7 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
   }
 
   // Printer management
-  testPrinter(printerId: string): void {
+  testPrinter(_printerId: string): void {
     // Implementation for testing printer
     this.notificationService.showInfo('Test Print', 'Test print sent to printer');
   }
@@ -724,30 +719,30 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
     return template.dimensions.height * 2; // Scale for preview
   }
 
-  getElementX(element: LabelElement, template: LabelTemplate): number {
+  getElementX(element: LabelElement, _template: LabelTemplate): number {
     return element.position.x * 2; // Scale for preview
   }
 
-  getElementY(element: LabelElement, template: LabelTemplate): number {
+  getElementY(element: LabelElement, _template: LabelTemplate): number {
     return element.position.y * 2; // Scale for preview
   }
 
-  getElementWidth(element: LabelElement, template: LabelTemplate): number {
+  getElementWidth(element: LabelElement, _template: LabelTemplate): number {
     return element.size.width * 2; // Scale for preview
   }
 
-  getElementHeight(element: LabelElement, template: LabelTemplate): number {
+  getElementHeight(element: LabelElement, _template: LabelTemplate): number {
     return element.size.height * 2; // Scale for preview
   }
 
   // Design canvas calculations
   getCanvasWidth(): number {
-    if (!this.templateForm) return 300;
+    if (!this.templateForm) { return 300; }
     return (this.templateForm.get('width')?.value || 50) * this.CANVAS_SCALE;
   }
 
   getCanvasHeight(): number {
-    if (!this.templateForm) return 150;
+    if (!this.templateForm) { return 150; }
     return (this.templateForm.get('height')?.value || 25) * this.CANVAS_SCALE;
   }
 
@@ -765,5 +760,16 @@ export class LabelManagementComponent implements OnInit, OnDestroy {
 
   getDesignElementHeight(element: LabelElement): number {
     return element.size.height * this.CANVAS_SCALE;
+  }
+
+  // Methods referenced in template
+  viewPrintJobs(): void {
+    // Implementation for viewing print jobs
+    console.log('Viewing print jobs');
+  }
+
+  viewInventory(): void {
+    // Implementation for viewing inventory
+    console.log('Viewing inventory');
   }
 }

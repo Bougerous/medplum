@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
 import { 
-  Resource, 
   Bundle, 
-  Subscription, 
-  Patient,
-  Specimen,
-  ServiceRequest,
   DiagnosticReport,
   Observation,
-  Practitioner
+  Patient,
+  Practitioner, 
+  Resource, 
+  ServiceRequest,
+  Specimen,
+  Subscription 
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 
 // Temporary mock environment for development
 const environment = {
@@ -24,9 +24,9 @@ const environment = {
   retryDelay: 1000
 };
 
-import { SearchParams } from './types/fhir-types';
 import { ErrorHandlingService } from './services/error-handling.service';
 import { RetryService } from './services/retry.service';
+import { SearchParams } from './types/fhir-types';
 
 // Mock interfaces for development - will be replaced with actual Medplum imports
 interface MockMedplumClient {
@@ -119,7 +119,7 @@ export class MedplumService {
         return [];
       },
 
-      async signInWithPassword(email: string, password: string, options?: any): Promise<any> {
+      async signInWithPassword(email: string, _password: string, options?: any): Promise<any> {
         console.log('Mock signInWithPassword called with:', email, options);
         return { login: email };
       },
@@ -412,7 +412,7 @@ export class MedplumService {
         this.currentUser$.next(profile);
         this.isAuthenticated$.next(true);
       }
-    } catch (error) {
+    } catch (_error) {
       // User is not authenticated, which is fine
       this.handleUnauthenticated();
     }

@@ -1,8 +1,8 @@
-import { Directive, Input, OnInit, OnDestroy, ElementRef, Renderer2 } from '@angular/core';
-import { AbstractControl, NG_VALIDATORS, Validator, ValidationErrors } from '@angular/forms';
+import { Directive, ElementRef, Input, OnDestroy, OnInit, Renderer2 } from '@angular/core';
+import { AbstractControl, NG_VALIDATORS, ValidationErrors, Validator } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { takeUntil, debounceTime, switchMap } from 'rxjs/operators';
-import { TerminologyService, ValidationResult, SNOMED_CT_SYSTEM } from '../services/terminology.service';
+import { debounceTime, switchMap, takeUntil } from 'rxjs/operators';
+import { SNOMED_CT_SYSTEM, TerminologyService, ValidationResult } from '../services/terminology.service';
 
 @Directive({
   selector: '[appTerminologyValidator]',
@@ -68,7 +68,7 @@ export class TerminologyValidatorDirective implements Validator, OnInit, OnDestr
           return await this.terminologyService.validateSpecimenCode(code, this.terminologySystem);
         case 'diagnosis':
           return await this.terminologyService.validateDiagnosisCode(code, this.terminologySystem);
-        default:
+        default: {
           // For 'any' or 'procedure', use general concept lookup
           const concept = await this.terminologyService.lookupConcept(code, this.terminologySystem);
           return {
@@ -77,6 +77,7 @@ export class TerminologyValidatorDirective implements Validator, OnInit, OnDestr
             errors: concept ? [] : [`Code ${code} not found in ${this.terminologySystem}`],
             warnings: []
           };
+        }
       }
     } catch (error) {
       return {
@@ -88,7 +89,7 @@ export class TerminologyValidatorDirective implements Validator, OnInit, OnDestr
   }
 
   private updateElementAppearance(result: ValidationResult): void {
-    if (!this.showValidationMessages) return;
+    if (!this.showValidationMessages) { return; }
 
     const element = this.elementRef.nativeElement;
     
@@ -101,7 +102,7 @@ export class TerminologyValidatorDirective implements Validator, OnInit, OnDestr
     const existingMessages = element.parentNode?.querySelectorAll('.terminology-validation-message');
     existingMessages?.forEach((msg: Element) => msg.remove());
 
-    if (!result) return;
+    if (!result) { return; }
 
     // Add appropriate class
     if (result.isValid) {

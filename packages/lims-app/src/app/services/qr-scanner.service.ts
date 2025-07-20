@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subject } from 'rxjs';
+import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { QRCodeData } from '../types/fhir-types';
-import { SpecimenService } from './specimen.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { NotificationService } from './notification.service';
-import { Html5Qrcode, Html5QrcodeScannerState, Html5QrcodeScanner } from 'html5-qrcode';
+import { SpecimenService } from './specimen.service';
 
 export interface ScanResult {
   data: string;
@@ -51,7 +51,7 @@ export class QrScannerService {
     private specimenService: SpecimenService,
     private errorHandlingService: ErrorHandlingService,
     private notificationService: NotificationService
-  ) {}
+  ) { }
 
   /**
    * Get scanning status observable
@@ -98,7 +98,7 @@ export class QrScannerService {
 
       // Select camera based on facing mode preference
       const cameraId = this.selectCamera(finalConfig.facingMode);
-      
+
       if (!cameraId) {
         throw new Error('No suitable camera found');
       }
@@ -129,7 +129,7 @@ export class QrScannerService {
 
     } catch (error) {
       this.errorHandlingService.handleError(error, 'qr-scanner-start');
-      throw new Error('Failed to start camera: ' + (error as Error).message);
+      throw new Error(`Failed to start camera: ${(error as Error).message}`);
     }
   }
 
@@ -185,7 +185,7 @@ export class QrScannerService {
 
     } catch (error) {
       this.errorHandlingService.handleError(error, 'qr-scanner-ui-start');
-      throw new Error('Failed to start scanner UI: ' + (error as Error).message);
+      throw new Error(`Failed to start scanner UI: ${(error as Error).message}`);
     }
   }
 
@@ -220,18 +220,18 @@ export class QrScannerService {
   async scanFromFile(file: File): Promise<ScanResult> {
     try {
       // Create a temporary Html5Qrcode instance for file scanning
-      const tempElementId = 'temp-qr-scanner-' + Date.now();
+      const tempElementId = `temp-qr-scanner-${Date.now()}`;
       const tempElement = document.createElement('div');
       tempElement.id = tempElementId;
       tempElement.style.display = 'none';
       document.body.appendChild(tempElement);
 
       const html5QrCode = new Html5Qrcode(tempElementId);
-      
+
       try {
         const decodedText = await html5QrCode.scanFile(file, true);
         const validation = this.validateQRData(decodedText);
-        
+
         const scanResult: ScanResult = {
           data: decodedText,
           timestamp: new Date(),
@@ -253,9 +253,9 @@ export class QrScannerService {
         data: '',
         timestamp: new Date(),
         isValid: false,
-        error: 'Failed to scan QR code from file: ' + (error as Error).message
+        error: `Failed to scan QR code from file: ${(error as Error).message}`
       };
-      
+
       this.scanResults$.next(scanResult);
       return scanResult;
     }
@@ -270,7 +270,7 @@ export class QrScannerService {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const file = new File([blob], 'qr-image', { type: blob.type });
-      
+
       return await this.scanFromFile(file);
 
     } catch (error) {
@@ -278,9 +278,9 @@ export class QrScannerService {
         data: '',
         timestamp: new Date(),
         isValid: false,
-        error: 'Failed to scan QR code from URL: ' + (error as Error).message
+        error: `Failed to scan QR code from URL: ${(error as Error).message}`
       };
-      
+
       this.scanResults$.next(scanResult);
       return scanResult;
     }
@@ -293,14 +293,14 @@ export class QrScannerService {
     try {
       // Try to parse as JSON first (structured data)
       const parsed = JSON.parse(data);
-      
+
       if (this.isValidQRCodeData(parsed)) {
         return {
           isValid: true,
           parsedData: parsed as QRCodeData
         };
       }
-      
+
       // If not valid structured data, check if it's a specimen URL
       if (data.includes('/specimen/') || data.match(/^SP\d+/)) {
         return {
@@ -320,7 +320,7 @@ export class QrScannerService {
         error: 'QR code does not contain valid specimen data'
       };
 
-    } catch (error) {
+    } catch (_error) {
       // Not JSON, check if it's a simple specimen identifier or URL
       if (data.match(/^SP\d+/) || data.includes('/specimen/')) {
         return {
@@ -346,21 +346,21 @@ export class QrScannerService {
    * Process scanned specimen data
    */
   async processScannedSpecimen(scanResult: ScanResult): Promise<void> {
-    if (!scanResult.isValid || !scanResult.parsedData) {
+    if (!(scanResult.isValid && scanResult.parsedData)) {
       this.notificationService.showError('Invalid QR Code', 'The scanned QR code does not contain valid specimen data.');
       return;
     }
 
     try {
       const specimenId = scanResult.parsedData.specimenId || scanResult.parsedData.accessionNumber;
-      
+
       if (!specimenId) {
         throw new Error('No specimen identifier found in QR code');
       }
 
       // Look up specimen by accession number
       const specimen = await this.specimenService.getSpecimenByAccessionNumber(specimenId);
-      
+
       if (!specimen) {
         this.notificationService.showWarning(
           'Specimen Not Found',
@@ -399,13 +399,13 @@ export class QrScannerService {
     try {
       const permissions = await navigator.permissions.query({ name: 'camera' as PermissionName });
       return permissions.state === 'granted';
-    } catch (error) {
+    } catch (_error) {
       // Fallback: try to access camera directly
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
         stream.getTracks().forEach(track => track.stop());
         return true;
-      } catch (cameraError) {
+      } catch (_cameraError) {
         return false;
       }
     }
@@ -428,7 +428,7 @@ export class QrScannerService {
    * Switch to a different camera
    */
   async switchCamera(cameraId: string): Promise<void> {
-    if (!this.html5QrCode || !this.isScanning$.value) {
+    if (!(this.html5QrCode && this.isScanning$.value)) {
       throw new Error('Scanner is not currently running');
     }
 
@@ -455,7 +455,7 @@ export class QrScannerService {
 
     } catch (error) {
       this.errorHandlingService.handleError(error, 'camera-switch');
-      throw new Error('Failed to switch camera: ' + (error as Error).message);
+      throw new Error(`Failed to switch camera: ${(error as Error).message}`);
     }
   }
 
@@ -508,19 +508,19 @@ export class QrScannerService {
 
     // Try to find camera based on label hints
     if (facingMode === 'environment') {
-      const backCamera = this.availableCameras.find(camera => 
-        camera.label.toLowerCase().includes('back') || 
+      const backCamera = this.availableCameras.find(camera =>
+        camera.label.toLowerCase().includes('back') ||
         camera.label.toLowerCase().includes('rear') ||
         camera.label.toLowerCase().includes('environment')
       );
-      if (backCamera) return backCamera.id;
+      if (backCamera) { return backCamera.id; }
     } else {
-      const frontCamera = this.availableCameras.find(camera => 
-        camera.label.toLowerCase().includes('front') || 
+      const frontCamera = this.availableCameras.find(camera =>
+        camera.label.toLowerCase().includes('front') ||
         camera.label.toLowerCase().includes('user') ||
         camera.label.toLowerCase().includes('facing')
       );
-      if (frontCamera) return frontCamera.id;
+      if (frontCamera) { return frontCamera.id; }
     }
 
     // Fallback to first available camera
@@ -530,9 +530,9 @@ export class QrScannerService {
   /**
    * Handle successful QR code scan
    */
-  private handleScanSuccess(decodedText: string, decodedResult: any): void {
+  private handleScanSuccess(decodedText: string, _decodedResult: any): void {
     const validation = this.validateQRData(decodedText);
-    
+
     const scanResult: ScanResult = {
       data: decodedText,
       timestamp: new Date(),
@@ -556,8 +556,8 @@ export class QrScannerService {
     return (
       typeof data === 'object' &&
       data !== null &&
-      (data.specimenId || data.accessionNumber) &&
-      typeof (data.specimenId || data.accessionNumber) === 'string'
+      ((data as any).specimenId || (data as any).accessionNumber) &&
+      typeof ((data as any).specimenId || (data as any).accessionNumber) === 'string'
     );
   }
 
@@ -566,7 +566,7 @@ export class QrScannerService {
    */
   private extractSpecimenId(data: string): string {
     // Extract from URL like /specimen/SP20240101001
-    const urlMatch = data.match(/\/specimen\/([^\/\?]+)/);
+    const urlMatch = data.match(/\/specimen\/([^/?]+)/);
     if (urlMatch) {
       return urlMatch[1];
     }
@@ -586,7 +586,7 @@ export class QrScannerService {
    */
   processBarcodeInput(barcodeData: string): ScanResult {
     const validation = this.validateQRData(barcodeData);
-    
+
     const scanResult: ScanResult = {
       data: barcodeData,
       timestamp: new Date(),
@@ -626,7 +626,7 @@ export class QrScannerService {
 
     // Try to recover URL patterns
     if (partialData.includes('specimen') || partialData.includes('/')) {
-      const pathMatch = partialData.match(/specimen[\/]?([A-Za-z0-9]+)/);
+      const pathMatch = partialData.match(/specimen[/]?([A-Za-z0-9]+)/);
       if (pathMatch) {
         suggestions.push(pathMatch[1]);
         canRecover = true;
@@ -650,9 +650,9 @@ export class QrScannerService {
       if (typeof parsed === 'object' && parsed !== null) {
         formatType = 'json';
         isValidFormat = true;
-        
+
         // Validate required fields for specimen QR codes
-        if (!parsed.specimenId && !parsed.accessionNumber) {
+        if (!(parsed.specimenId || parsed.accessionNumber)) {
           errors.push('Missing specimen identifier');
           isValidFormat = false;
         }
@@ -665,7 +665,7 @@ export class QrScannerService {
     if (data.startsWith('http') || data.includes('/specimen/')) {
       formatType = 'url';
       isValidFormat = true;
-      
+
       if (!data.includes('/specimen/')) {
         errors.push('URL does not contain specimen path');
         isValidFormat = false;

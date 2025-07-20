@@ -1,16 +1,15 @@
 import { TestBed } from '@angular/core/testing';
-import { BotService } from './bot.service';
-import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
 import {
-  Task,
+  DiagnosticReport,
   QuestionnaireResponse,
   ServiceRequest,
-  DiagnosticReport,
-  Patient,
-  Specimen
+  Specimen, 
+  Task
 } from '@medplum/fhirtypes';
+import { MedplumService } from '../medplum.service';
 import { LIMSErrorType } from '../types/fhir-types';
+import { BotService } from './bot.service';
+import { ErrorHandlingService } from './error-handling.service';
 
 describe('BotService', () => {
   let service: BotService;
@@ -138,7 +137,7 @@ describe('BotService', () => {
       try {
         await service.triggerPatientRegistrationBot(mockQuestionnaireResponse);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,
@@ -194,7 +193,7 @@ describe('BotService', () => {
       try {
         await service.triggerOrderSplittingBot(mockServiceRequest);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,
@@ -265,7 +264,7 @@ describe('BotService', () => {
       try {
         await service.triggerBillingBot(mockDiagnosticReport);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,
@@ -311,7 +310,7 @@ describe('BotService', () => {
       try {
         await service.triggerReportValidationBot(mockDiagnosticReport);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,
@@ -376,7 +375,7 @@ describe('BotService', () => {
       try {
         await service.triggerSpecimenProcessingBot(mockSpecimen, 'histopathology');
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,
@@ -416,7 +415,7 @@ describe('BotService', () => {
       try {
         await service.getBotTaskStatus('nonexistent-task');
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalled();
       }
     });
@@ -461,7 +460,7 @@ describe('BotService', () => {
 
       expect(task.restriction?.period?.end).toBeTruthy();
       
-      const endTime = new Date(task.restriction!.period!.end!);
+      const endTime = new Date(task.restriction?.period?.end!);
       const now = new Date();
       const timeDiff = endTime.getTime() - now.getTime();
       

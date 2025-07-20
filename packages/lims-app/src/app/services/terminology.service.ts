@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, of, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
-import { CodeableConcept, Coding, ValueSet, ConceptMap } from '@medplum/fhirtypes';
-import { MedplumService } from '../medplum.service';
+import { CodeableConcept, ValueSet } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { ErrorHandlingService } from './error-handling.service';
-import { RetryService } from './retry.service';
 
 // SNOMED CT System URI
 export const SNOMED_CT_SYSTEM = 'http://snomed.info/sct';
@@ -186,9 +183,7 @@ export class TerminologyService {
   ];
 
   constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService
+    private errorHandlingService: ErrorHandlingService
   ) {
     this.initializeService();
   }
@@ -196,17 +191,17 @@ export class TerminologyService {
   private async initializeService(): Promise<void> {
     try {
       // Pre-populate cache with common concepts
-      this.COMMON_SPECIMEN_CONCEPTS.forEach(concept => {
+      for (const concept of this.COMMON_SPECIMEN_CONCEPTS) {
         this.conceptCache.set(concept.code, concept);
-      });
+      }
 
-      this.COMMON_DIAGNOSIS_CONCEPTS.forEach(concept => {
+      for (const concept of this.COMMON_DIAGNOSIS_CONCEPTS) {
         this.conceptCache.set(concept.code, concept);
-      });
+      }
 
-      this.GRADING_CONCEPTS.forEach(concept => {
+      for (const concept of this.GRADING_CONCEPTS) {
         this.conceptCache.set(concept.code, concept);
-      });
+      }
 
       this.isInitialized$.next(true);
     } catch (error) {
@@ -220,8 +215,9 @@ export class TerminologyService {
     try {
       // Check cache first
       const cacheKey = `${system}|${code}`;
-      if (this.conceptCache.has(cacheKey)) {
-        return this.conceptCache.get(cacheKey)!;
+      const cachedConcept = this.conceptCache.get(cacheKey);
+      if (cachedConcept) {
+        return cachedConcept;
       }
 
       // For now, return mock data - in production this would call Medplum's terminology service
@@ -246,7 +242,9 @@ export class TerminologyService {
 
       // Search in cached concepts
       for (const concept of this.conceptCache.values()) {
-        if (results.length >= maxResults) break;
+        if (results.length >= maxResults) {
+          break;
+        }
 
         if (concept.display.toLowerCase().includes(query) ||
             concept.code.includes(query) ||
@@ -412,7 +410,7 @@ export class TerminologyService {
 
     const primaryCoding = codeableConcept.coding[0];
     
-    if (!primaryCoding.code || !primaryCoding.system) {
+    if (!(primaryCoding.code && primaryCoding.system)) {
       return {
         isValid: false,
         errors: ['Primary coding must have both code and system'],
@@ -424,7 +422,7 @@ export class TerminologyService {
   }
 
   // Utility methods
-  private getMockConcept(code: string, system: string): SnomedConcept | null {
+  private getMockConcept(code: string, _system: string): SnomedConcept | null {
     // This would be replaced with actual Medplum terminology service calls
     const mockConcepts: { [key: string]: SnomedConcept } = {
       '119376003': {
@@ -444,8 +442,10 @@ export class TerminologyService {
     return mockConcepts[code] || null;
   }
 
-  private matchesFilter(concept: SnomedConcept, filter?: any): boolean {
-    if (!filter) return true;
+  private matchesFilter(concept: SnomedConcept, filter?: { category?: string; domain?: string }): boolean {
+    if (!filter) {
+      return true;
+    }
 
     // Apply category filter for diagnosis concepts
     if (filter.category && 'category' in concept) {
@@ -484,7 +484,9 @@ export class TerminologyService {
       if (concept.code.includes(code.substring(0, 3)) || 
           concept.display.toLowerCase().includes(code.toLowerCase())) {
         results.push(concept);
-        if (results.length >= 5) break;
+        if (results.length >= 5) {
+          break;
+        }
       }
     }
     

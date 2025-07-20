@@ -1,14 +1,14 @@
 import { TestBed } from '@angular/core/testing';
-import { TerminologyService, SNOMED_CT_SYSTEM } from './terminology.service';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { RetryService } from './retry.service';
+import { SNOMED_CT_SYSTEM, TerminologyService } from './terminology.service';
 
 describe('TerminologyService', () => {
   let service: TerminologyService;
-  let mockMedplumService: jasmine.SpyObj<MedplumService>;
-  let mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
-  let mockRetryService: jasmine.SpyObj<RetryService>;
+  let _mockMedplumService: jasmine.SpyObj<MedplumService>;
+  let _mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
+  let _mockRetryService: jasmine.SpyObj<RetryService>;
 
   beforeEach(() => {
     const medplumSpy = jasmine.createSpyObj('MedplumService', ['searchResources', 'createResource']);
@@ -25,9 +25,9 @@ describe('TerminologyService', () => {
     });
 
     service = TestBed.inject(TerminologyService);
-    mockMedplumService = TestBed.inject(MedplumService) as jasmine.SpyObj<MedplumService>;
-    mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
-    mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
+    _mockMedplumService = TestBed.inject(MedplumService) as jasmine.SpyObj<MedplumService>;
+    _mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
+    _mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
   });
 
   it('should be created', () => {
@@ -153,10 +153,10 @@ describe('TerminologyService', () => {
       const result = service.createCodeableConcept('119376003', 'Tissue specimen', SNOMED_CT_SYSTEM);
       
       expect(result.coding).toBeTruthy();
-      expect(result.coding!.length).toBe(1);
-      expect(result.coding![0].system).toBe(SNOMED_CT_SYSTEM);
-      expect(result.coding![0].code).toBe('119376003');
-      expect(result.coding![0].display).toBe('Tissue specimen');
+      expect(result.coding?.length).toBe(1);
+      expect(result.coding?.[0].system).toBe(SNOMED_CT_SYSTEM);
+      expect(result.coding?.[0].code).toBe('119376003');
+      expect(result.coding?.[0].display).toBe('Tissue specimen');
       expect(result.text).toBe('Tissue specimen');
     });
   });
@@ -173,9 +173,9 @@ describe('TerminologyService', () => {
       const result = service.createSpecimenCodeableConcept(specimenConcept);
       
       expect(result.coding).toBeTruthy();
-      expect(result.coding!.length).toBe(1);
-      expect(result.coding![0].code).toBe('119376003');
-      expect(result.coding![0].display).toBe('Tissue specimen');
+      expect(result.coding?.length).toBe(1);
+      expect(result.coding?.[0].code).toBe('119376003');
+      expect(result.coding?.[0].display).toBe('Tissue specimen');
     });
   });
 

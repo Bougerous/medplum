@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent, merge } from 'rxjs';
+import { Injectable, OnDestroy } from '@angular/core';
+import { BehaviorSubject, fromEvent, merge, Observable } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
-import { AuthService } from './auth.service';
 import { AuditService } from './audit.service';
+import { AuthService } from './auth.service';
 import { NotificationService } from './notification.service';
 
 export interface SessionInfo {
@@ -16,7 +16,7 @@ export interface SessionInfo {
 @Injectable({
   providedIn: 'root'
 })
-export class SessionService {
+export class SessionService implements OnDestroy {
   private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
   private readonly WARNING_TIME_MS = 5 * 60 * 1000; // 5 minutes before timeout
   private readonly ACTIVITY_DEBOUNCE_MS = 1000; // 1 second

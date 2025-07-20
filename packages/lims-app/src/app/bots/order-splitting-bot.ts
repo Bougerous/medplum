@@ -1,13 +1,9 @@
 import { MedplumClient } from '@medplum/core';
-import { 
-  ServiceRequest, 
-  Specimen, 
-  Task,
+import {
   CodeableConcept,
-  Reference,
-  Identifier,
-  Bundle,
-  Observation
+  ServiceRequest,
+  Specimen,
+  Task
 } from '@medplum/fhirtypes';
 
 /**
@@ -24,10 +20,10 @@ import {
  */
 export async function handler(medplum: MedplumClient, event: any): Promise<any> {
   console.log('Order Splitting Bot triggered', { eventType: event.type, resourceId: event.resource?.id });
-  
+
   try {
     const serviceRequest = event.input as ServiceRequest;
-    
+
     if (!serviceRequest) {
       throw new Error('No ServiceRequest provided in event input');
     }
@@ -45,7 +41,7 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
 
     // Analyze splitting requirements
     const splitRequirements = await analyzeSplitRequirements(medplum, serviceRequest);
-    
+
     if (splitRequirements.length <= 1) {
       console.log('No splitting required for service request', { serviceRequestId: serviceRequest.id });
       return {
@@ -56,9 +52,9 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
       };
     }
 
-    console.log('Splitting required', { 
-      serviceRequestId: serviceRequest.id, 
-      splitCount: splitRequirements.length 
+    console.log('Splitting required', {
+      serviceRequestId: serviceRequest.id,
+      splitCount: splitRequirements.length
     });
 
     // Create specimens for each requirement
@@ -67,12 +63,12 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
 
     for (let i = 0; i < splitRequirements.length; i++) {
       const requirement = splitRequirements[i];
-      
+
       // Create specimen
       const specimen = await createSpecimenForRequirement(
-        medplum, 
-        serviceRequest, 
-        requirement, 
+        medplum,
+        serviceRequest,
+        requirement,
         i + 1
       );
       createdSpecimens.push(specimen);
@@ -138,7 +134,7 @@ async function validateServiceRequest(serviceRequest: ServiceRequest): Promise<{
   }
 
   // Check for required specimen information
-  if (!serviceRequest.specimen && !serviceRequest.bodySite) {
+  if (!(serviceRequest.specimen || serviceRequest.bodySite)) {
     errors.push('ServiceRequest must specify specimen type or body site');
   }
 
@@ -152,17 +148,17 @@ async function validateServiceRequest(serviceRequest: ServiceRequest): Promise<{
  * Analyze service request to determine splitting requirements
  */
 async function analyzeSplitRequirements(
-  medplum: MedplumClient, 
+  medplum: MedplumClient,
   serviceRequest: ServiceRequest
 ): Promise<SplitRequirement[]> {
   const requirements: SplitRequirement[] = [];
 
   // Get test codes from service request
   const testCodes = extractTestCodes(serviceRequest);
-  
+
   // Group tests by specimen requirements
   const specimenGroups = await groupTestsBySpecimenType(medplum, testCodes);
-  
+
   for (const group of specimenGroups) {
     const requirement: SplitRequirement = {
       specimenType: group.specimenType,
@@ -176,7 +172,7 @@ async function analyzeSplitRequirements(
       storageRequirements: group.storageRequirements,
       transportRequirements: group.transportRequirements
     };
-    
+
     requirements.push(requirement);
   }
 
@@ -188,12 +184,12 @@ async function analyzeSplitRequirements(
  */
 function extractTestCodes(serviceRequest: ServiceRequest): CodeableConcept[] {
   const codes: CodeableConcept[] = [];
-  
+
   // Primary code
   if (serviceRequest.code) {
     codes.push(serviceRequest.code);
   }
-  
+
   // Additional codes from orderDetail
   if (serviceRequest.orderDetail) {
     codes.push(...serviceRequest.orderDetail);
@@ -206,20 +202,20 @@ function extractTestCodes(serviceRequest: ServiceRequest): CodeableConcept[] {
  * Group tests by specimen type requirements
  */
 async function groupTestsBySpecimenType(
-  medplum: MedplumClient, 
+  medplum: MedplumClient,
   testCodes: CodeableConcept[]
 ): Promise<SpecimenGroup[]> {
   const groups: SpecimenGroup[] = [];
-  
+
   for (const testCode of testCodes) {
     // Look up test requirements (this would typically come from a test catalog)
     const requirements = await getTestRequirements(medplum, testCode);
-    
+
     // Find existing group with matching requirements
-    let existingGroup = groups.find(g => 
+    const existingGroup = groups.find(g =>
       specimenRequirementsMatch(g, requirements)
     );
-    
+
     if (existingGroup) {
       existingGroup.testCodes.push(testCode);
     } else {
@@ -236,7 +232,7 @@ async function groupTestsBySpecimenType(
       });
     }
   }
-  
+
   return groups;
 }
 
@@ -244,15 +240,15 @@ async function groupTestsBySpecimenType(
  * Get test requirements from catalog (mock implementation)
  */
 async function getTestRequirements(
-  medplum: MedplumClient, 
+  _medplum: MedplumClient,
   testCode: CodeableConcept
 ): Promise<TestRequirements> {
   // In a real implementation, this would query a test catalog
   // For now, we'll use some basic rules based on common test types
-  
+
   const code = testCode.coding?.[0]?.code || testCode.text || '';
   const display = testCode.coding?.[0]?.display || testCode.text || '';
-  
+
   // Basic hematology tests
   if (code.includes('CBC') || display.toLowerCase().includes('complete blood count')) {
     return {
@@ -284,7 +280,7 @@ async function getTestRequirements(
       transportRequirements: 'Standard transport'
     };
   }
-  
+
   // Chemistry tests
   if (code.includes('CHEM') || display.toLowerCase().includes('chemistry')) {
     return {
@@ -316,7 +312,7 @@ async function getTestRequirements(
       transportRequirements: 'Standard transport'
     };
   }
-  
+
   // Microbiology cultures
   if (code.includes('CULTURE') || display.toLowerCase().includes('culture')) {
     return {
@@ -348,7 +344,7 @@ async function getTestRequirements(
       transportRequirements: 'Sterile transport medium'
     };
   }
-  
+
   // Default requirements
   return {
     specimenType: {
@@ -402,7 +398,7 @@ async function createSpecimenForRequirement(
 ): Promise<Specimen> {
   // Generate unique accession identifier
   const accessionId = generateAccessionId(serviceRequest, sequenceNumber);
-  
+
   const specimen: Specimen = {
     resourceType: 'Specimen',
     identifier: [{
@@ -424,7 +420,7 @@ async function createSpecimenForRequirement(
     collection: {
       collectedDateTime: new Date().toISOString(),
       method: requirement.collectionMethod,
-      bodySite: serviceRequest.bodySite,
+      bodySite: serviceRequest.bodySite?.[0],
       quantity: requirement.volume
     },
     container: [{
@@ -459,7 +455,7 @@ async function createWorkflowTasks(
   requirement: SplitRequirement
 ): Promise<Task[]> {
   const tasks: Task[] = [];
-  
+
   // Collection task
   const collectionTask: Task = {
     resourceType: 'Task',
@@ -485,10 +481,10 @@ async function createWorkflowTasks(
       }
     }
   };
-  
+
   const createdCollectionTask = await medplum.createResource(collectionTask);
   tasks.push(createdCollectionTask);
-  
+
   // Processing task
   const processingTask: Task = {
     resourceType: 'Task',
@@ -508,14 +504,14 @@ async function createWorkflowTasks(
       reference: `Specimen/${specimen.id}`
     },
     authoredOn: new Date().toISOString(),
-    partOf: {
+    partOf: [{
       reference: `Task/${createdCollectionTask.id}`
-    }
+    }]
   };
-  
+
   const createdProcessingTask = await medplum.createResource(processingTask);
   tasks.push(createdProcessingTask);
-  
+
   return tasks;
 }
 
@@ -553,7 +549,7 @@ async function assignTaskPriorities(
 ): Promise<void> {
   // Determine overall priority from service request
   const basePriority = serviceRequest.priority || 'routine';
-  
+
   // Update tasks with appropriate priorities
   for (const task of tasks) {
     if (task.code?.coding?.[0]?.code === 'specimen-collection') {
@@ -575,7 +571,7 @@ function generateAccessionId(serviceRequest: ServiceRequest, sequenceNumber: num
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = date.getTime().toString().slice(-6);
   const serviceRequestId = serviceRequest.id?.slice(-4) || '0000';
-  
+
   return `${dateStr}-${serviceRequestId}-${sequenceNumber.toString().padStart(2, '0')}-${timeStr}`;
 }
 
@@ -584,25 +580,25 @@ function generateAccessionId(serviceRequest: ServiceRequest, sequenceNumber: num
  */
 function determinePriority(testCodes: CodeableConcept[]): 'routine' | 'urgent' | 'asap' | 'stat' {
   // Check for stat tests
-  const hasStatTest = testCodes.some(code => 
+  const hasStatTest = testCodes.some(code =>
     code.text?.toLowerCase().includes('stat') ||
     code.coding?.some(c => c.display?.toLowerCase().includes('stat'))
   );
-  
+
   if (hasStatTest) {
     return 'stat';
   }
-  
+
   // Check for urgent tests
   const hasUrgentTest = testCodes.some(code =>
     code.text?.toLowerCase().includes('urgent') ||
     code.coding?.some(c => c.display?.toLowerCase().includes('urgent'))
   );
-  
+
   if (hasUrgentTest) {
     return 'urgent';
   }
-  
+
   return 'routine';
 }
 

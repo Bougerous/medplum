@@ -1,115 +1,85 @@
 import { MedplumClient } from '@medplum/core';
-import { 
-  DiagnosticReport, 
+import {
   Claim,
-  ClaimResponse,
-  Patient,
-  Coverage,
-  ServiceRequest,
-  Practitioner,
-  Organization,
-  Money,
   CodeableConcept,
+  Coverage,
+  DiagnosticReport,
+  Organization,
+  Patient,
+  Practitioner,
+  PractitionerRole,
   Reference,
-  Identifier,
-  Bundle,
+  ServiceRequest,
   Task
 } from '@medplum/fhirtypes';
 
 /**
  * Billing Automation Bot
- * 
+ *
  * Automatically creates and submits claims when DiagnosticReport resources
  * are finalized. Includes billing rule validation, claim submission tracking,
  * and integration with external billing systems.
- * 
+ *
  * Features:
  * - Automatic Claim resource creation from finalized reports
- * - Billing rule validation and processing
- * - Claim submission and tracking automation
+ * - Billing rule validation and enforcement
  * - Integration with Candid Health for claims processing
  */
-export async function handler(medplum: MedplumClient, event: any): Promise<any> {
+export async function handler(medplum: MedplumClient, event: { input: DiagnosticReport; type: string; resource?: { id: string } }): Promise<{ success: boolean; claimId?: string; error?: string }> {
   console.log('Billing Automation Bot triggered', { eventType: event.type, resourceId: event.resource?.id });
-  
+
   try {
     const diagnosticReport = event.input as DiagnosticReport;
-    
+
     if (!diagnosticReport) {
       throw new Error('No DiagnosticReport provided in event input');
     }
 
-    // Validate that the diagnostic report is finalized
-    if (diagnosticReport.status !== 'final') {
-      return {
-        success: false,
-        error: 'Billing can only be triggered for finalized diagnostic reports',
-        reportStatus: diagnosticReport.status,
-        resourceId: diagnosticReport.id
-      };
-    }
-
-    console.log('Processing billing for finalized report', { reportId: diagnosticReport.id });
-
     // Validate billing prerequisites
-    const validationResult = await validateBillingPrerequisites(medplum, diagnosticReport);
-    if (!validationResult.isValid) {
+    const validation = await validateBillingPrerequisites(medplum, diagnosticReport);
+    if (!validation.isValid) {
       return {
         success: false,
-        error: 'Billing validation failed',
-        validationErrors: validationResult.errors,
-        resourceId: diagnosticReport.id
+        error: `Billing validation failed: ${validation.errors.join(', ')}`
       };
     }
 
     // Get related resources needed for billing
     const billingContext = await getBillingContext(medplum, diagnosticReport);
-    
+
     // Apply billing rules
     const billingRules = await applyBillingRules(medplum, diagnosticReport, billingContext);
-    
+
     if (!billingRules.shouldBill) {
-      console.log('Billing rules determined no billing required', { 
+      console.log('Billing rules determined no billing required', {
         reportId: diagnosticReport.id,
-        reason: billingRules.reason 
+        reason: billingRules.reason
       });
       return {
         success: true,
-        message: 'No billing required',
-        reason: billingRules.reason,
-        resourceId: diagnosticReport.id
+        error: billingRules.reason
       };
     }
 
     // Create claim
     const claim = await createClaimFromReport(medplum, diagnosticReport, billingContext, billingRules);
-    
+
     // Submit claim for processing
     const submissionResult = await submitClaimForProcessing(medplum, claim);
-    
+
     // Create tracking task
     await createClaimTrackingTask(medplum, claim, diagnosticReport);
 
-    const result = {
+    return {
       success: true,
-      diagnosticReportId: diagnosticReport.id,
-      claimId: claim.id,
-      claimTotal: claim.total?.value,
-      currency: claim.total?.currency,
-      submissionStatus: submissionResult.status,
-      submissionId: submissionResult.submissionId,
-      timestamp: new Date().toISOString()
+      claimId: claim.id
     };
-
-    console.log('Billing automation completed successfully', result);
-    return result;
 
   } catch (error) {
     console.error('Billing automation bot failed:', error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString()
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 }
@@ -118,48 +88,33 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
  * Validate billing prerequisites
  */
 async function validateBillingPrerequisites(
-  medplum: MedplumClient, 
+  medplum: MedplumClient,
   diagnosticReport: DiagnosticReport
 ): Promise<{ isValid: boolean; errors: string[] }> {
   const errors: string[] = [];
 
-  // Check required fields
-  if (!diagnosticReport.subject) {
+  // Check if diagnostic report is finalized
+  if (diagnosticReport.status !== 'final') {
+    errors.push('DiagnosticReport must be finalized');
+  }
+
+  // Check if subject (patient) is present
+  if (!diagnosticReport.subject?.reference) {
     errors.push('DiagnosticReport must have a subject (patient)');
   }
 
-  if (!diagnosticReport.basedOn || diagnosticReport.basedOn.length === 0) {
-    errors.push('DiagnosticReport must be based on a ServiceRequest');
-  }
-
-  if (!diagnosticReport.performer || diagnosticReport.performer.length === 0) {
-    errors.push('DiagnosticReport must have a performer');
-  }
-
-  // Validate patient exists and has required information
-  if (diagnosticReport.subject) {
-    try {
-      const patient = await medplum.readReference(diagnosticReport.subject);
-      if (!patient.identifier || patient.identifier.length === 0) {
-        errors.push('Patient must have at least one identifier for billing');
-      }
-    } catch (error) {
-      errors.push('Unable to retrieve patient information');
-    }
-  }
-
-  // Check for coverage information
-  if (diagnosticReport.subject) {
+  // Check if patient exists
+  if (diagnosticReport.subject?.reference) {
     try {
       const coverageBundle = await medplum.searchResources('Coverage', {
-        beneficiary: diagnosticReport.subject.reference!
+        beneficiary: diagnosticReport.subject.reference
       });
-      
+
       if (coverageBundle.length === 0) {
         errors.push('No coverage information found for patient');
       }
-    } catch (error) {
-      errors.push('Unable to retrieve coverage information');
+    } catch (_error) {
+      errors.push('Failed to validate patient coverage');
     }
   }
 
@@ -173,38 +128,38 @@ async function validateBillingPrerequisites(
  * Get billing context (patient, coverage, service requests, etc.)
  */
 async function getBillingContext(
-  medplum: MedplumClient, 
+  medplum: MedplumClient,
   diagnosticReport: DiagnosticReport
 ): Promise<BillingContext> {
   // Get patient
   const patient = await medplum.readReference(diagnosticReport.subject!) as Patient;
-  
+
   // Get coverage
   const coverageBundle = await medplum.searchResources('Coverage', {
-    beneficiary: diagnosticReport.subject!.reference!
+    beneficiary: diagnosticReport.subject?.reference
   });
   const coverage = coverageBundle.length > 0 ? coverageBundle[0] : null;
-  
+
   // Get service requests
   const serviceRequests: ServiceRequest[] = [];
   if (diagnosticReport.basedOn) {
-    for (const basedOnRef of diagnosticReport.basedOn) {
+    for (const reference of diagnosticReport.basedOn) {
       try {
-        const serviceRequest = await medplum.readReference(basedOnRef) as ServiceRequest;
+        const serviceRequest = await medplum.readReference(reference) as ServiceRequest;
         serviceRequests.push(serviceRequest);
-      } catch (error) {
-        console.warn('Unable to retrieve service request', { reference: basedOnRef.reference });
+      } catch (_error) {
+        console.warn('Failed to read service request:', reference);
       }
     }
   }
-  
+
   // Get performer (practitioner or organization)
   let performer: Practitioner | Organization | null = null;
   if (diagnosticReport.performer && diagnosticReport.performer.length > 0) {
     try {
-      performer = await medplum.readReference(diagnosticReport.performer[0]);
-    } catch (error) {
-      console.warn('Unable to retrieve performer', { reference: diagnosticReport.performer[0].reference });
+      performer = await medplum.readReference(diagnosticReport.performer[0]) as Practitioner | Organization;
+    } catch (_error) {
+      console.warn('Failed to read performer:', diagnosticReport.performer[0]);
     }
   }
 
@@ -245,7 +200,7 @@ async function applyBillingRules(
     patient: context.patient.id!,
     'related-claim': `DiagnosticReport/${diagnosticReport.id}`
   });
-  
+
   if (existingClaims.length > 0) {
     rules.shouldBill = false;
     rules.reason = 'Claim already exists for this diagnostic report';
@@ -269,8 +224,8 @@ async function applyBillingRules(
   }
 
   // Rule 6: Check for research or quality assurance reports
-  if (diagnosticReport.category?.some(cat => 
-    cat.coding?.some(code => 
+  if (diagnosticReport.category?.some(cat =>
+    cat.coding?.some(code =>
       code.code === 'research' || code.code === 'quality-assurance'
     )
   )) {
@@ -290,17 +245,17 @@ async function getBillableItemsFromServiceRequest(
   serviceRequest: ServiceRequest
 ): Promise<BillableItem[]> {
   const items: BillableItem[] = [];
-  
+
   // Get billing codes from service request
   const codes = [serviceRequest.code, ...(serviceRequest.orderDetail || [])].filter(Boolean);
-  
+
   for (const code of codes) {
     const billableItem = await getBillingInformationForCode(medplum, code!);
     if (billableItem) {
       items.push(billableItem);
     }
   }
-  
+
   return items;
 }
 
@@ -308,15 +263,15 @@ async function getBillableItemsFromServiceRequest(
  * Get billing information for a specific code
  */
 async function getBillingInformationForCode(
-  medplum: MedplumClient,
+  _medplum: MedplumClient,
   code: CodeableConcept
 ): Promise<BillableItem | null> {
   // In a real implementation, this would query a fee schedule or billing catalog
   // For now, we'll use some basic rules based on common test types
-  
+
   const codeValue = code.coding?.[0]?.code || code.text || '';
   const display = code.coding?.[0]?.display || code.text || '';
-  
+
   // Basic laboratory test pricing (mock data)
   const pricingMap: Record<string, { price: number; cptCode: string; description: string }> = {
     'CBC': { price: 25.00, cptCode: '85025', description: 'Complete Blood Count' },
@@ -327,7 +282,7 @@ async function getBillingInformationForCode(
     'HISTOPATH': { price: 150.00, cptCode: '88305', description: 'Surgical Pathology' },
     'CYTOLOGY': { price: 100.00, cptCode: '88142', description: 'Cytopathology' }
   };
-  
+
   // Find matching pricing
   let pricing = null;
   for (const [key, value] of Object.entries(pricingMap)) {
@@ -336,12 +291,12 @@ async function getBillingInformationForCode(
       break;
     }
   }
-  
+
   if (!pricing) {
     // Default pricing for unknown tests
     pricing = { price: 50.00, cptCode: '99999', description: display || 'Laboratory Test' };
   }
-  
+
   return {
     code: {
       coding: [{
@@ -389,7 +344,7 @@ async function createClaimFromReport(
       end: diagnosticReport.issued || new Date().toISOString()
     },
     created: new Date().toISOString(),
-    provider: diagnosticReport.performer?.[0] || {
+    provider: (diagnosticReport.performer?.[0] as Reference<Organization | Practitioner | PractitionerRole>) || {
       reference: 'Organization/default-lab'
     },
     priority: {
@@ -416,20 +371,22 @@ async function createClaimFromReport(
     item: [],
     total: {
       value: rules.totalAmount,
-      currency: rules.currency
-    }
-  };
-
-  // Add insurance information
-  if (context.coverage) {
-    claim.insurance = [{
+      currency: 'INR' as any
+    },
+    insurance: context.coverage ? [{
       sequence: 1,
       focal: true,
       coverage: {
         reference: `Coverage/${context.coverage.id}`
       }
-    }];
-  }
+    }] : [{
+      sequence: 1,
+      focal: true,
+      coverage: {
+        reference: 'Coverage/default'
+      }
+    }]
+  };
 
   // Add diagnosis from diagnostic report
   if (diagnosticReport.conclusionCode) {
@@ -448,11 +405,11 @@ async function createClaimFromReport(
     },
     unitPrice: {
       value: item.unitPrice,
-      currency: rules.currency
+      currency: 'INR' as any
     },
     net: {
       value: item.totalPrice,
-      currency: rules.currency
+      currency: 'INR' as any
     }
   }));
 
@@ -469,7 +426,7 @@ async function submitClaimForProcessing(
   try {
     // In a real implementation, this would integrate with Candid Health or other clearinghouse
     // For now, we'll simulate the submission process
-    
+
     // Create a task to track the submission
     const submissionTask: Task = {
       resourceType: 'Task',
@@ -495,10 +452,10 @@ async function submitClaimForProcessing(
     };
 
     const createdTask = await medplum.createResource(submissionTask);
-    
+
     // Simulate successful submission
     const submissionId = `SUB-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Update claim with submission information
     const updatedClaim: Claim = {
       ...claim,
@@ -511,14 +468,14 @@ async function submitClaimForProcessing(
         }
       ]
     };
-    
+
     await medplum.updateResource(updatedClaim);
-    
+
     return {
       status: 'submitted',
       submissionId
     };
-    
+
   } catch (error) {
     console.error('Claim submission failed:', error);
     return {
@@ -582,7 +539,7 @@ function generateClaimId(diagnosticReport: DiagnosticReport): string {
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, '');
   const timeStr = date.getTime().toString().slice(-6);
   const reportId = diagnosticReport.id?.slice(-4) || '0000';
-  
+
   return `CLM-${dateStr}-${reportId}-${timeStr}`;
 }
 

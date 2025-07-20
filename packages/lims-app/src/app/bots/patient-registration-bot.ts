@@ -1,16 +1,13 @@
 import { MedplumClient } from '@medplum/core';
-import { 
-  QuestionnaireResponse, 
-  Patient, 
-  Coverage, 
-  Consent,
-  Bundle,
-  Identifier,
-  HumanName,
-  ContactPoint,
+import {
   Address,
-  CodeableConcept,
-  Reference
+  Consent,
+  ContactPoint,
+  Coverage,
+  HumanName,
+  Identifier,
+  Patient,
+  QuestionnaireResponse
 } from '@medplum/fhirtypes';
 
 /**
@@ -22,32 +19,36 @@ import {
  * - Consent resources for treatment authorization
  * 
  * Includes duplicate patient prevention and merging capabilities.
+ * 
+ * @param medplum - The Medplum client instance
+ * @param event - The event object containing the questionnaire response
+ * @returns Promise containing the registration result
  */
 export async function handler(medplum: MedplumClient, event: any): Promise<any> {
   console.log('Patient Registration Bot triggered', { eventType: event.type, resourceId: event.resource?.id });
-  
+
   try {
     const questionnaireResponse = event.input as QuestionnaireResponse;
-    
+
     if (!questionnaireResponse) {
       throw new Error('No QuestionnaireResponse provided in event input');
     }
 
     // Validate questionnaire response
     if (questionnaireResponse.status !== 'completed') {
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: 'QuestionnaireResponse must be completed',
-        resourceId: questionnaireResponse.id 
+        resourceId: questionnaireResponse.id
       };
     }
 
     // Extract patient information from questionnaire response
     const patientData = extractPatientData(questionnaireResponse);
-    
+
     // Check for existing patients to prevent duplicates
     const existingPatient = await findExistingPatient(medplum, patientData);
-    
+
     let patient: Patient;
     if (existingPatient) {
       console.log('Found existing patient, updating', { patientId: existingPatient.id });
@@ -88,8 +89,8 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
 
   } catch (error) {
     console.error('Patient registration bot failed:', error);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     };
@@ -98,6 +99,9 @@ export async function handler(medplum: MedplumClient, event: any): Promise<any> 
 
 /**
  * Extract patient data from questionnaire response
+ * 
+ * @param response - The questionnaire response to extract data from
+ * @returns Partial Patient object with extracted data
  */
 function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
   const items = response.item || [];
@@ -106,15 +110,39 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
   };
 
   // Extract basic demographics
+  extractBasicDemographics(items, patientData);
+
+  // Extract identifiers
+  extractIdentifiers(items, patientData);
+
+  // Extract contact information
+  extractContactInfo(items, patientData);
+
+  // Extract address
+  extractAddress(items, patientData);
+
+  // Extract emergency contact
+  extractEmergencyContact(items, patientData);
+
+  return patientData;
+}
+
+/**
+ * Extract basic demographic information
+ * 
+ * @param items - The questionnaire response items to extract from
+ * @param patientData - The patient data object to populate
+ */
+function extractBasicDemographics(items: any[], patientData: Partial<Patient>): void {
   const firstName = findAnswerValue(items, 'firstName');
   const lastName = findAnswerValue(items, 'lastName');
   const middleName = findAnswerValue(items, 'middleName');
-  
+
   if (firstName || lastName) {
     const name: HumanName = {
       use: 'official',
       family: lastName,
-      given: [firstName, middleName].filter(Boolean)
+      given: [firstName, middleName].filter((name): name is string => Boolean(name))
     };
     patientData.name = [name];
   }
@@ -130,12 +158,20 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
   if (gender) {
     patientData.gender = gender.toLowerCase() as 'male' | 'female' | 'other' | 'unknown';
   }
+}
 
-  // Extract identifiers (SSN, MRN, etc.)
+/**
+ * Extract patient identifiers
+ * 
+ * @param items - The questionnaire response items to extract from
+ * @param patientData - The patient data object to populate
+ */
+function extractIdentifiers(items: any[], patientData: Partial<Patient>): void {
   const ssn = findAnswerValue(items, 'ssn');
   const mrn = findAnswerValue(items, 'mrn');
-  
+
   const identifiers: Identifier[] = [];
+
   if (ssn) {
     identifiers.push({
       use: 'official',
@@ -150,7 +186,7 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
       value: ssn
     });
   }
-  
+
   if (mrn) {
     identifiers.push({
       use: 'usual',
@@ -165,16 +201,24 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
       value: mrn
     });
   }
-  
+
   if (identifiers.length > 0) {
     patientData.identifier = identifiers;
   }
+}
 
-  // Extract contact information
+/**
+ * Extract contact information
+ * 
+ * @param items - The questionnaire response items to extract from
+ * @param patientData - The patient data object to populate
+ */
+function extractContactInfo(items: any[], patientData: Partial<Patient>): void {
   const phone = findAnswerValue(items, 'phone');
   const email = findAnswerValue(items, 'email');
-  
+
   const telecom: ContactPoint[] = [];
+
   if (phone) {
     telecom.push({
       system: 'phone',
@@ -182,7 +226,7 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
       use: 'home'
     });
   }
-  
+
   if (email) {
     telecom.push({
       system: 'email',
@@ -190,17 +234,24 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
       use: 'home'
     });
   }
-  
+
   if (telecom.length > 0) {
     patientData.telecom = telecom;
   }
+}
 
-  // Extract address
+/**
+ * Extract address information
+ * 
+ * @param items - The questionnaire response items to extract from
+ * @param patientData - The patient data object to populate
+ */
+function extractAddress(items: any[], patientData: Partial<Patient>): void {
   const street = findAnswerValue(items, 'street');
   const city = findAnswerValue(items, 'city');
   const state = findAnswerValue(items, 'state');
   const zipCode = findAnswerValue(items, 'zipCode');
-  
+
   if (street || city || state || zipCode) {
     const address: Address = {
       use: 'home',
@@ -213,12 +264,19 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
     };
     patientData.address = [address];
   }
+}
 
-  // Extract emergency contact
+/**
+ * Extract emergency contact information
+ * 
+ * @param items - The questionnaire response items to extract from
+ * @param patientData - The patient data object to populate
+ */
+function extractEmergencyContact(items: any[], patientData: Partial<Patient>): void {
   const emergencyContactName = findAnswerValue(items, 'emergencyContactName');
   const emergencyContactPhone = findAnswerValue(items, 'emergencyContactPhone');
   const emergencyContactRelationship = findAnswerValue(items, 'emergencyContactRelationship');
-  
+
   if (emergencyContactName || emergencyContactPhone) {
     patientData.contact = [{
       relationship: emergencyContactRelationship ? [{
@@ -237,12 +295,14 @@ function extractPatientData(response: QuestionnaireResponse): Partial<Patient> {
       }] : undefined
     }];
   }
-
-  return patientData;
 }
 
 /**
  * Find existing patient to prevent duplicates
+ * 
+ * @param medplum - The Medplum client instance
+ * @param patientData - The patient data to search for
+ * @returns Promise resolving to existing Patient or null
  */
 async function findExistingPatient(medplum: MedplumClient, patientData: Partial<Patient>): Promise<Patient | null> {
   // Search by identifiers first (most reliable)
@@ -252,7 +312,7 @@ async function findExistingPatient(medplum: MedplumClient, patientData: Partial<
         const searchResults = await medplum.searchResources('Patient', {
           identifier: `${identifier.system}|${identifier.value}`
         });
-        
+
         if (searchResults.length > 0) {
           return searchResults[0];
         }
@@ -268,7 +328,7 @@ async function findExistingPatient(medplum: MedplumClient, patientData: Partial<
       family: name.family,
       birthdate: patientData.birthDate
     });
-    
+
     if (searchResults.length > 0) {
       return searchResults[0];
     }
@@ -279,10 +339,15 @@ async function findExistingPatient(medplum: MedplumClient, patientData: Partial<
 
 /**
  * Update existing patient with new information
+ * 
+ * @param medplum - The Medplum client instance
+ * @param existingPatient - The existing patient to update
+ * @param newData - The new patient data to merge
+ * @returns Promise resolving to updated Patient
  */
 async function updateExistingPatient(
-  medplum: MedplumClient, 
-  existingPatient: Patient, 
+  medplum: MedplumClient,
+  existingPatient: Patient,
   newData: Partial<Patient>
 ): Promise<Patient> {
   // Merge new data with existing patient data
@@ -303,11 +368,15 @@ async function updateExistingPatient(
     gender: existingPatient.gender || newData.gender
   };
 
-  return await medplum.updateResource(updatedPatient);
+  return medplum.updateResource(updatedPatient);
 }
 
 /**
  * Create new patient with conditional create logic
+ * 
+ * @param medplum - The Medplum client instance
+ * @param patientData - The patient data to create
+ * @returns Promise resolving to created Patient
  */
 async function createNewPatient(medplum: MedplumClient, patientData: Partial<Patient>): Promise<Patient> {
   // Generate a unique identifier if none provided
@@ -327,21 +396,25 @@ async function createNewPatient(medplum: MedplumClient, patientData: Partial<Pat
     }];
   }
 
-  return await medplum.createResource(patientData as Patient);
+  return medplum.createResource(patientData as Patient);
 }
 
 /**
  * Extract coverage data from questionnaire response
+ * 
+ * @param response - The questionnaire response to extract data from
+ * @param patient - The patient to link coverage to
+ * @returns Coverage object or null if no insurance data
  */
 function extractCoverageData(response: QuestionnaireResponse, patient: Patient): Coverage | null {
   const items = response.item || [];
-  
+
   const insuranceCompany = findAnswerValue(items, 'insuranceCompany');
   const policyNumber = findAnswerValue(items, 'policyNumber');
   const groupNumber = findAnswerValue(items, 'groupNumber');
   const subscriberId = findAnswerValue(items, 'subscriberId');
-  
-  if (!insuranceCompany && !policyNumber) {
+
+  if (!(insuranceCompany || policyNumber)) {
     return null; // No insurance information provided
   }
 
@@ -365,7 +438,7 @@ function extractCoverageData(response: QuestionnaireResponse, patient: Patient):
 
   // Add identifiers for policy and group numbers
   const identifiers: Identifier[] = [];
-  
+
   if (policyNumber) {
     identifiers.push({
       use: 'official',
@@ -379,7 +452,7 @@ function extractCoverageData(response: QuestionnaireResponse, patient: Patient):
       value: policyNumber
     });
   }
-  
+
   if (subscriberId) {
     identifiers.push({
       use: 'official',
@@ -393,7 +466,7 @@ function extractCoverageData(response: QuestionnaireResponse, patient: Patient):
       value: subscriberId
     });
   }
-  
+
   if (identifiers.length > 0) {
     coverage.identifier = identifiers;
   }
@@ -417,6 +490,10 @@ function extractCoverageData(response: QuestionnaireResponse, patient: Patient):
 
 /**
  * Create treatment consent
+ * 
+ * @param medplum - The Medplum client instance
+ * @param patient - The patient to create consent for
+ * @returns Promise resolving to created Consent
  */
 async function createTreatmentConsent(medplum: MedplumClient, patient: Patient): Promise<Consent> {
   const consent: Consent = {
@@ -450,15 +527,20 @@ async function createTreatmentConsent(medplum: MedplumClient, patient: Patient):
     }
   };
 
-  return await medplum.createResource(consent);
+  return medplum.createResource(consent);
 }
 
 /**
  * Link questionnaire response to created patient
+ * 
+ * @param medplum - The Medplum client instance
+ * @param response - The questionnaire response to update
+ * @param patient - The patient to link to
+ * @returns Promise that resolves when linking is complete
  */
 async function linkQuestionnaireResponseToPatient(
-  medplum: MedplumClient, 
-  response: QuestionnaireResponse, 
+  medplum: MedplumClient,
+  response: QuestionnaireResponse,
   patient: Patient
 ): Promise<void> {
   const updatedResponse: QuestionnaireResponse = {
@@ -478,7 +560,7 @@ function findAnswerValue(items: any[], linkId: string): string | undefined {
     if (item.linkId === linkId && item.answer && item.answer.length > 0) {
       return item.answer[0].valueString || item.answer[0].valueDate || item.answer[0].valueCoding?.display;
     }
-    
+
     // Recursively search in nested items
     if (item.item) {
       const nestedResult = findAnswerValue(item.item, linkId);
@@ -491,10 +573,16 @@ function findAnswerValue(items: any[], linkId: string): string | undefined {
 }
 
 function mergeContactPoints(existing?: ContactPoint[], newPoints?: ContactPoint[]): ContactPoint[] | undefined {
-  if (!existing && !newPoints) return undefined;
-  if (!existing) return newPoints;
-  if (!newPoints) return existing;
-  
+  if (!(existing || newPoints)) {
+    return undefined;
+  }
+  if (!existing) {
+    return newPoints;
+  }
+  if (!newPoints) {
+    return existing;
+  }
+
   // Merge, avoiding duplicates based on system and value
   const merged = [...existing];
   for (const newPoint of newPoints) {
@@ -507,19 +595,31 @@ function mergeContactPoints(existing?: ContactPoint[], newPoints?: ContactPoint[
 }
 
 function mergeAddresses(existing?: Address[], newAddresses?: Address[]): Address[] | undefined {
-  if (!existing && !newAddresses) return undefined;
-  if (!existing) return newAddresses;
-  if (!newAddresses) return existing;
-  
+  if (!(existing || newAddresses)) {
+    return undefined;
+  }
+  if (!existing) {
+    return newAddresses;
+  }
+  if (!newAddresses) {
+    return existing;
+  }
+
   // For addresses, replace existing with new if provided
   return newAddresses;
 }
 
 function mergeIdentifiers(existing?: Identifier[], newIdentifiers?: Identifier[]): Identifier[] | undefined {
-  if (!existing && !newIdentifiers) return undefined;
-  if (!existing) return newIdentifiers;
-  if (!newIdentifiers) return existing;
-  
+  if (!(existing || newIdentifiers)) {
+    return undefined;
+  }
+  if (!existing) {
+    return newIdentifiers;
+  }
+  if (!newIdentifiers) {
+    return existing;
+  }
+
   // Merge, avoiding duplicates based on system and value
   const merged = [...existing];
   for (const newId of newIdentifiers) {

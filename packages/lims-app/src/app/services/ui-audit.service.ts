@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { MedplumService } from '../medplum.service';
+import { AuditEvent, SearchParams } from '../types/fhir-types';
 import { AuthService } from './auth.service';
-import { AuditEvent } from '../types/fhir-types';
 
 export interface UIInteractionEvent {
   id: string;
@@ -37,10 +37,10 @@ export class UIAuditService {
   private sessionId: string;
   private isAuditingEnabled = true;
 
-  constructor(
-    private medplumService: MedplumService,
-    private authService: AuthService
-  ) {
+  private readonly medplumService = inject(MedplumService);
+  private readonly authService = inject(AuthService);
+
+  constructor() {
     this.sessionId = this.generateSessionId();
     this.initializeAuditing();
   }
@@ -60,13 +60,13 @@ export class UIAuditService {
     }
 
     const currentUser = this.authService.getCurrentUserSync();
-    if (!currentUser) {
+    if (!currentUser?.practitioner.id) {
       return;
     }
 
     const event: UIInteractionEvent = {
       id: this.generateEventId(),
-      userId: currentUser.practitioner.id!,
+      userId: currentUser.practitioner.id,
       userRole: currentUser.roles,
       action,
       component,
@@ -92,7 +92,7 @@ export class UIAuditService {
   logWidgetInteraction(
     widgetType: string,
     action: string,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       action,
@@ -107,7 +107,7 @@ export class UIAuditService {
   logNavigation(
     fromRoute: string,
     toRoute: string,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       'navigation',
@@ -127,7 +127,7 @@ export class UIAuditService {
     resource: string,
     resourceId: string,
     action: 'view' | 'search' | 'export',
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       `data-${action}`,
@@ -144,7 +144,7 @@ export class UIAuditService {
   logPermissionDenied(
     attemptedAction: string,
     resource?: string,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       'permission-denied',
@@ -165,7 +165,7 @@ export class UIAuditService {
     action: 'create' | 'update' | 'delete',
     resourceType?: string,
     resourceId?: string,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       `form-${action}`,
@@ -183,7 +183,7 @@ export class UIAuditService {
     searchType: string,
     query: string,
     resultCount: number,
-    details?: any
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       'search',
@@ -202,7 +202,7 @@ export class UIAuditService {
   logReportGeneration(
     reportType: string,
     format: string,
-    parameters?: any
+    parameters?: Record<string, unknown>
   ): void {
     this.logInteraction(
       'report-generation',
@@ -220,9 +220,9 @@ export class UIAuditService {
    */
   logConfigurationChange(
     configType: string,
-    oldValue: any,
-    newValue: any,
-    details?: any
+    oldValue: Record<string, unknown>,
+    newValue: Record<string, unknown>,
+    details?: Record<string, unknown>
   ): void {
     this.logInteraction(
       'configuration-change',
@@ -248,7 +248,7 @@ export class UIAuditService {
    */
   async queryAuditEvents(filter: AuditFilter): Promise<UIInteractionEvent[]> {
     try {
-      const searchParams: any = {
+      const searchParams: Record<string, unknown> = {
         type: 'http://terminology.hl7.org/CodeSystem/audit-event-type|rest',
         _sort: '-date',
         _count: filter.limit || 100
@@ -259,17 +259,25 @@ export class UIAuditService {
       }
 
       if (filter.dateFrom) {
-        searchParams['date'] = `ge${filter.dateFrom.toISOString()}`;
+        searchParams.date = `ge${filter.dateFrom.toISOString()}`;
       }
 
       if (filter.dateTo) {
-        const dateFilter = searchParams['date'] || '';
-        searchParams['date'] = `${dateFilter}${dateFilter ? '&' : ''}le${filter.dateTo.toISOString()}`;
+        const dateFilter = searchParams.date || '';
+        searchParams.date = `${dateFilter}${dateFilter ? '&' : ''}le${filter.dateTo.toISOString()}`;
       }
 
-      const bundle = await this.medplumService.searchResources<AuditEvent>('AuditEvent', searchParams);
-      
-      return bundle.entry?.map(entry => this.mapFHIRAuditEventToUIEvent(entry.resource!)) || [];
+      const bundle = await this.medplumService.searchResources<AuditEvent>('AuditEvent', searchParams as SearchParams);
+
+      return (
+        bundle.entry?.map((entry) => {
+          if (entry.resource) {
+            return this.mapFHIRAuditEventToUIEvent(entry.resource);
+          }
+          return null;
+        })
+          .filter((event): event is UIInteractionEvent => event !== null) || []
+      );
     } catch (error) {
       console.error('Failed to query audit events:', error);
       return [];
@@ -281,7 +289,7 @@ export class UIAuditService {
    */
   setAuditingEnabled(enabled: boolean): void {
     this.isAuditingEnabled = enabled;
-    
+
     if (enabled) {
       this.logInteraction('audit-enabled', 'system-config');
     }
@@ -409,9 +417,9 @@ export class UIAuditService {
     }
   }
 
-  private mapActionToFHIRCode(action: string): string {
+  private mapActionToFHIRCode(action: string): 'C' | 'R' | 'U' | 'D' | 'E' {
     // Map UI actions to FHIR audit event action codes
-    const actionMap: { [key: string]: string } = {
+    const actionMap: { [key: string]: 'C' | 'R' | 'U' | 'D' | 'E' } = {
       'create': 'C',
       'read': 'R',
       'update': 'U',
@@ -433,11 +441,11 @@ export class UIAuditService {
     const extension = auditEvent.extension?.find(
       ext => ext.url === 'http://lims.local/audit/ui-interaction'
     );
-    
+
     const extensionData = extension?.valueString ? JSON.parse(extension.valueString) : {};
-    
+
     return {
-      id: auditEvent.id!,
+      id: auditEvent.id || 'unknown',
       userId: auditEvent.agent?.[0]?.who?.identifier?.value || 'unknown',
       userRole: auditEvent.agent?.[0]?.role?.map(r => r.coding?.[0]?.code || '') || [],
       action: this.mapFHIRCodeToAction(auditEvent.action || 'E'),
@@ -460,16 +468,16 @@ export class UIAuditService {
       'D': 'delete',
       'E': 'execute'
     };
-    
+
     return codeMap[code] || 'unknown';
   }
 
   private generateSessionId(): string {
-    return 'session-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   private generateEventId(): string {
-    return 'event-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    return `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   private getClientIP(): string {

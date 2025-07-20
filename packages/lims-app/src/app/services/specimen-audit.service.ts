@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subject, combineLatest } from 'rxjs';
-import { map, filter } from 'rxjs/operators';
-import { AuditEvent, Specimen, Reference } from '../types/fhir-types';
+import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
+import { AuditEvent, Specimen } from '../types/fhir-types';
 import { AuthService } from './auth.service';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface SpecimenAuditTrail {
   specimenId: string;
@@ -220,7 +220,7 @@ export class SpecimenAuditService {
     outcome: 'success' | 'failure' | 'warning' = 'success'
   ): Promise<void> {
     try {
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -242,7 +242,7 @@ export class SpecimenAuditService {
         recorded: new Date().toISOString(),
         outcome: outcome === 'success' ? '0' : outcome === 'warning' ? '4' : '8',
         agent: [{
-          who: { reference: `Practitioner/${currentUser.id}` },
+          who: { reference: `Practitioner/${currentUser.practitioner.id}` },
           requestor: true,
           role: [{
             coding: [{
@@ -253,7 +253,7 @@ export class SpecimenAuditService {
           }]
         }],
         source: {
-          observer: { reference: `Organization/${currentUser.project}` },
+          observer: { reference: `Organization/${currentUser.projectMembership?.project}` },
           type: [{
             system: 'http://terminology.hl7.org/CodeSystem/security-source-type',
             code: '4',
@@ -284,8 +284,8 @@ export class SpecimenAuditService {
         action,
         outcome,
         performer: {
-          id: currentUser.id!,
-          name: currentUser.name || 'Unknown User',
+          id: currentUser.practitioner.id!,
+          name: currentUser.practitioner.name?.[0]?.text || 'Unknown User',
           role: this.getUserRole(currentUser)
         },
         location: details.location,
@@ -373,7 +373,6 @@ export class SpecimenAuditService {
     try {
       // Search for audit events in the specified period
       const auditEvents = await this.medplumService.searchResources<AuditEvent>('AuditEvent', {
-        'date': `ge${startDate.toISOString().split('T')[0]}`,
         'date': `le${endDate.toISOString().split('T')[0]}`
       });
 
@@ -383,12 +382,12 @@ export class SpecimenAuditService {
         if (entry.resource) {
           const summary = await this.convertToAuditEventSummary(entry.resource);
           const specimenId = this.extractSpecimenId(entry.resource);
-          
+
           if (specimenId) {
             if (!specimenEvents.has(specimenId)) {
               specimenEvents.set(specimenId, []);
             }
-            specimenEvents.get(specimenId)!.push(summary);
+            specimenEvents.get(specimenId)?.push(summary);
           }
         }
       }
@@ -399,17 +398,17 @@ export class SpecimenAuditService {
       let totalHandlingTime = 0;
       let criticalViolations = 0;
 
-      for (const [specimenId, events] of specimenEvents) {
+      for (const [_specimenId, events] of specimenEvents) {
         const chainOfCustody = this.analyzeChainOfCustody(events);
         const compliance = this.evaluateOverallCompliance(events, chainOfCustody);
-        
+
         if (compliance.overall === 'compliant') {
           compliantSpecimens++;
         }
 
         violations.push(...compliance.violations);
         criticalViolations += compliance.violations.filter(v => v.severity === 'critical').length;
-        
+
         // Calculate handling time (simplified)
         if (events.length > 1) {
           const firstEvent = events[0];
@@ -436,7 +435,7 @@ export class SpecimenAuditService {
       // Generate recommendations
       const recommendations = this.generateRecommendations(violations, complianceRate);
 
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       const report: ComplianceReport = {
         id: `report-${Date.now()}`,
         reportType,
@@ -453,7 +452,7 @@ export class SpecimenAuditService {
         trends,
         recommendations,
         generatedAt: new Date(),
-        generatedBy: currentUser?.name || 'System'
+        generatedBy: currentUser?.practitioner.name?.[0]?.text || 'System'
       };
 
       // Cache the report
@@ -486,7 +485,7 @@ export class SpecimenAuditService {
    * Validate specimen against regulatory requirements
    */
   validateSpecimenCompliance(
-    specimenId: string, 
+    specimenId: string,
     requirementIds: string[]
   ): Observable<{ requirement: RegulatoryRequirement; compliant: boolean; violations: string[] }[]> {
     return combineLatest([
@@ -494,7 +493,7 @@ export class SpecimenAuditService {
       this.getRegulatoryRequirements()
     ]).pipe(
       map(([auditTrail, requirements]) => {
-        if (!auditTrail) return [];
+        if (!auditTrail) { return []; }
 
         return requirements
           .filter(req => requirementIds.includes(req.id))
@@ -503,8 +502,8 @@ export class SpecimenAuditService {
             let compliant = true;
 
             // Check chain of custody requirement
-            if (requirement.requirements.chainOfCustody && 
-                auditTrail.chainOfCustodyIntegrity.status !== 'intact') {
+            if (requirement.requirements.chainOfCustody &&
+              auditTrail.chainOfCustodyIntegrity.status !== 'intact') {
               violations.push('Chain of custody integrity compromised');
               compliant = false;
             }
@@ -557,11 +556,11 @@ export class SpecimenAuditService {
   private async convertToAuditEventSummary(auditEvent: AuditEvent): Promise<AuditEventSummary> {
     const eventType = auditEvent.subtype?.[0]?.code as AuditEventType || AuditEventType.ERROR_OCCURRED;
     const outcome = auditEvent.outcome === '0' ? 'success' : auditEvent.outcome === '4' ? 'warning' : 'failure';
-    
+
     // Extract performer information
     const agent = auditEvent.agent?.[0];
     const performerId = agent?.who?.reference?.replace('Practitioner/', '') || 'unknown';
-    
+
     // In a real implementation, you would look up the practitioner details
     const performer = {
       id: performerId,
@@ -599,7 +598,7 @@ export class SpecimenAuditService {
   private analyzeChainOfCustody(events: AuditEventSummary[]): ChainOfCustodyIntegrity {
     const handoffs: CustodyHandoff[] = [];
     const gaps: CustodyGap[] = [];
-    
+
     let previousEvent: AuditEventSummary | null = null;
     let totalHandoffTime = 0;
 
@@ -615,12 +614,12 @@ export class SpecimenAuditService {
           qrCodeScanned: event.details.qrCodeScanned === 'true',
           witnessed: false // Would be determined from event details
         };
-        
+
         handoffs.push(handoff);
-        
+
         const handoffTime = event.timestamp.getTime() - previousEvent.timestamp.getTime();
         totalHandoffTime += handoffTime;
-        
+
         // Check for gaps (more than 30 minutes between events)
         if (handoffTime > 30 * 60 * 1000) {
           gaps.push({
@@ -632,13 +631,13 @@ export class SpecimenAuditService {
           });
         }
       }
-      
+
       previousEvent = event;
     }
 
     const averageHandoffTime = handoffs.length > 0 ? totalHandoffTime / handoffs.length / (1000 * 60) : 0; // minutes
     const longestGap = gaps.length > 0 ? Math.max(...gaps.map(g => g.duration)) : 0;
-    
+
     let status: 'intact' | 'broken' | 'questionable' = 'intact';
     if (gaps.some(g => g.severity === 'high')) {
       status = 'broken';
@@ -660,13 +659,13 @@ export class SpecimenAuditService {
    * Calculate quality metrics
    */
   private calculateQualityMetrics(
-    events: AuditEventSummary[], 
+    events: AuditEventSummary[],
     chainOfCustody: ChainOfCustodyIntegrity
   ): QualityMetrics {
     // Simplified quality scoring
     let handlingScore = 100;
     let timelinessScore = 100;
-    let documentationScore = 100;
+    const documentationScore = 100;
 
     // Reduce scores based on issues
     if (chainOfCustody.status === 'broken') {
@@ -685,10 +684,10 @@ export class SpecimenAuditService {
     const overallScore = (handlingScore + timelinessScore + documentationScore) / 3;
 
     let category: 'excellent' | 'good' | 'average' | 'poor';
-    if (overallScore >= 90) category = 'excellent';
-    else if (overallScore >= 75) category = 'good';
-    else if (overallScore >= 60) category = 'average';
-    else category = 'poor';
+    if (overallScore >= 90) { category = 'excellent'; }
+    else if (overallScore >= 75) { category = 'good'; }
+    else if (overallScore >= 60) { category = 'average'; }
+    else { category = 'poor'; }
 
     return {
       handlingScore: Math.max(0, handlingScore),
@@ -706,7 +705,7 @@ export class SpecimenAuditService {
    * Evaluate overall compliance
    */
   private evaluateOverallCompliance(
-    events: AuditEventSummary[], 
+    events: AuditEventSummary[],
     chainOfCustody: ChainOfCustodyIntegrity
   ): ComplianceStatus {
     const violations: ComplianceViolation[] = [];

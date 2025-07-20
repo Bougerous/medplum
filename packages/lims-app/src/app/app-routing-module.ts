@@ -1,21 +1,20 @@
 import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
-import { Home } from './home/home';
-import { Login } from './login/login';
-import { Dashboard } from './dashboard/dashboard';
-import { PatientRegistration } from './patient-registration/patient-registration';
-import { SpecimenAccessioning } from './specimen-accessioning/specimen-accessioning';
-import { TestOrdering } from './test-ordering/test-ordering';
-import { ResultEntry } from './result-entry/result-entry';
-import { SampleTracking } from './sample-tracking/sample-tracking';
-import { Reports } from './reports/reports';
-import { PatientPortalComponent } from './portals/patient-portal/patient-portal';
-import { ProviderPortalComponent } from './portals/provider-portal/provider-portal';
 import { AccessDeniedComponent } from './components/access-denied/access-denied.component';
+import { Dashboard } from './dashboard/dashboard';
 import { AuthGuard } from './guards/auth.guard';
 import { PatientPortalGuard, ProviderPortalGuard } from './guards/portal.guard';
+import { Login } from './login/login';
+import { PatientRegistration } from './patient-registration/patient-registration';
+import { PatientPortalComponent } from './portals/patient-portal/patient-portal';
+import { ProviderPortalComponent } from './portals/provider-portal/provider-portal';
+import { Reports } from './reports/reports';
+import { ResultEntry } from './result-entry/result-entry';
+import { SampleTracking } from './sample-tracking/sample-tracking';
+import { SpecimenAccessioning } from './specimen-accessioning/specimen-accessioning';
+import { TestOrdering } from './test-ordering/test-ordering';
 
-const routes: Routes = [
+export const routes: Routes = [
   { path: '', component: Dashboard },
   { path: 'login', component: Login },
   { path: 'dashboard', component: Dashboard, canActivate: [AuthGuard] },
@@ -25,11 +24,11 @@ const routes: Routes = [
   { path: 'result-entry', component: ResultEntry, canActivate: [AuthGuard] },
   { path: 'sample-tracking', component: SampleTracking, canActivate: [AuthGuard] },
   { path: 'reports', component: Reports, canActivate: [AuthGuard] },
-  
+
   // Portal Routes
-  { 
-    path: 'patient-portal', 
-    component: PatientPortalComponent, 
+  {
+    path: 'patient-portal',
+    component: PatientPortalComponent,
     canActivate: [PatientPortalGuard],
     data: {
       portalConfig: {
@@ -39,9 +38,9 @@ const routes: Routes = [
       }
     }
   },
-  { 
-    path: 'provider-portal', 
-    component: ProviderPortalComponent, 
+  {
+    path: 'provider-portal',
+    component: ProviderPortalComponent,
     canActivate: [ProviderPortalGuard],
     data: {
       portalConfig: {
@@ -52,10 +51,10 @@ const routes: Routes = [
       }
     }
   },
-  
+
   // Portal sub-routes (for future expansion)
-  { 
-    path: 'patient-portal/report/:id', 
+  {
+    path: 'patient-portal/report/:id',
     component: PatientPortalComponent, // Would be a specific report component
     canActivate: [PatientPortalGuard],
     data: {
@@ -66,8 +65,8 @@ const routes: Routes = [
       }
     }
   },
-  { 
-    path: 'provider-portal/report/:id', 
+  {
+    path: 'provider-portal/report/:id',
     component: ProviderPortalComponent, // Would be a specific report component
     canActivate: [ProviderPortalGuard],
     data: {
@@ -79,8 +78,8 @@ const routes: Routes = [
       }
     }
   },
-  { 
-    path: 'provider-portal/order/:id', 
+  {
+    path: 'provider-portal/order/:id',
     component: ProviderPortalComponent, // Would be a specific order component
     canActivate: [ProviderPortalGuard],
     data: {
@@ -91,8 +90,8 @@ const routes: Routes = [
       }
     }
   },
-  { 
-    path: 'provider-portal/patient/:id', 
+  {
+    path: 'provider-portal/patient/:id',
     component: ProviderPortalComponent, // Would be a specific patient component
     canActivate: [ProviderPortalGuard],
     data: {
@@ -104,11 +103,11 @@ const routes: Routes = [
       }
     }
   },
-  
+
   // Error routes
   { path: 'access-denied', component: AccessDeniedComponent },
   { path: 'error', component: AccessDeniedComponent }, // Generic error page
-  
+
   // Catch-all redirect
   { path: '**', redirectTo: '/dashboard' }
 ];

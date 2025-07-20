@@ -1,8 +1,8 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { RouterModule } from '@angular/router';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
+import { interval, Subject } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 import { MedplumService } from '../../../medplum.service';
 import { DiagnosticReport } from '../../../types/fhir-types';
 
@@ -139,7 +139,7 @@ export class PendingReportsWidget implements OnInit, OnDestroy {
         // Add filter for overdue reports
         const overdueDate = new Date();
         overdueDate.setDate(overdueDate.getDate() - 2); // 2 days overdue threshold
-        searchParams['date'] = `lt${overdueDate.toISOString()}`;
+        searchParams.date = `lt${overdueDate.toISOString()}`;
       }
 
       const reports = await this.medplumService.searchDiagnosticReports(searchParams);
@@ -182,7 +182,7 @@ export class PendingReportsWidget implements OnInit, OnDestroy {
     return report.identifier?.[0]?.value || 'N/A';
   }
 
-  private getPatientName(report: DiagnosticReport): string {
+  private getPatientName(_report: DiagnosticReport): string {
     // This would typically involve a lookup to the Patient resource
     // For now, return a placeholder
     return 'Patient Name'; // TODO: Implement patient lookup

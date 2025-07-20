@@ -1,21 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormArray, FormControl } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
-import { 
-  Patient, 
-  Coverage, 
-  Consent, 
-  Questionnaire, 
-  QuestionnaireResponse 
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import {
+  Patient,
+  Questionnaire,
+  QuestionnaireResponse
 } from '@medplum/fhirtypes';
-import { MedplumService } from '../medplum.service';
-import { QuestionnaireService, PatientRegistrationData } from '../services/questionnaire.service';
-import { NotificationService } from '../services/notification.service';
+import { Subject, takeUntil } from 'rxjs';
 import { ErrorHandlingService } from '../services/error-handling.service';
+import { NotificationService } from '../services/notification.service';
+import { PatientRegistrationData, QuestionnaireService } from '../services/questionnaire.service';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-patient-registration',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './patient-registration.html',
   styleUrl: './patient-registration.scss'
 })
@@ -32,7 +32,6 @@ export class PatientRegistration implements OnInit, OnDestroy {
 
   constructor(
     private formBuilder: FormBuilder,
-    private medplumService: MedplumService,
     private questionnaireService: QuestionnaireService,
     private notificationService: NotificationService,
     private errorHandlingService: ErrorHandlingService
@@ -50,6 +49,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Initialize the patient registration form
    */
   private initializeForm(): void {
@@ -59,21 +59,21 @@ export class PatientRegistration implements OnInit, OnDestroy {
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       dateOfBirth: ['', [Validators.required]],
       gender: [''],
-      
+
       // Contact Information
-      phone: ['', [Validators.pattern(/^\+?[\d\s\-\(\)]+$/)]],
+      phone: ['', [Validators.pattern(/^\+?[\d\s\-()]+$/)]],
       email: ['', [Validators.email]],
       address: [''],
-      
+
       // Insurance Information
       insuranceProvider: [''],
       policyNumber: [''],
       groupNumber: [''],
-      
+
       // Consent
       treatmentConsent: [false, [Validators.requiredTrue]],
       privacyConsent: [false, [Validators.requiredTrue]],
-      
+
       // Additional questionnaire responses
       additionalResponses: this.formBuilder.array([])
     });
@@ -82,17 +82,18 @@ export class PatientRegistration implements OnInit, OnDestroy {
     this.patientForm.get('firstName')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.checkForDuplicates());
-    
+
     this.patientForm.get('lastName')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.checkForDuplicates());
-    
+
     this.patientForm.get('dateOfBirth')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => this.checkForDuplicates());
   }
 
   /**
+   *
    * Load available questionnaires
    */
   private loadQuestionnaires(): void {
@@ -113,17 +114,20 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Build dynamic form based on selected questionnaire
    */
   private buildDynamicForm(): void {
-    if (!this.selectedQuestionnaire) return;
+    if (!this.selectedQuestionnaire) {
+      return;
+    }
 
     const additionalResponses = this.patientForm.get('additionalResponses') as FormArray;
     additionalResponses.clear();
 
-    this.selectedQuestionnaire.item?.forEach(item => {
+    for (const item of this.selectedQuestionnaire.item || []) {
       if (item.type === 'group' && item.item) {
-        item.item.forEach(subItem => {
+        for (const subItem of item.item) {
           // Skip items already handled by basic form
           const basicFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'phone', 'email', 'address', 'insuranceProvider', 'policyNumber', 'treatmentConsent', 'privacyConsent'];
           if (!basicFields.includes(subItem.linkId || '')) {
@@ -132,21 +136,22 @@ export class PatientRegistration implements OnInit, OnDestroy {
               linkId: [subItem.linkId],
               text: [subItem.text],
               type: [subItem.type],
-              required: [subItem.required || false],
+              required: [subItem.required],
               answer: control
             }));
           }
-        });
+        }
       }
-    });
+    }
   }
 
   /**
+   *
    * Create form control based on questionnaire item type
    */
   private createFormControlForItem(item: any): FormControl {
     const validators = item.required ? [Validators.required] : [];
-    
+
     switch (item.type) {
       case 'boolean':
         return new FormControl(false, validators);
@@ -163,6 +168,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Get additional responses form array
    */
   get additionalResponses(): FormArray {
@@ -170,6 +176,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Check for potential duplicate patients
    */
   private async checkForDuplicates(): Promise<void> {
@@ -189,7 +196,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
 
         this.duplicatePatients = await this.questionnaireService.checkForDuplicatePatient(patientData);
         this.showDuplicateWarning = this.duplicatePatients.length > 0;
-        
+
         if (this.showDuplicateWarning) {
           this.notificationService.showWarning(
             'Potential Duplicate Patient',
@@ -204,6 +211,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Select a questionnaire
    */
   selectQuestionnaire(questionnaire: Questionnaire): void {
@@ -212,6 +220,7 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Submit the patient registration form
    */
   async onSubmit(): Promise<void> {
@@ -224,11 +233,11 @@ export class PatientRegistration implements OnInit, OnDestroy {
     // Show confirmation if duplicates found
     if (this.showDuplicateWarning) {
       const confirmed = confirm(
-        `Potential duplicate patients found:\n${this.duplicatePatients.map(p => 
+        `Potential duplicate patients found:\n${this.duplicatePatients.map(p =>
           `${p.name?.[0]?.given?.[0]} ${p.name?.[0]?.family} (DOB: ${p.birthDate})`
         ).join('\n')}\n\nDo you want to continue with registration?`
       );
-      
+
       if (!confirmed) {
         return;
       }
@@ -239,18 +248,18 @@ export class PatientRegistration implements OnInit, OnDestroy {
     try {
       // Create questionnaire response from form data
       const questionnaireResponse = this.createQuestionnaireResponse();
-      
+
       // Register patient using questionnaire service
       this.registrationResult = await this.questionnaireService.createPatientRegistration(questionnaireResponse);
-      
+
       this.notificationService.showSuccess(
         'Patient Registered Successfully',
         `Patient ${this.registrationResult.patient.name?.[0]?.given?.[0]} ${this.registrationResult.patient.name?.[0]?.family} has been registered.`
       );
-      
+
       // Reset form
       this.resetForm();
-      
+
     } catch (error) {
       this.errorHandlingService.handleError(error, 'patient-registration');
       this.notificationService.showError(
@@ -263,11 +272,12 @@ export class PatientRegistration implements OnInit, OnDestroy {
   }
 
   /**
+   *
    * Create questionnaire response from form data
    */
   private createQuestionnaireResponse(): QuestionnaireResponse {
     const formValue = this.patientForm.value;
-    
+
     const response: QuestionnaireResponse = {
       resourceType: 'QuestionnaireResponse',
       status: 'completed',
@@ -292,18 +302,55 @@ export class PatientRegistration implements OnInit, OnDestroy {
               linkId: 'dateOfBirth',
               text: 'Date of Birth',
               answer: [{ valueDate: formValue.dateOfBirth }]
+            },
+            {
+              linkId: 'gender',
+              text: 'Gender',
+              answer: formValue.gender ? [{ valueString: formValue.gender }] : []
             }
           ]
         },
         {
           linkId: 'contact',
           text: 'Contact Information',
-          item: []
+          item: [
+            {
+              linkId: 'phone',
+              text: 'Phone Number',
+              answer: formValue.phone ? [{ valueString: formValue.phone }] : []
+            },
+            {
+              linkId: 'email',
+              text: 'Email Address',
+              answer: formValue.email ? [{ valueString: formValue.email }] : []
+            },
+            {
+              linkId: 'address',
+              text: 'Address',
+              answer: formValue.address ? [{ valueString: formValue.address }] : []
+            }
+          ]
         },
         {
           linkId: 'insurance',
           text: 'Insurance Information',
-          item: []
+          item: [
+            {
+              linkId: 'insuranceProvider',
+              text: 'Insurance Provider',
+              answer: formValue.insuranceProvider ? [{ valueString: formValue.insuranceProvider }] : []
+            },
+            {
+              linkId: 'policyNumber',
+              text: 'Policy Number',
+              answer: formValue.policyNumber ? [{ valueString: formValue.policyNumber }] : []
+            },
+            {
+              linkId: 'groupNumber',
+              text: 'Group Number',
+              answer: formValue.groupNumber ? [{ valueString: formValue.groupNumber }] : []
+            }
+          ]
         },
         {
           linkId: 'consent',
@@ -324,134 +371,74 @@ export class PatientRegistration implements OnInit, OnDestroy {
       ]
     };
 
-    // Add optional fields
-    if (formValue.gender) {
-      if (response.item?.[0]?.item) {
-        response.item[0].item.push({
-        linkId: 'gender',
-        text: 'Gender',
-        answer: [{ valueString: formValue.gender }]
-      });
-    }
-
-    // Add contact information
-    const contactItem = response.item?.[1];
-    if (formValue.phone && contactItem?.item) {
-      contactItem.item.push({
-        linkId: 'phone',
-        text: 'Phone Number',
-        answer: [{ valueString: formValue.phone }]
-      });
-    }
-    if (formValue.email && contactItem?.item) {
-      contactItem.item.push({
-        linkId: 'email',
-        text: 'Email Address',
-        answer: [{ valueString: formValue.email }]
-      });
-    }
-    if (formValue.address && contactItem?.item) {
-      contactItem.item.push({
-        linkId: 'address',
-        text: 'Address',
-        answer: [{ valueString: formValue.address }]
-      });
-    }
-
-    // Add insurance information
-    const insuranceItem = response.item?.[2];
-    if (formValue.insuranceProvider && insuranceItem?.item) {
-      insuranceItem.item.push({
-        linkId: 'insuranceProvider',
-        text: 'Insurance Provider',
-        answer: [{ valueString: formValue.insuranceProvider }]
-      });
-    }
-    if (formValue.policyNumber && insuranceItem?.item) {
-      insuranceItem.item.push({
-        linkId: 'policyNumber',
-        text: 'Policy Number',
-        answer: [{ valueString: formValue.policyNumber }]
-      });
-    }
-    if (formValue.groupNumber && insuranceItem?.item) {
-      insuranceItem.item.push({
-        linkId: 'groupNumber',
-        text: 'Group Number',
-        answer: [{ valueString: formValue.groupNumber }]
-      });
-    }
-
-    // Add additional responses
-    formValue.additionalResponses?.forEach((response: any) => {
-      // Add to appropriate section or create new section
-      // This is a simplified implementation
+    // Add additional responses from dynamic form
+    const additionalResponses = this.patientForm.get('additionalResponses') as FormArray;
+    additionalResponses.controls.forEach(control => {
+      const responseItem = control.value;
+      if (responseItem.linkId && responseItem.answer) {
+        response.item?.push({
+          linkId: responseItem.linkId,
+          text: responseItem.text,
+          answer: responseItem.answer
+        });
+      }
     });
 
     return response;
   }
 
   /**
-   * Reset the form to initial state
+   *
+   * Reset the form
    */
   private resetForm(): void {
     this.patientForm.reset();
     this.duplicatePatients = [];
     this.showDuplicateWarning = false;
     this.registrationResult = null;
-    
-    // Reset consent checkboxes
-    this.patientForm.patchValue({
-      treatmentConsent: false,
-      privacyConsent: false
-    });
-    
-    // Clear additional responses
+
+    // Reset additional responses
     const additionalResponses = this.patientForm.get('additionalResponses') as FormArray;
     additionalResponses.clear();
-    
+
+    // Rebuild dynamic form if questionnaire is selected
     if (this.selectedQuestionnaire) {
       this.buildDynamicForm();
     }
   }
 
   /**
-   * Mark all form controls as touched to show validation errors
+   *
+   * Mark all form controls as touched to trigger validation display
    */
   private markFormGroupTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach(key => {
       const control = formGroup.get(key);
-      control?.markAsTouched();
-
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
-      } else if (control instanceof FormArray) {
-        control.controls.forEach(arrayControl => {
-          if (arrayControl instanceof FormGroup) {
-            this.markFormGroupTouched(arrayControl);
-          } else {
-            arrayControl.markAsTouched();
-          }
-        });
+      } else {
+        control?.markAsTouched();
       }
     });
   }
 
   /**
+   *
    * Get validation error message for a field
    */
   getFieldError(fieldName: string): string {
     const field = this.patientForm.get(fieldName);
     if (field?.errors && field.touched) {
-      if (field.errors['required']) return `${fieldName} is required`;
-      if (field.errors['email']) return 'Please enter a valid email address';
-      if (field.errors['pattern']) return 'Please enter a valid phone number';
-      if (field.errors['minlength']) return `${fieldName} must be at least ${field.errors['minlength'].requiredLength} characters`;
+      if (field.errors.required) { return `${fieldName} is required`; }
+      if (field.errors.email) { return 'Please enter a valid email address'; }
+      if (field.errors.pattern) { return 'Please enter a valid phone number'; }
+      if (field.errors.minlength) { return `${fieldName} must be at least ${field.errors.minlength.requiredLength} characters`; }
     }
     return '';
   }
 
   /**
+   *
    * Check if field has error
    */
   hasFieldError(fieldName: string): boolean {

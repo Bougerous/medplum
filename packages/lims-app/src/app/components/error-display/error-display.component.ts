@@ -1,9 +1,18 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ErrorHandlingService } from '../../services/error-handling.service';
-import { NotificationService, Notification } from '../../services/notification.service';
+import { Notification, NotificationService } from '../../services/notification.service';
 import { LIMSError } from '../../types/fhir-types';
+
+// Extend Notification interface to include actions
+interface ExtendedNotification extends Notification {
+  actions?: {
+    label: string;
+    style?: 'primary' | 'secondary' | 'danger';
+    action: () => void;
+  }[];
+}
 
 @Component({
   selector: 'app-error-display',
@@ -228,14 +237,11 @@ import { LIMSError } from '../../types/fhir-types';
 })
 export class ErrorDisplayComponent implements OnInit, OnDestroy {
   currentError: LIMSError | null = null;
-  notifications: Notification[] = [];
-  
-  private subscriptions: Subscription[] = [];
+  notifications: ExtendedNotification[] = [];
 
-  constructor(
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService
-  ) {}
+  private readonly subscriptions: Subscription[] = [];
+  private readonly errorHandlingService = inject(ErrorHandlingService);
+  private readonly notificationService = inject(NotificationService);
 
   ngOnInit(): void {
     // Subscribe to current error
@@ -262,7 +268,8 @@ export class ErrorDisplayComponent implements OnInit, OnDestroy {
   }
 
   dismissNotification(id: string): void {
-    this.notificationService.dismissNotification(id);
+    // Remove notification from local array
+    this.notifications = this.notifications.filter(n => n.id !== id);
   }
 
   executeAction(action: any, notificationId: string): void {

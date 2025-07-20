@@ -1,9 +1,9 @@
-import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { AuditService } from '../../services/audit.service';
 import { AuthService } from '../../services/auth.service';
 import { RoleService } from '../../services/role.service';
-import { AuditService } from '../../services/audit.service';
 import { UserProfile } from '../../types/fhir-types';
 
 @Component({
@@ -277,13 +277,11 @@ export class AccessDeniedComponent implements OnInit {
   attemptedResource: string | null = null;
   requiredPermissions: string[] = [];
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private roleService: RoleService,
-    private auditService: AuditService
-  ) {}
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly authService = inject(AuthService);
+  private readonly roleService = inject(RoleService);
+  private readonly auditService = inject(AuditService);
 
   ngOnInit(): void {
     // Get current user
@@ -293,10 +291,10 @@ export class AccessDeniedComponent implements OnInit {
 
     // Get attempted resource from query params
     this.route.queryParams.subscribe(params => {
-      this.attemptedResource = params['resource'] || params['attemptedUrl'];
+      this.attemptedResource = params.resource || params.attemptedUrl;
       
-      if (params['permissions']) {
-        this.requiredPermissions = params['permissions'].split(',');
+      if (params.permissions) {
+        this.requiredPermissions = params.permissions.split(',');
       }
     });
 

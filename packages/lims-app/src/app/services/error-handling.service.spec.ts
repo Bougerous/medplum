@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { LIMSErrorType } from '../types/fhir-types';
 import { ErrorHandlingService, LIMSError } from './error-handling.service';
 import { NotificationService } from './notification.service';
-import { LIMSErrorType } from '../types/fhir-types';
 
 describe('ErrorHandlingService', () => {
   let service: ErrorHandlingService;
@@ -215,7 +215,7 @@ describe('ErrorHandlingService', () => {
         timestamp: new Date()
       };
 
-      const isCritical = service['isCriticalError'](error);
+      const isCritical = service.isCriticalError(error);
       expect(isCritical).toBe(true);
     });
 
@@ -226,7 +226,7 @@ describe('ErrorHandlingService', () => {
         timestamp: new Date()
       };
 
-      const isCritical = service['isCriticalError'](error);
+      const isCritical = service.isCriticalError(error);
       expect(isCritical).toBe(true);
     });
 
@@ -237,7 +237,7 @@ describe('ErrorHandlingService', () => {
         timestamp: new Date()
       };
 
-      const isCritical = service['isCriticalError'](error);
+      const isCritical = service.isCriticalError(error);
       expect(isCritical).toBe(false);
     });
   });

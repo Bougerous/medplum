@@ -1,10 +1,10 @@
 import { 
   Directive, 
   Input, 
-  TemplateRef, 
-  ViewContainerRef, 
+  OnDestroy, 
   OnInit, 
-  OnDestroy 
+  TemplateRef, 
+  ViewContainerRef 
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -85,7 +85,7 @@ export class HasPermissionDirective implements OnInit, OnDestroy {
       if (this.elseTemplate) {
         this.viewContainer.createEmbeddedView(this.elseTemplate);
       }
-    } else if (!hasPermission && !this.hasView && this.elseTemplate) {
+    } else if (!(hasPermission || this.hasView ) && this.elseTemplate) {
       this.viewContainer.clear();
       this.viewContainer.createEmbeddedView(this.elseTemplate);
     }
@@ -230,7 +230,7 @@ export class HasRoleDirective implements OnInit, OnDestroy {
       if (this.elseTemplate) {
         this.viewContainer.createEmbeddedView(this.elseTemplate);
       }
-    } else if (!hasRole && !this.hasView && this.elseTemplate) {
+    } else if (!(hasRole || this.hasView ) && this.elseTemplate) {
       this.viewContainer.clear();
       this.viewContainer.createEmbeddedView(this.elseTemplate);
     }

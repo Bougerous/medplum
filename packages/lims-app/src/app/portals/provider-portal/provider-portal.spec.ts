@@ -1,23 +1,22 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { of, throwError } from 'rxjs';
-import { ProviderPortalComponent } from './provider-portal';
-import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
+import { 
+  Bundle, 
+  DiagnosticReport, 
+  Patient, 
+  ServiceRequest,
+  Task
+} from '@medplum/fhirtypes';
+import { of, } from 'rxjs';
 import { MedplumService } from '../../medplum.service';
+import { AuditService } from '../../services/audit.service';
+import { AuthService } from '../../services/auth.service';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import { NotificationService } from '../../services/notification.service';
-import { AuditService } from '../../services/audit.service';
 import { TestOrderingService } from '../../services/test-ordering.service';
-import { 
-  Patient, 
-  DiagnosticReport, 
-  ServiceRequest,
-  Practitioner,
-  Task,
-  Bundle
-} from '@medplum/fhirtypes';
 import { UserProfile } from '../../types/fhir-types';
+import { ProviderPortalComponent } from './provider-portal';
 
 describe('ProviderPortalComponent', () => {
   let component: ProviderPortalComponent;
@@ -322,7 +321,7 @@ describe('ProviderPortalComponent', () => {
 
     it('should validate order form', () => {
       // Test empty form
-      component.orderForm = component['getEmptyOrderForm']();
+      component.orderForm = component.getEmptyOrderForm();
       spyOn(component as any, 'validateOrderForm').and.callThrough();
       
       const isValid = (component as any).validateOrderForm();
@@ -437,7 +436,7 @@ describe('ProviderPortalComponent', () => {
     it('should handle errors gracefully', () => {
       const error = new Error('Test error');
       
-      component['handleError']('Test message', error);
+      component.handleError('Test message', error);
       
       expect(component.error).toBe('Test message');
       expect(mockErrorHandlingService.handleError).toHaveBeenCalled();

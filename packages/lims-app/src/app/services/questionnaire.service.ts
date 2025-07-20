@@ -1,13 +1,12 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
-import { 
-  Questionnaire, 
-  QuestionnaireResponse, 
-  Patient, 
-  Coverage, 
+import {
   Consent,
-  Bundle
+  Coverage,
+  Patient,
+  Questionnaire,
+  QuestionnaireResponse
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from './error-handling.service';
 
@@ -40,7 +39,7 @@ export class QuestionnaireService {
         status: 'active',
         'context-type': 'patient-registration'
       });
-      
+
       const questionnaireList = questionnaires.entry?.map(entry => entry.resource!).filter(Boolean) || [];
       this.availableQuestionnaires$.next(questionnaireList);
     } catch (error) {
@@ -177,7 +176,7 @@ export class QuestionnaireService {
   async checkForDuplicatePatient(patientData: Partial<Patient>): Promise<Patient[]> {
     try {
       const searchParams: any = {};
-      
+
       // Search by name and birth date
       if (patientData.name?.[0]) {
         const name = patientData.name[0];
@@ -188,7 +187,7 @@ export class QuestionnaireService {
           searchParams.given = name.given[0];
         }
       }
-      
+
       if (patientData.birthDate) {
         searchParams.birthdate = patientData.birthDate;
       }
@@ -220,7 +219,7 @@ export class QuestionnaireService {
 
       // Create patient with conditional create
       const patient = await this.createPatientWithConditionalCreate(patientData);
-      
+
       // Create coverage if insurance information provided
       let coverage: Coverage | undefined;
       if (coverageData && patient.id) {
@@ -262,12 +261,14 @@ export class QuestionnaireService {
             switch (subItem.linkId) {
               case 'firstName':
                 if (patient.name?.[0]) {
-                  if (!patient.name[0].given) patient.name[0].given = [];
+                  if (!patient.name[0].given) { patient.name[0].given = []; }
                   patient.name[0].given.push(subItem.answer?.[0]?.valueString || '');
                 }
                 break;
               case 'lastName':
-                patient.name![0].family = subItem.answer?.[0]?.valueString;
+                if (patient.name?.[0]) {
+                  patient.name[0].family = subItem.answer?.[0]?.valueString || '';
+                }
                 break;
               case 'dateOfBirth':
                 patient.birthDate = subItem.answer?.[0]?.valueDate;
@@ -282,13 +283,13 @@ export class QuestionnaireService {
           item.item?.forEach(subItem => {
             switch (subItem.linkId) {
               case 'phone':
-                patient.telecom!.push({
+                patient.telecom?.push({
                   system: 'phone',
                   value: subItem.answer?.[0]?.valueString || ''
                 });
                 break;
               case 'email':
-                patient.telecom!.push({
+                patient.telecom?.push({
                   system: 'email',
                   value: subItem.answer?.[0]?.valueString || ''
                 });

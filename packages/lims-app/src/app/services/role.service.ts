@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { Observable, combineLatest } from 'rxjs';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { UserRole, DashboardWidget } from '../types/fhir-types';
+import { DashboardWidget, UserRole } from '../types/fhir-types';
 import { AuthService } from './auth.service';
 
 export interface RolePermissions {
@@ -363,7 +363,7 @@ export class RoleService {
   getCurrentUserPermissions(): Observable<RolePermissions> {
     return this.authService.getCurrentUser().pipe(
       map(user => {
-        if (!user || !user.roles.length) {
+        if (!(user?.roles.length)) {
           return this.getDefaultPermissions();
         }
         
@@ -423,7 +423,7 @@ export class RoleService {
   getNavigationForCurrentUser(): Observable<NavigationItem[]> {
     return this.authService.getCurrentUser().pipe(
       map(user => {
-        if (!user || !user.roles.length) {
+        if (!(user?.roles.length)) {
           return [];
         }
         
@@ -455,7 +455,7 @@ export class RoleService {
   getDashboardWidgetsForCurrentUser(): Observable<DashboardWidget[]> {
     return this.authService.getCurrentUser().pipe(
       map(user => {
-        if (!user || !user.roles.length) {
+        if (!(user?.roles.length)) {
           return [];
         }
         

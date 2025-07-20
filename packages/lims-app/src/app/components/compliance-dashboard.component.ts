@@ -1,14 +1,19 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { 
-  ComplianceReportingService, 
-  ComplianceReport, 
-  ComplianceReportType,
-  AuditTrailEntry 
+import {
+  AuditTrailEntry, 
+  ComplianceReport,
+  ComplianceReportingService,
+  ComplianceReportType
 } from '../services/compliance-reporting.service';
+
+// Extend AuditTrailEntry to add UI-specific properties
+interface ExtendedAuditTrailEntry extends AuditTrailEntry {
+  showDetails?: boolean;
+}
 
 @Component({
   selector: 'app-compliance-dashboard',
@@ -335,7 +340,7 @@ import {
             </div>
             
             <div class="entry-details" *ngIf="entry.details">
-              <button (click)="toggleEntryDetails(entry)" class="btn btn-sm btn-text">
+              <button (click)="toggleDetails(entry)" class="btn btn-sm btn-text">
                 {{ entry.showDetails ? 'Hide' : 'Show' }} Details
               </button>
               <div class="details-content" *ngIf="entry.showDetails">
@@ -1000,14 +1005,15 @@ import {
   `]
 })
 export class ComplianceDashboardComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
+  private readonly complianceReportingService = inject(ComplianceReportingService);
+  private readonly destroy$ = new Subject<void>();
 
   complianceReports: ComplianceReport[] = [];
-  auditEntries: AuditTrailEntry[] = [];
-  
+  auditEntries: ExtendedAuditTrailEntry[] = [];
+
   showGenerateReport = false;
   showAuditTrail = false;
-  
+
   activeReportFilter = 'all';
 
   reportForm = {
@@ -1075,8 +1081,6 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     { key: 'last-year', label: 'Last Year', days: 365 }
   ];
 
-  constructor(private complianceReportingService: ComplianceReportingService) {}
-
   ngOnInit(): void {
     this.loadComplianceReports();
     this.loadAuditTrail();
@@ -1099,24 +1103,24 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     this.complianceReportingService.getAuditTrail()
       .pipe(takeUntil(this.destroy$))
       .subscribe(entries => {
-        this.auditEntries = entries;
+        this.auditEntries = entries.map(entry => ({ ...entry, showDetails: false }));
       });
   }
 
   getOverallComplianceScore(): number {
-    if (this.complianceReports.length === 0) return 0;
-    
+    if (this.complianceReports.length === 0) { return 0; }
+
     const completedReports = this.complianceReports.filter(r => r.status === 'completed');
-    if (completedReports.length === 0) return 0;
-    
+    if (completedReports.length === 0) { return 0; }
+
     const totalScore = completedReports.reduce((sum, report) => sum + report.summary.complianceRate, 0);
     return totalScore / completedReports.length;
   }
 
   getOverallComplianceStatus(): 'good' | 'warning' | 'critical' {
     const score = this.getOverallComplianceScore();
-    if (score >= 90) return 'good';
-    if (score >= 75) return 'warning';
+    if (score >= 90) { return 'good'; }
+    if (score >= 75) { return 'warning'; }
     return 'critical';
   }
 
@@ -1151,13 +1155,13 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
 
   getCriticalFindings(): string[] {
     const findings: string[] = [];
-    
+
     this.complianceReports
       .filter(r => r.status === 'completed')
       .forEach(report => {
         findings.push(...report.summary.recommendations.slice(0, 3));
       });
-    
+
     return findings.slice(0, 5);
   }
 
@@ -1169,7 +1173,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   getTodayAuditCount(): number {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return this.auditEntries.filter(entry => entry.timestamp >= today).length;
   }
 
@@ -1195,13 +1199,13 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   }
 
   getComplianceClass(rate: number): string {
-    if (rate >= 90) return 'good';
-    if (rate >= 75) return 'warning';
+    if (rate >= 90) { return 'good'; }
+    if (rate >= 75) { return 'warning'; }
     return 'critical';
   }
 
   async generateReport(): Promise<void> {
-    if (!this.isReportFormValid()) return;
+    if (!this.isReportFormValid()) { return; }
 
     try {
       const startDate = new Date(this.reportForm.startDate);
@@ -1256,7 +1260,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     // Filters are applied in getFilteredAuditEntries()
   }
 
-  getFilteredAuditEntries(): AuditTrailEntry[] {
+  getFilteredAuditEntries(): ExtendedAuditTrailEntry[] {
     return this.auditEntries.filter(entry => {
       if (this.auditFilters.userId && entry.userId !== this.auditFilters.userId) {
         return false;
@@ -1271,7 +1275,7 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
     });
   }
 
-  toggleEntryDetails(entry: any): void {
+  toggleDetails(entry: ExtendedAuditTrailEntry): void {
     entry.showDetails = !entry.showDetails;
   }
 

@@ -1,10 +1,9 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Subject, interval } from 'rxjs';
-import { takeUntil, switchMap } from 'rxjs/operators';
-import { MedplumService } from '../../../medplum.service';
+import { RouterModule } from '@angular/router';
+import { interval, Subject } from 'rxjs';
+import { switchMap, takeUntil } from 'rxjs/operators';
 
 interface ChartDataPoint {
   label: string;
@@ -133,14 +132,15 @@ interface AnalyticsData {
 })
 export class AnalyticsChartWidget implements OnInit, OnDestroy {
   @Input() config: any = {};
-  
+
   private destroy$ = new Subject<void>();
-  
+
+  // Math property for template access
+  protected readonly Math = Math;
+
   analyticsData: AnalyticsData = this.getEmptyAnalyticsData();
   isLoading = true;
   selectedPeriod = 'week';
-
-  constructor(private medplumService: MedplumService) {}
 
   ngOnInit(): void {
     this.selectedPeriod = this.config.period || 'week';
@@ -156,11 +156,11 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
   private async loadAnalyticsData(): Promise<void> {
     try {
       this.isLoading = true;
-      
+
       // In a real implementation, this would make API calls based on the metric type
       await this.delay(1000); // Simulate API call
       this.analyticsData = this.getMockAnalyticsData();
-      
+
     } catch (error) {
       console.error('Failed to load analytics data:', error);
       this.analyticsData = this.getMockAnalyticsData();
@@ -171,7 +171,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
 
   private startAutoRefresh(): void {
     const refreshInterval = this.config.refreshInterval || 300000; // 5 minutes default
-    
+
     interval(refreshInterval)
       .pipe(
         takeUntil(this.destroy$),
@@ -193,7 +193,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
       'productivity': 'Staff Productivity',
       'cases': 'Case Analytics'
     };
-    
+
     return titles[this.config.metric] || this.config.title || 'Analytics';
   }
 
@@ -206,23 +206,23 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
       'productivity': 'Cases/Hour',
       'cases': 'Cases'
     };
-    
+
     return labels[this.config.metric] || 'Value';
   }
 
   formatValue(value: number): string {
     const metric = this.config.metric;
-    
+
     if (metric === 'revenue') {
-      return '$' + value.toLocaleString();
+      return `$${value.toLocaleString()}`;
     } else if (metric === 'turnaround-time') {
-      return value.toFixed(1) + 'h';
+      return `${value.toFixed(1)}h`;
     } else if (metric === 'quality') {
-      return value.toFixed(1) + '%';
+      return `${value.toFixed(1)}%`;
     } else if (metric === 'productivity') {
       return value.toFixed(1);
     }
-    
+
     return value.toLocaleString();
   }
 
@@ -231,23 +231,23 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
     if (this.selectedPeriod === 'day') {
       return label.substring(0, 3); // Mon, Tue, etc.
     } else if (this.selectedPeriod === 'week') {
-      return 'W' + label.split(' ')[1]; // W1, W2, etc.
+      return `W${label.split(' ')[1]}`; // W1, W2, etc.
     } else if (this.selectedPeriod === 'month') {
       return label.substring(0, 3); // Jan, Feb, etc.
     }
-    
+
     return label;
   }
 
   getTrendClass(trend: number): string {
-    if (trend > 0) return 'trend-positive';
-    if (trend < 0) return 'trend-negative';
+    if (trend > 0) { return 'trend-positive'; }
+    if (trend < 0) { return 'trend-negative'; }
     return 'trend-neutral';
   }
 
   getTrendIcon(trend: number): string {
-    if (trend > 0) return '↗';
-    if (trend < 0) return '↘';
+    if (trend > 0) { return '↗'; }
+    if (trend < 0) { return '↘'; }
     return '→';
   }
 
@@ -257,33 +257,33 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
   }
 
   getChangeClass(dataPoint: ChartDataPoint, index: number): string {
-    if (index === 0) return 'change-neutral';
-    
+    if (index === 0) { return 'change-neutral'; }
+
     const previousValue = this.analyticsData.chartData[index - 1].value;
     const change = dataPoint.value - previousValue;
-    
-    if (change > 0) return 'change-positive';
-    if (change < 0) return 'change-negative';
+
+    if (change > 0) { return 'change-positive'; }
+    if (change < 0) { return 'change-negative'; }
     return 'change-neutral';
   }
 
   getChangeValue(dataPoint: ChartDataPoint, index: number): string {
-    if (index === 0) return '-';
-    
+    if (index === 0) { return '-'; }
+
     const previousValue = this.analyticsData.chartData[index - 1].value;
     const change = dataPoint.value - previousValue;
     const percentChange = previousValue > 0 ? (change / previousValue) * 100 : 0;
-    
-    return (change > 0 ? '+' : '') + percentChange.toFixed(1) + '%';
+
+    return `${(change > 0 ? '+' : '') + percentChange.toFixed(1)}%`;
   }
 
   exportData(): void {
     // Export analytics data as CSV
-    const csvData = this.analyticsData.chartData.map(d => 
+    const csvData = this.analyticsData.chartData.map(d =>
       `${d.label},${d.value}`
     ).join('\n');
-    
-    const blob = new Blob([`Period,${this.getMetricLabel()}\n${csvData}`], 
+
+    const blob = new Blob([`Period,${this.getMetricLabel()}\n${csvData}`],
       { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -312,14 +312,14 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
 
   private getMockAnalyticsData(): AnalyticsData {
     const metric = this.config.metric || 'specimen-volume';
-    
+
     // Generate mock data based on metric type
     const chartData = this.generateMockChartData(metric);
     const values = chartData.map(d => d.value);
     const currentValue = values[values.length - 1] || 0;
     const previousValue = values[values.length - 2] || 0;
     const trend = previousValue > 0 ? ((currentValue - previousValue) / previousValue) * 100 : 0;
-    
+
     return {
       metric,
       period: this.selectedPeriod,
@@ -339,7 +339,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
   private generateMockChartData(metric: string): ChartDataPoint[] {
     const periods = this.getPeriodLabels();
     const baseValue = this.getBaseValue(metric);
-    
+
     return periods.map((period, index) => ({
       label: period,
       value: baseValue + (Math.random() - 0.5) * baseValue * 0.4, // ±20% variation
@@ -350,7 +350,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
   private getPeriodLabels(): string[] {
     const now = new Date();
     const labels: string[] = [];
-    
+
     if (this.selectedPeriod === 'day') {
       for (let i = 6; i >= 0; i--) {
         const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
@@ -370,7 +370,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
         labels.push(`Q${4 - i}`);
       }
     }
-    
+
     return labels;
   }
 
@@ -383,7 +383,7 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
       'productivity': 8.5,
       'cases': 45
     };
-    
+
     return baseValues[metric] || 100;
   }
 
@@ -394,8 +394,8 @@ export class AnalyticsChartWidget implements OnInit, OnDestroy {
       'month': 30 * 24 * 60 * 60 * 1000,
       'quarter': 90 * 24 * 60 * 60 * 1000
     };
-    
-    return durations[this.selectedPeriod] || durations['week'];
+
+    return durations[this.selectedPeriod] || durations.week;
   }
 
   private delay(ms: number): Promise<void> {

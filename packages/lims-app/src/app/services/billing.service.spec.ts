@@ -1,27 +1,25 @@
 import { TestBed } from '@angular/core/testing';
-import { BillingService, BillingContext, ClaimItem } from './billing.service';
-import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { RetryService } from './retry.service';
 import {
   Claim,
   ClaimResponse,
-  DiagnosticReport,
-  Patient,
   Coverage,
-  ServiceRequest,
+  DiagnosticReport,
   Organization,
+  Patient,
   Practitioner,
-  Task,
-  AuditEvent
+  ServiceRequest,
 } from '@medplum/fhirtypes';
+import { MedplumService } from '../medplum.service';
 import { BillingRule, LIMSErrorType } from '../types/fhir-types';
+import { BillingContext, BillingService, } from './billing.service';
+import { ErrorHandlingService } from './error-handling.service';
+import { RetryService } from './retry.service';
 
 describe('BillingService', () => {
   let service: BillingService;
   let mockMedplumService: jasmine.SpyObj<MedplumService>;
   let mockErrorHandlingService: jasmine.SpyObj<ErrorHandlingService>;
-  let mockRetryService: jasmine.SpyObj<RetryService>;
+  let _mockRetryService: jasmine.SpyObj<RetryService>;
 
   const mockPatient: Patient = {
     resourceType: 'Patient',
@@ -36,7 +34,7 @@ describe('BillingService', () => {
     name: [{ given: ['Dr. Jane'], family: 'Smith' }]
   };
 
-  const mockOrganization: Organization = {
+  const _mockOrganization: Organization = {
     resourceType: 'Organization',
     id: 'test-lab',
     name: 'Test Laboratory'
@@ -110,13 +108,13 @@ describe('BillingService', () => {
     service = TestBed.inject(BillingService);
     mockMedplumService = TestBed.inject(MedplumService) as jasmine.SpyObj<MedplumService>;
     mockErrorHandlingService = TestBed.inject(ErrorHandlingService) as jasmine.SpyObj<ErrorHandlingService>;
-    mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
+    _mockRetryService = TestBed.inject(RetryService) as jasmine.SpyObj<RetryService>;
 
     // Setup default mock responses
     mockMedplumService.readResource.and.callFake((resourceType: string, id: string) => {
-      if (resourceType === 'Patient') return Promise.resolve(mockPatient);
-      if (resourceType === 'Practitioner') return Promise.resolve(mockPractitioner);
-      if (resourceType === 'ServiceRequest') return Promise.resolve(mockServiceRequest);
+      if (resourceType === 'Patient') { return Promise.resolve(mockPatient); }
+      if (resourceType === 'Practitioner') { return Promise.resolve(mockPractitioner); }
+      if (resourceType === 'ServiceRequest') { return Promise.resolve(mockServiceRequest); }
       return Promise.resolve({} as any);
     });
 
@@ -183,8 +181,8 @@ describe('BillingService', () => {
       const claim = await service.createClaimFromDiagnosticReport(mockDiagnosticReport, context);
 
       expect(claim.insurance).toBeTruthy();
-      expect(claim.insurance!.length).toBe(1);
-      expect(claim.insurance![0].coverage?.reference).toBe('Coverage/test-coverage');
+      expect(claim.insurance?.length).toBe(1);
+      expect(claim.insurance?.[0].coverage?.reference).toBe('Coverage/test-coverage');
     });
 
     it('should generate claim items from service requests', async () => {
@@ -203,7 +201,7 @@ describe('BillingService', () => {
       const claim = await service.createClaimFromDiagnosticReport(mockDiagnosticReport);
 
       expect(claim.item).toBeTruthy();
-      expect(claim.item!.length).toBeGreaterThan(0);
+      expect(claim.item?.length).toBeGreaterThan(0);
       expect(claim.total?.value).toBeGreaterThan(0);
     });
   });
@@ -422,7 +420,7 @@ describe('BillingService', () => {
       expect(mockMedplumService.createResource).toHaveBeenCalledWith(claimResponse);
       expect(mockMedplumService.readResource).toHaveBeenCalledWith('Claim', 'test-claim');
       expect(mockMedplumService.updateResource).toHaveBeenCalled();
-      expect(service['triggerPaymentReconciliation']).toHaveBeenCalledWith(claimResponse);
+      expect(service.triggerPaymentReconciliation).toHaveBeenCalledWith(claimResponse);
     });
 
     it('should handle rejected claim response', async () => {
@@ -537,7 +535,7 @@ describe('BillingService', () => {
       try {
         await service.triggerBillingBot(mockDiagnosticReport);
         fail('Should have thrown an error');
-      } catch (error) {
+      } catch (_error) {
         expect(mockErrorHandlingService.handleError).toHaveBeenCalledWith(
           jasmine.objectContaining({
             type: LIMSErrorType.WORKFLOW_ERROR,

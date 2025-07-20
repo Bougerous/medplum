@@ -1,16 +1,13 @@
 import { TestBed } from '@angular/core/testing';
+import {
+  Bundle, 
+  Patient,
+  Specimen
+} from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { AuthService } from '../services/auth.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
 import { RetryService } from '../services/retry.service';
-import {
-  Patient,
-  Specimen,
-  ServiceRequest,
-  DiagnosticReport,
-  Observation,
-  Bundle
-} from '@medplum/fhirtypes';
 
 // Database performance test configuration
 const DB_PERFORMANCE_CONFIG = {
@@ -61,7 +58,7 @@ interface DatabasePerformanceResult {
 describe('Database Performance Tests', () => {
   let medplumService: MedplumService;
   let authService: AuthService;
-  let errorHandlingService: ErrorHandlingService;
+  let _errorHandlingService: ErrorHandlingService;
 
   // Test resources to clean up
   let testResources: { type: string; id: string }[] = [];
@@ -82,7 +79,7 @@ describe('Database Performance Tests', () => {
 
     medplumService = TestBed.inject(MedplumService);
     authService = TestBed.inject(AuthService);
-    errorHandlingService = TestBed.inject(ErrorHandlingService);
+    _errorHandlingService = TestBed.inject(ErrorHandlingService);
 
     testResources = [];
   });
@@ -437,7 +434,7 @@ describe('Database Performance Tests', () => {
 
             // Create batch of 5 patients
             for (let i = 0; i < 5; i++) {
-              batchBundle.entry!.push({
+              batchBundle.entry?.push({
                 request: {
                   method: 'POST',
                   url: 'Patient'
@@ -601,7 +598,7 @@ describe('Database Performance Tests', () => {
         .filter(r => r.success)
         .reduce((sum, r) => sum + r.executionTime, 0) / successfulQueries;
 
-      console.log(`\n=== Concurrent Query Performance ===`);
+      console.log('\n=== Concurrent Query Performance ===');
       console.log(`Concurrent Queries: ${concurrentQueries}`);
       console.log(`Successful Queries: ${successfulQueries}`);
       console.log(`Total Time: ${totalTime.toFixed(2)}ms`);
@@ -673,7 +670,7 @@ describe('Database Performance Tests', () => {
         .filter(r => r.success)
         .reduce((sum, r) => sum + r.executionTime, 0) / successfulQueries;
 
-      console.log(`\n=== Concurrent Search Performance ===`);
+      console.log('\n=== Concurrent Search Performance ===');
       console.log(`Concurrent Searches: ${concurrentSearches}`);
       console.log(`Successful Searches: ${successfulQueries}`);
       console.log(`Total Time: ${totalTime.toFixed(2)}ms`);
@@ -772,7 +769,7 @@ describe('Database Performance Tests', () => {
         .reduce((sum, r) => sum + r.executionTime, 0) / successfulQueries;
       const throughput = (successfulQueries / actualDuration) * 1000;
 
-      console.log(`\n=== Database Stress Test Results ===`);
+      console.log('\n=== Database Stress Test Results ===');
       console.log(`Test Duration: ${actualDuration}ms`);
       console.log(`Total Queries: ${queryResults.length}`);
       console.log(`Successful Queries: ${successfulQueries}`);

@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "Context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@upstash/context7-mcp",
+        "--key",
+        "8e045d29-152b-4f50-91b1-3856f72c52b2"
+      ],
+      "env": {}
+    },
+    "icons8mcp": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.icons8.com/mcp/"
+      ],
+      "env": {}
+    }
+  }
+}

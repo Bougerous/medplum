@@ -1,25 +1,27 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, FormArray } from '@angular/forms';
-import { Subject, takeUntil } from 'rxjs';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { FormArray, FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { 
   Patient, 
-  ServiceRequest,
-  QuestionnaireResponse
+  QuestionnaireResponse, 
 } from '@medplum/fhirtypes';
+import { Subject, takeUntil } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { 
-  TestOrderingService, 
-  LabTest, 
-  TestCategory, 
-  OrderSplitResult,
-  AskOnOrderEntryData
-} from '../services/test-ordering.service';
-import { NotificationService } from '../services/notification.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
+import { NotificationService } from '../services/notification.service';
+import { 
+  AskOnOrderEntryData, 
+  LabTest, 
+  OrderSplitResult,
+  TestCategory, 
+  TestOrderingService 
+} from '../services/test-ordering.service';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-test-ordering',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   templateUrl: './test-ordering.html',
   styleUrl: './test-ordering.scss'
 })
@@ -109,8 +111,8 @@ export class TestOrdering implements OnInit, OnDestroy {
   /**
    * Search for patients
    */
-  async searchPatients(event: any): Promise<void> {
-    const searchTerm = event.target.value;
+  async searchPatients(event: Event): Promise<void> {
+    const searchTerm = (event.target as HTMLInputElement).value;
     if (searchTerm.length < 2) {
       this.searchResults = [];
       return;
@@ -255,9 +257,11 @@ export class TestOrdering implements OnInit, OnDestroy {
    */
   getSpecimenRequirements(): string[] {
     const specimenTypes = new Set<string>();
-    this.selectedTests.forEach(test => {
-      test.specimenTypes.forEach(type => specimenTypes.add(type));
-    });
+    for (const test of this.selectedTests) {
+      for (const type of test.specimenTypes) {
+        specimenTypes.add(type);
+      }
+    }
     return Array.from(specimenTypes);
   }
 
@@ -300,28 +304,30 @@ export class TestOrdering implements OnInit, OnDestroy {
     try {
       // Prepare Ask-on-Order-Entry responses
       const askOnOrderEntryResponses: { [testId: string]: QuestionnaireResponse } = {};
-      Object.entries(this.askOnOrderEntryData).forEach(([testId, data]) => {
+      for (const [testId, data] of Object.entries(this.askOnOrderEntryData)) {
         if (data.response) {
           askOnOrderEntryResponses[testId] = data.response;
         }
-      });
+      }
 
       // Create test orders with order splitting
-      this.orderResult = await this.testOrderingService.createTestOrders(
-        this.selectedPatient.id!,
-        this.selectedTests,
-        {
-          providerId: formValue.providerId,
-          providerName: formValue.providerName,
-          priority: formValue.priority,
-          clinicalInfo: formValue.clinicalInfo,
-          askOnOrderEntryResponses
-        }
-      );
+      if (this.selectedPatient?.id) {
+        this.orderResult = await this.testOrderingService.createTestOrders(
+          this.selectedPatient.id,
+          this.selectedTests,
+          {
+            providerId: formValue.providerId,
+            providerName: formValue.providerName,
+            priority: formValue.priority,
+            clinicalInfo: formValue.clinicalInfo,
+            askOnOrderEntryResponses
+          }
+        );
+      }
 
       this.notificationService.showSuccess(
         'Orders Created Successfully',
-        `${this.orderResult.orders.length} test order(s) created. Estimated cost: $${this.orderResult.totalEstimatedCost?.toFixed(2) || '0.00'}`
+        `${this.orderResult.orders.length} test order(s) created. Estimated cost: ${this.orderResult.totalEstimatedCost?.toFixed(2) || '0.00'}`
       );
 
       // Reset form for new order
@@ -361,7 +367,7 @@ export class TestOrdering implements OnInit, OnDestroy {
    * Create new order for same patient
    */
   newOrderForPatient(): void {
-    if (!this.selectedPatient) return;
+    if (!this.selectedPatient) { return; }
     
     const patientName = this.selectedPatient.name?.[0] ? 
       `${this.selectedPatient.name[0].given?.[0]} ${this.selectedPatient.name[0].family}` : 
@@ -385,22 +391,22 @@ export class TestOrdering implements OnInit, OnDestroy {
    * Mark all form controls as touched to show validation errors
    */
   private markFormGroupTouched(formGroup: FormGroup): void {
-    Object.keys(formGroup.controls).forEach(key => {
+    for (const key of Object.keys(formGroup.controls)) {
       const control = formGroup.get(key);
       control?.markAsTouched();
 
       if (control instanceof FormGroup) {
         this.markFormGroupTouched(control);
       } else if (control instanceof FormArray) {
-        control.controls.forEach(arrayControl => {
+        for (const arrayControl of control.controls) {
           if (arrayControl instanceof FormGroup) {
             this.markFormGroupTouched(arrayControl);
           } else {
             arrayControl.markAsTouched();
           }
-        });
+        }
       }
-    });
+    }
   }
 
   /**
@@ -409,7 +415,7 @@ export class TestOrdering implements OnInit, OnDestroy {
   getFieldError(fieldName: string): string {
     const field = this.orderForm.get(fieldName);
     if (field?.errors && field.touched) {
-      if (field.errors['required']) return `${fieldName} is required`;
+      if (field.errors.required) { return `${fieldName} is required`; }
     }
     return '';
   }

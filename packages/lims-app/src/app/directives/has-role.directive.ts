@@ -1,10 +1,10 @@
 import { 
   Directive, 
   Input, 
-  TemplateRef, 
-  ViewContainerRef, 
+  OnDestroy, 
   OnInit, 
-  OnDestroy 
+  TemplateRef, 
+  ViewContainerRef 
 } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';

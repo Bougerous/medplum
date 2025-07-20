@@ -1,10 +1,10 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject, Subject } from 'rxjs';
-import { Specimen, Patient, ServiceRequest } from '../types/fhir-types';
+import * as QRCode from 'qrcode';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { MedplumService } from '../medplum.service';
+import { Patient, ServiceRequest, Specimen } from '../types/fhir-types';
 import { ErrorHandlingService } from './error-handling.service';
 import { NotificationService } from './notification.service';
-import * as QRCode from 'qrcode';
 
 export interface LabelTemplate {
   id: string;
@@ -540,7 +540,7 @@ export class LabelPrintingService {
     ctx: CanvasRenderingContext2D,
     element: LabelElement,
     labelData: LabelData,
-    x: number, y: number, width: number, height: number
+    x: number, y: number, width: number, _height: number
   ): Promise<void> {
     const content = this.resolveElementContent(element, labelData);
     
@@ -793,7 +793,7 @@ export class LabelPrintingService {
   /**
    * Calculate average labels per day
    */
-  private calculateAveragePerDay(templateId: string, newQuantity: number): number {
+  private calculateAveragePerDay(_templateId: string, newQuantity: number): number {
     // Simplified calculation - in a real implementation, this would use historical data
     return newQuantity;
   }

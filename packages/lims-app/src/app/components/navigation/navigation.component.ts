@@ -1,13 +1,16 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { Router, RouterModule } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService } from '../../services/auth.service';
-import { RoleService, NavigationItem } from '../../services/role.service';
+import { NavigationItem, RoleService } from '../../services/role.service';
 import { UserProfile } from '../../types/fhir-types';
 
 @Component({
   selector: 'app-navigation',
+  standalone: true,
+  imports: [CommonModule, RouterModule],
   template: `
     <nav class="navigation" *ngIf="currentUser">
       <div class="nav-header">
@@ -186,16 +189,13 @@ import { UserProfile } from '../../types/fhir-types';
   `]
 })
 export class NavigationComponent implements OnInit, OnDestroy {
-  private destroy$ = new Subject<void>();
-  
+  private readonly destroy$ = new Subject<void>();
+  private readonly authService = inject(AuthService);
+  private readonly roleService = inject(RoleService);
+  private readonly router = inject(Router);
+
   currentUser: UserProfile | null = null;
   navigationItems: NavigationItem[] = [];
-
-  constructor(
-    private authService: AuthService,
-    private roleService: RoleService,
-    private router: Router
-  ) {}
 
   ngOnInit(): void {
     // Subscribe to current user changes
@@ -222,7 +222,7 @@ export class NavigationComponent implements OnInit, OnDestroy {
     if (!this.currentUser?.roles) {
       return '';
     }
-    
+
     return this.currentUser.roles
       .map(role => this.roleService.getRoleDisplayName(role))
       .join(', ');

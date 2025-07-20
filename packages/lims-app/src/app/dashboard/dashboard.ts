@@ -1,4 +1,6 @@
 import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 
 interface DashboardStats {
   totalPatients: number;
@@ -36,7 +38,8 @@ interface Alert {
 
 @Component({
   selector: 'app-dashboard',
-  standalone: false,
+  standalone: true,
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss'
 })
@@ -145,8 +148,6 @@ export class Dashboard implements OnInit {
       timestamp: new Date(Date.now() - 60 * 60 * 1000)
     }
   ];
-
-  constructor() { }
 
   ngOnInit(): void {
     // Load dashboard data

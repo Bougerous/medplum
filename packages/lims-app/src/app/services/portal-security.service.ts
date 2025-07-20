@@ -1,20 +1,20 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, interval } from 'rxjs';
-import { map, switchMap, catchError } from 'rxjs/operators';
+import { Injectable, OnDestroy } from '@angular/core';
 import {
+  AccessPolicy, 
+  AuditEvent,
+  Bundle,
   Patient,
   Practitioner,
-  Reference,
-  Bundle,
-  AuditEvent,
-  AccessPolicy
+  Reference
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, interval, Observable } from 'rxjs';
+import { catchError, map, switchMap } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
-import { AuthService } from './auth.service';
+import { LIMSErrorType, UserProfile } from '../types/fhir-types';
 import { AuditService, SecurityEventType } from './audit.service';
+import { AuthService } from './auth.service';
 import { ErrorHandlingService } from './error-handling.service';
 import { SessionService } from './session.service';
-import { UserProfile, LIMSErrorType } from '../types/fhir-types';
 
 export interface PatientProviderRelationship {
   patientId: string;
@@ -85,7 +85,7 @@ export interface SessionActivity {
 @Injectable({
   providedIn: 'root'
 })
-export class PortalSecurityService {
+export class PortalSecurityService implements OnDestroy {
   private patientProviderRelationships$ = new BehaviorSubject<PatientProviderRelationship[]>([]);
   private securityAlerts$ = new BehaviorSubject<SecurityAlert[]>([]);
   private activeSessions$ = new BehaviorSubject<SessionMonitoring[]>([]);
@@ -354,7 +354,7 @@ export class PortalSecurityService {
       }
 
       // Check if action is allowed
-      if (!policy.allowedActions.includes(action) && !policy.allowedActions.includes('*')) {
+      if (!(policy.allowedActions.includes(action) || policy.allowedActions.includes('*'))) {
         await this.auditService.logAuthorizationEvent(
           'access-denied',
           resourceType,

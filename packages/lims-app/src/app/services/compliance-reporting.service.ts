@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { AuditEvent, } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { AuditEvent, DiagnosticReport, Specimen, ServiceRequest } from '@medplum/fhirtypes';
 import { SearchParams } from '../types/fhir-types';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface ComplianceReport {
   id: string;
@@ -161,7 +161,7 @@ export class ComplianceReportingService {
    * Get audit trail entries
    */
   getAuditTrail(
-    filters?: {
+    _filters?: {
       userId?: string;
       resourceType?: string;
       action?: string;
@@ -329,7 +329,7 @@ export class ComplianceReportingService {
 
   // Private helper methods
 
-  private async processComplianceReport(report: ComplianceReport, options?: any): Promise<void> {
+  private async processComplianceReport(report: ComplianceReport, _options?: any): Promise<void> {
     try {
       let data: any;
 
@@ -413,7 +413,7 @@ export class ComplianceReportingService {
     return descriptions[type];
   }
 
-  private async getPersonnelQualifications(period: { start: Date; end: Date }): Promise<any> {
+  private async getPersonnelQualifications(_period: { start: Date; end: Date }): Promise<any> {
     // Mock implementation - would query Practitioner resources
     return {
       laboratoryDirector: { qualified: true, certifications: ['MD', 'Board Certified Pathologist'] },
@@ -425,7 +425,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private async getQualityControlData(period: { start: Date; end: Date }): Promise<any> {
+  private async getQualityControlData(_period: { start: Date; end: Date }): Promise<any> {
     // Mock implementation - would query QC Observation resources
     return {
       dailyQC: { performed: 95, required: 100, compliance: 95 },
@@ -434,7 +434,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private async getProficiencyTestResults(period: { start: Date; end: Date }): Promise<any> {
+  private async getProficiencyTestResults(_period: { start: Date; end: Date }): Promise<any> {
     // Mock implementation - would query proficiency test results
     return {
       chemistry: { passed: 5, total: 5, score: 100 },
@@ -443,7 +443,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private async getPatientTestData(period: { start: Date; end: Date }): Promise<any> {
+  private async getPatientTestData(_period: { start: Date; end: Date }): Promise<any> {
     // Mock implementation - would query DiagnosticReport resources
     return {
       totalTests: 5000,
@@ -473,7 +473,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private async evaluateCAPChecklist(period: { start: Date; end: Date }): Promise<any> {
+  private async evaluateCAPChecklist(_period: { start: Date; end: Date }): Promise<any> {
     // Mock CAP checklist evaluation
     return [
       { section: 'GEN.20000', requirement: 'Laboratory Director Qualifications', status: 'compliant' },
@@ -563,7 +563,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private evaluateSystemSecurity(auditEvents: AuditEvent[]): any {
+  private evaluateSystemSecurity(_auditEvents: AuditEvent[]): any {
     // Evaluate system security measures
     return {
       encryptionCompliance: 100, // Mock data
@@ -614,7 +614,7 @@ export class ComplianceReportingService {
     return recommendations;
   }
 
-  private async getQualityAssuranceMetrics(period: { start: Date; end: Date }): Promise<QualityAssuranceMetric[]> {
+  private async getQualityAssuranceMetrics(_period: { start: Date; end: Date }): Promise<QualityAssuranceMetric[]> {
     // Mock QA metrics - would query actual QA data
     return [
       {
@@ -648,7 +648,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private async getQualityIncidents(period: { start: Date; end: Date }): Promise<any[]> {
+  private async getQualityIncidents(_period: { start: Date; end: Date }): Promise<any[]> {
     // Mock quality incidents
     return [
       {
@@ -662,7 +662,7 @@ export class ComplianceReportingService {
     ];
   }
 
-  private async getCorrectiveActions(period: { start: Date; end: Date }): Promise<any[]> {
+  private async getCorrectiveActions(_period: { start: Date; end: Date }): Promise<any[]> {
     // Mock corrective actions
     return [
       {
@@ -688,7 +688,7 @@ export class ComplianceReportingService {
     return recommendations;
   }
 
-  private async getPopulationHealthMetrics(period: { start: Date; end: Date }): Promise<PopulationHealthMetric[]> {
+  private async getPopulationHealthMetrics(_period: { start: Date; end: Date }): Promise<PopulationHealthMetric[]> {
     // Mock population health data
     return [
       {
@@ -745,7 +745,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private analyzeHealthOutcomes(metrics: PopulationHealthMetric[]): any {
+  private analyzeHealthOutcomes(_metrics: PopulationHealthMetric[]): any {
     // Mock health outcomes analysis
     return {
       earlyDetection: 85,
@@ -766,7 +766,7 @@ export class ComplianceReportingService {
     return recommendations;
   }
 
-  private async getClinicalOutcomes(period: { start: Date; end: Date }): Promise<ClinicalOutcome[]> {
+  private async getClinicalOutcomes(_period: { start: Date; end: Date }): Promise<ClinicalOutcome[]> {
     // Mock clinical outcomes data
     return [
       {
@@ -803,7 +803,7 @@ export class ComplianceReportingService {
     };
   }
 
-  private analyzeCostEffectiveness(outcomes: ClinicalOutcome[]): any {
+  private analyzeCostEffectiveness(_outcomes: ClinicalOutcome[]): any {
     // Mock cost-effectiveness analysis
     return {
       costPerCase: 150,
@@ -859,7 +859,7 @@ export class ComplianceReportingService {
   }
 
   private isAfterHours(timestamp?: string): boolean {
-    if (!timestamp) return false;
+    if (!timestamp) { return false; }
 
     const date = new Date(timestamp);
     const hour = date.getHours();
@@ -891,14 +891,14 @@ export class ComplianceReportingService {
   }
 
   private calculateTrend(trends: Array<{ period: string, value: number }>): 'increasing' | 'decreasing' | 'stable' {
-    if (trends.length < 2) return 'stable';
+    if (trends.length < 2) { return 'stable'; }
 
     const first = trends[0].value;
     const last = trends[trends.length - 1].value;
     const change = ((last - first) / first) * 100;
 
-    if (change > 5) return 'increasing';
-    if (change < -5) return 'decreasing';
+    if (change > 5) { return 'increasing'; }
+    if (change < -5) { return 'decreasing'; }
     return 'stable';
   }
 

@@ -1,25 +1,22 @@
-import { Component, OnInit, OnDestroy, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Subject, Observable, combineLatest } from 'rxjs';
-import { takeUntil, map, startWith, debounceTime, distinctUntilChanged } from 'rxjs/operators';
-
-import { 
-  SpecimenTrackingService, 
-  SpecimenTrackingData, 
-  SpecimenLocation, 
-  WorkflowStation,
-  ChainOfCustodyEvent,
-  SpecimenAlert
-} from '../../services/specimen-tracking.service';
-import { QrScannerService, ScanResult } from '../../services/qr-scanner.service';
-import { NotificationService } from '../../services/notification.service';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { combineLatest, Observable, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, map, startWith, takeUntil } from 'rxjs/operators';
 import { ErrorHandlingService } from '../../services/error-handling.service';
+import { NotificationService } from '../../services/notification.service';
+import { QrScannerService, ScanResult } from '../../services/qr-scanner.service';
+import {
+  SpecimenLocation,
+  SpecimenTrackingData,
+  SpecimenTrackingService,
+  WorkflowStation
+} from '../../services/specimen-tracking.service';
 
 @Component({
   selector: 'app-specimen-tracking',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
   template: `
     <div class="specimen-tracking-container">
       <!-- Header with QR Scanner -->
@@ -301,7 +298,7 @@ import { ErrorHandlingService } from '../../services/error-handling.service';
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
           <div class="modal-header">
-            <h5 class="modal-title">Chain of Custody - {{ selectedTracking?.specimen.id }}</h5>
+            <h5 class="modal-title">Chain of Custody - {{ selectedTracking?.specimen?.id || 'Unknown' }}</h5>
             <button type="button" class="btn-close" (click)="closeTimelineModal()"></button>
           </div>
           <div class="modal-body">
@@ -351,10 +348,10 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   alertCount$: Observable<number>;
 
   // Form controls
-  searchControl = this.fb.control('');
-  locationFilter = this.fb.control('');
-  statusFilter = this.fb.control('');
-  priorityFilter = this.fb.control('');
+  searchControl: any;
+  locationFilter: any;
+  statusFilter: any;
+  priorityFilter: any;
   checkInForm: FormGroup;
 
   // Scanner state
@@ -379,15 +376,30 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private errorHandlingService: ErrorHandlingService
   ) {
-    this.specimens$ = this.specimenTrackingService.getTrackedSpecimens();
-    this.locations$ = this.specimenTrackingService.getLocations();
-    this.workflowStations$ = this.specimenTrackingService.getWorkflowStations();
+    // Initialize form controls after FormBuilder is injected
+    this.searchControl = this.fb.control('');
+    this.locationFilter = this.fb.control('');
+    this.statusFilter = this.fb.control('');
+    this.priorityFilter = this.fb.control('');
 
     this.checkInForm = this.fb.group({
       stationId: ['', Validators.required],
       toStationId: [''],
       comments: ['']
     });
+
+    this.specimens$ = this.specimenTrackingService.getTrackedSpecimens();
+    this.locations$ = this.specimenTrackingService.getLocations();
+    this.workflowStations$ = this.specimenTrackingService.getWorkflowStations();
+
+    // Initialize missing Observable properties
+    this.filteredSpecimens$ = this.specimens$;
+    this.overdueCount$ = this.specimens$.pipe(
+      map(specimens => specimens.filter(s => this.isOverdue(s)).length)
+    );
+    this.alertCount$ = this.specimens$.pipe(
+      map(specimens => specimens.filter(s => s.alerts.length > 0).length)
+    );
 
     this.setupFilteredSpecimens();
     this.setupCounts();
@@ -405,29 +417,33 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   }
 
   private setupFilteredSpecimens(): void {
-    const filters$ = combineLatest([
-      this.searchControl.valueChanges.pipe(startWith(''), debounceTime(300), distinctUntilChanged()),
-      this.locationFilter.valueChanges.pipe(startWith('')),
-      this.statusFilter.valueChanges.pipe(startWith('')),
-      this.priorityFilter.valueChanges.pipe(startWith(''))
-    ]);
+    const search$ = this.searchControl.valueChanges.pipe(startWith(''), debounceTime(300), distinctUntilChanged());
+    const location$ = this.locationFilter.valueChanges.pipe(startWith(''));
+    const status$ = this.statusFilter.valueChanges.pipe(startWith(''));
+    const priority$ = this.priorityFilter.valueChanges.pipe(startWith(''));
 
-    this.filteredSpecimens$ = combineLatest([this.specimens$, filters$]).pipe(
-      map(([specimens, [search, location, status, priority]]) => {
+    this.filteredSpecimens$ = combineLatest({
+      specimens: this.specimens$,
+      search: search$,
+      location: location$,
+      status: status$,
+      priority: priority$
+    }).pipe(
+      map(({ specimens, search, location, status, priority }) => {
         return specimens.filter(tracking => {
-          const matchesSearch = !search || 
-            this.getSpecimenDisplayId(tracking.specimen).toLowerCase().includes(search.toLowerCase()) ||
-            this.getPatientName(tracking.specimen).toLowerCase().includes(search.toLowerCase());
-          
+          const matchesSearch = !search ||
+            this.getSpecimenDisplayId(tracking.specimen).toLowerCase().includes((search as string).toLowerCase()) ||
+            this.getPatientName(tracking.specimen).toLowerCase().includes((search as string).toLowerCase());
+
           const matchesLocation = !location || tracking.currentLocation.id === location;
           const matchesStatus = !status || tracking.currentStatus.code === status;
           const matchesPriority = !priority || tracking.priority === priority;
-          
+
           const matchesOverdue = !this.showOverdueOnly || this.isOverdue(tracking);
           const matchesAlerts = !this.showAlertsOnly || tracking.alerts.length > 0;
 
-          return matchesSearch && matchesLocation && matchesStatus && 
-                 matchesPriority && matchesOverdue && matchesAlerts;
+          return matchesSearch && matchesLocation && matchesStatus &&
+            matchesPriority && matchesOverdue && matchesAlerts;
         });
       })
     );
@@ -489,7 +505,7 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   async switchCamera(): Promise<void> {
     try {
       await this.qrScannerService.toggleCamera();
-    } catch (error) {
+    } catch (_error) {
       this.notificationService.showWarning('Camera Switch', 'Unable to switch camera');
     }
   }
@@ -504,14 +520,14 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
 
   private handleScanResult(result: ScanResult): void {
     this.lastScanResult = result;
-    
+
     if (result.isValid && result.parsedData) {
       const specimenId = result.parsedData.specimenId || result.parsedData.accessionNumber;
       this.notificationService.showSuccess(
         'Specimen Scanned',
         `Found specimen: ${specimenId}`
       );
-      
+
       // Auto-focus on the scanned specimen in the table
       this.searchControl.setValue(specimenId);
     } else {
@@ -569,7 +585,7 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   }
 
   async confirmCheckInOut(): Promise<void> {
-    if (!this.checkInForm.valid || !this.selectedTracking) {
+    if (!(this.checkInForm.valid && this.selectedTracking)) {
       return;
     }
 
@@ -629,7 +645,7 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   }
 
   // Location update methods
-  updateLocation(tracking: SpecimenTrackingData): void {
+  updateLocation(_tracking: SpecimenTrackingData): void {
     // Implementation for location update modal
   }
 
@@ -655,7 +671,7 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
     return specimen.accessionIdentifier?.value || specimen.id || 'Unknown';
   }
 
-  getPatientName(specimen: any): string {
+  getPatientName(_specimen: any): string {
     // This would extract patient name from specimen subject reference
     return 'Patient Name'; // Placeholder
   }
@@ -666,23 +682,23 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   }
 
   isOverdue(tracking: SpecimenTrackingData): boolean {
-    if (!tracking.estimatedCompletion) return false;
+    if (!tracking.estimatedCompletion) { return false; }
     return new Date() > tracking.estimatedCompletion;
   }
 
   getTATRemaining(tracking: SpecimenTrackingData): string {
-    if (!tracking.estimatedCompletion) return 'N/A';
-    
+    if (!tracking.estimatedCompletion) { return 'N/A'; }
+
     const now = new Date();
     const remaining = tracking.estimatedCompletion.getTime() - now.getTime();
-    
+
     if (remaining <= 0) {
       return 'Overdue';
     }
-    
+
     const hours = Math.floor(remaining / (1000 * 60 * 60));
     const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-    
+
     if (hours > 0) {
       return `${hours}h ${minutes}m`;
     } else {
@@ -691,11 +707,11 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   }
 
   getTATClass(tracking: SpecimenTrackingData): string {
-    if (!tracking.estimatedCompletion) return 'normal';
-    
+    if (!tracking.estimatedCompletion) { return 'normal'; }
+
     const now = new Date();
     const remaining = tracking.estimatedCompletion.getTime() - now.getTime();
-    
+
     if (remaining <= 0) {
       return 'overdue';
     } else if (remaining < 2 * 60 * 60 * 1000) { // Less than 2 hours
@@ -711,7 +727,7 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
     );
   }
 
-  getPerformerName(performer: any): string {
+  getPerformerName(_performer: any): string {
     // This would resolve the performer reference to get the actual name
     return 'User Name'; // Placeholder
   }

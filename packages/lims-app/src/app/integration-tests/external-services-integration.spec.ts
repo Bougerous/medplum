@@ -1,16 +1,16 @@
 import { TestBed } from '@angular/core/testing';
-import { CandidHealthService } from '../services/candid-health.service';
-import { StripePaymentService } from '../services/stripe-payment.service';
-import { ErrorHandlingService } from '../services/error-handling.service';
-import { RetryService } from '../services/retry.service';
-import { MedplumService } from '../medplum.service';
 import {
   Claim,
   ClaimResponse,
-  Patient,
   Invoice,
+  Patient,
   PaymentReconciliation
 } from '@medplum/fhirtypes';
+import { MedplumService } from '../medplum.service';
+import { CandidHealthService } from '../services/candid-health.service';
+import { ErrorHandlingService } from '../services/error-handling.service';
+import { RetryService } from '../services/retry.service';
+import { StripePaymentService } from '../services/stripe-payment.service';
 
 // External services integration test configuration
 const EXTERNAL_SERVICES_CONFIG = {
@@ -39,7 +39,7 @@ describe('External Services Integration Tests', () => {
   let candidHealthService: CandidHealthService;
   let stripePaymentService: StripePaymentService;
   let medplumService: MedplumService;
-  let errorHandlingService: ErrorHandlingService;
+  let _errorHandlingService: ErrorHandlingService;
 
   // Test resources to clean up
   let testResources: { type: string; id: string }[] = [];
@@ -62,7 +62,7 @@ describe('External Services Integration Tests', () => {
     candidHealthService = TestBed.inject(CandidHealthService);
     stripePaymentService = TestBed.inject(StripePaymentService);
     medplumService = TestBed.inject(MedplumService);
-    errorHandlingService = TestBed.inject(ErrorHandlingService);
+    _errorHandlingService = TestBed.inject(ErrorHandlingService);
 
     testResources = [];
   });
@@ -193,7 +193,7 @@ describe('External Services Integration Tests', () => {
 
       expect(submissionResult.success).toBe(false);
       expect(submissionResult.errors).toBeTruthy();
-      expect(submissionResult.errors!.length).toBeGreaterThan(0);
+      expect(submissionResult.errors?.length).toBeGreaterThan(0);
     });
 
     it('should retrieve claim status from Candid Health', async () => {
@@ -735,7 +735,7 @@ describe('External Services Integration Tests', () => {
 
       expect(result.success).toBe(false);
       expect(result.errors).toBeTruthy();
-      expect(result.errors!.length).toBeGreaterThan(0);
+      expect(result.errors?.length).toBeGreaterThan(0);
     });
 
     it('should handle Stripe API errors gracefully', async () => {

@@ -1,28 +1,22 @@
-import { MedplumClient } from '@medplum/core';
+
 import { 
-  QuestionnaireResponse, 
-  ServiceRequest, 
+  Coverage,
   DiagnosticReport,
   Patient,
-  Coverage,
-  Consent,
-  Specimen,
-  Claim,
-  Task,
-  OperationOutcome
+  QuestionnaireResponse, 
+  ServiceRequest, 
 } from '@medplum/fhirtypes';
 
 import { 
-  patientRegistrationBot,
-  orderSplittingBot,
   billingAutomationBot,
+  orderSplittingBot,
+  patientRegistrationBot,
   workflowValidationBot
 } from './index';
 
 // Mock MedplumClient for testing
 class MockMedplumClient {
   private resources: Map<string, any> = new Map();
-  private idCounter = 1;
 
   async createResource<T>(resource: T): Promise<T> {
     const id = `mock-${this.idCounter++}`;
@@ -50,21 +44,21 @@ class MockMedplumClient {
     return resource;
   }
 
-  async searchResources<T>(resourceType: string, params: any): Promise<T[]> {
+  async searchResources<T>(resourceType: string, _params: any): Promise<T[]> {
     // Simple mock implementation
     return Array.from(this.resources.values())
       .filter(resource => resource.resourceType === resourceType);
   }
 
-  async readHistory(resourceType: string, id: string): Promise<any> {
+  async readHistory(_resourceType: string, _id: string): Promise<any> {
     return { entry: [] };
   }
 
-  async executeBot(botId: string, input: any): Promise<any> {
+  async executeBot(_botId: string, _input: any): Promise<any> {
     return { success: true };
   }
 
-  async deleteResource(resourceType: string, id: string): Promise<void> {
+  async deleteResource(_resourceType: string, id: string): Promise<void> {
     this.resources.delete(id);
   }
 }

@@ -1,0 +1,41 @@
+name: Lint
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: packages/lims-app/package-lock.json
+
+    - name: Install dependencies
+      run: |
+        cd packages/lims-app
+        npm ci
+
+    - name: Run ESLint
+      run: |
+        cd packages/lims-app
+        npm run lint
+
+    - name: Run TypeScript compiler check
+      run: |
+        cd packages/lims-app
+        npx tsc --noEmit
+
+    - name: Run tests
+      run: |
+        cd packages/lims-app
+        npm run test:ci

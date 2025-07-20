@@ -1,20 +1,15 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
 import {
   DiagnosticReport,
-  AuditEvent,
-  Task,
-  Practitioner,
   Reference,
-  CodeableConcept,
-  Bundle
+  Task
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { AuthService } from './auth.service';
+import { LIMSErrorType, SearchParams } from '../types/fhir-types';
 import { AuditService } from './audit.service';
-import { SearchParams, LIMSErrorType } from '../types/fhir-types';
+import { AuthService } from './auth.service';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface ValidationWorkflow {
   id: string;
@@ -142,10 +137,10 @@ export class ReportValidationService {
   async createValidationWorkflow(reportId: string, priority: 'routine' | 'urgent' | 'stat' = 'routine'): Promise<ValidationWorkflow> {
     try {
       const report = await this.medplumService.readResource<DiagnosticReport>('DiagnosticReport', reportId);
-      
+
       // Determine validation steps based on report type and status
       const steps = await this.determineValidationSteps(report);
-      
+
       const workflow: ValidationWorkflow = {
         id: `validation-${Date.now()}`,
         reportId,
@@ -159,7 +154,7 @@ export class ReportValidationService {
 
       // Create FHIR Task resource for workflow tracking
       const task = await this.createValidationTask(workflow);
-      
+
       // Update workflows list
       const currentWorkflows = this.validationWorkflows$.value;
       this.validationWorkflows$.next([...currentWorkflows, workflow]);
@@ -190,7 +185,7 @@ export class ReportValidationService {
 
   private async determineValidationSteps(report: DiagnosticReport): Promise<ValidationStep[]> {
     const steps: ValidationStep[] = [];
-    
+
     // Step 1: Automatic validation
     steps.push({
       id: 'auto-validation',
@@ -256,8 +251,8 @@ export class ReportValidationService {
   }
 
   private async createValidationTask(workflow: ValidationWorkflow): Promise<Task> {
-    const currentUser = this.authService.getCurrentUser();
-    
+    const currentUser = this.authService.getCurrentUserSync();
+
     const task: Task = {
       resourceType: 'Task',
       status: 'requested',
@@ -270,13 +265,13 @@ export class ReportValidationService {
           display: 'Report Validation'
         }]
       },
-      description: `Validation workflow for diagnostic report`,
+      description: 'Validation workflow for diagnostic report',
       focus: {
         reference: `DiagnosticReport/${workflow.reportId}`
       },
       authoredOn: new Date().toISOString(),
       requester: currentUser ? {
-        reference: `Practitioner/${currentUser.id}`
+        reference: `Practitioner/${currentUser.practitioner.id}`
       } : undefined,
       input: [{
         type: {
@@ -342,13 +337,13 @@ export class ReportValidationService {
     for (const condition of bot.triggerConditions) {
       switch (condition) {
         case 'status:preliminary':
-          if (report.status === 'preliminary') return true;
+          if (report.status === 'preliminary') { return true; }
           break;
         case 'category:pathology':
-          if (report.category?.some(cat => cat.coding?.some(c => c.code === 'PAT'))) return true;
+          if (report.category?.some(cat => cat.coding?.some(c => c.code === 'PAT'))) { return true; }
           break;
         case 'has-observations':
-          if (report.result && report.result.length > 0) return true;
+          if (report.result && report.result.length > 0) { return true; }
           break;
       }
     }
@@ -413,7 +408,7 @@ export class ReportValidationService {
       ruleId: rule.id,
       passed: missingFields.length === 0,
       severity: rule.severity,
-      message: missingFields.length > 0 
+      message: missingFields.length > 0
         ? `Missing required fields: ${missingFields.join(', ')}`
         : 'All required fields present',
       details: { missingFields }
@@ -426,7 +421,7 @@ export class ReportValidationService {
 
     if (report.code?.coding) {
       for (const coding of report.code.coding) {
-        if (!coding.system || !coding.code) {
+        if (!(coding.system && coding.code)) {
           issues.push('Report code missing system or code');
         }
       }
@@ -436,7 +431,7 @@ export class ReportValidationService {
       for (const conclusion of report.conclusionCode) {
         if (conclusion.coding) {
           for (const coding of conclusion.coding) {
-            if (!coding.system || !coding.code) {
+            if (!(coding.system && coding.code)) {
               issues.push('Conclusion code missing system or code');
             }
           }
@@ -448,7 +443,7 @@ export class ReportValidationService {
       ruleId: rule.id,
       passed: issues.length === 0,
       severity: rule.severity,
-      message: issues.length > 0 
+      message: issues.length > 0
         ? `Terminology issues: ${issues.join('; ')}`
         : 'Terminology validation passed',
       details: { issues }
@@ -476,7 +471,7 @@ export class ReportValidationService {
       ruleId: rule.id,
       passed: issues.length === 0,
       severity: rule.severity,
-      message: issues.length > 0 
+      message: issues.length > 0
         ? `Format issues: ${issues.join('; ')}`
         : 'Format validation passed',
       details: { issues }
@@ -484,11 +479,11 @@ export class ReportValidationService {
   }
 
   private isValidDateTime(dateTime: string): boolean {
-    return !isNaN(Date.parse(dateTime));
+    return !Number.isNaN(Date.parse(dateTime));
   }
 
   private isValidReference(reference: string): boolean {
-    return /^[A-Za-z]+\/[A-Za-z0-9\-\.]{1,64}$/.test(reference);
+    return /^[A-Za-z]+\/[A-Za-z0-9\-.]{1,64}$/.test(reference);
   }
 
   private async applyAutoFix(rule: BotValidationRule, report: DiagnosticReport): Promise<boolean> {
@@ -523,7 +518,7 @@ export class ReportValidationService {
       // Find the validation workflow
       const workflows = this.validationWorkflows$.value;
       const workflow = workflows.find(w => w.reportId === reportId);
-      
+
       if (!workflow) {
         throw new Error(`Validation workflow not found for report ${reportId}`);
       }
@@ -566,16 +561,16 @@ export class ReportValidationService {
   }
 
   async completeValidationStep(
-    reportId: string, 
-    stepId: string, 
-    status: 'completed' | 'failed', 
+    reportId: string,
+    stepId: string,
+    status: 'completed' | 'failed',
     notes?: string,
     digitalSignature?: DigitalSignature
   ): Promise<void> {
     try {
       const workflows = this.validationWorkflows$.value;
       const workflow = workflows.find(w => w.reportId === reportId);
-      
+
       if (!workflow) {
         throw new Error(`Validation workflow not found for report ${reportId}`);
       }
@@ -590,7 +585,7 @@ export class ReportValidationService {
       step.completedAt = new Date();
       step.notes = notes;
       step.digitalSignature = digitalSignature;
-      step.completedBy = { reference: `Practitioner/${this.authService.getCurrentUser()?.id}` };
+      step.completedBy = { reference: `Practitioner/${this.authService.getCurrentUserSync()?.practitioner.id}` };
 
       // Move to next step if completed successfully
       if (status === 'completed') {
@@ -638,12 +633,12 @@ export class ReportValidationService {
 
   // Digital Sign-off
   async createDigitalSignature(
-    reportId: string, 
+    reportId: string,
     method: 'password' | 'biometric' | 'token' | 'certificate',
     credentials?: any
   ): Promise<DigitalSignature> {
     try {
-      const currentUser = this.authService.getCurrentUser();
+      const currentUser = this.authService.getCurrentUserSync();
       if (!currentUser) {
         throw new Error('User not authenticated');
       }
@@ -652,13 +647,13 @@ export class ReportValidationService {
       await this.validateSignatureCredentials(method, credentials);
 
       const signature: DigitalSignature = {
-        signerId: currentUser.id!,
-        signerName: currentUser.name?.[0]?.text || 'Unknown',
+        signerId: currentUser.practitioner.id!,
+        signerName: currentUser.practitioner.name?.[0]?.text || 'Unknown',
         timestamp: new Date(),
         method,
         ipAddress: await this.getClientIpAddress(),
         userAgent: navigator.userAgent,
-        signatureHash: await this.generateSignatureHash(reportId, currentUser.id!, method)
+        signatureHash: await this.generateSignatureHash(reportId, currentUser.practitioner.id!, method)
       };
 
       // Create audit event for digital signature
@@ -668,7 +663,7 @@ export class ReportValidationService {
         resourceId: reportId,
         details: {
           signatureMethod: method,
-          signerId: currentUser.id,
+          signerId: currentUser.practitioner.id,
           timestamp: signature.timestamp
         }
       });
@@ -764,7 +759,7 @@ export class ReportValidationService {
 
       const bundle = await this.medplumService.searchResources<DiagnosticReport>('DiagnosticReport', searchParams);
       const reports = bundle.entry?.map(entry => entry.resource!).filter(Boolean) || [];
-      
+
       this.pendingReviews$.next(reports);
     } catch (error) {
       console.warn('Failed to load pending reviews:', error);

@@ -244,7 +244,7 @@
           <div 
             class="message-card" 
             *ngFor="let communication of patientData.communications"
-            [class.unread]="communication.status === 'received'">
+            [class.unread]="communication.status === 'completed'">
             
             <div class="message-header">
               <h3>{{ communication.topic?.text || 'Message' }}</h3>

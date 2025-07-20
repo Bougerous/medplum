@@ -1,16 +1,15 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
 import { 
-  Specimen, 
-  Patient, 
-  ServiceRequest,
-  Identifier,
   CodeableConcept,
-  Reference
+  Identifier,
+  Patient, 
+  Reference, 
+  Specimen 
 } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
+import { SpecimenProcessing } from '../types/fhir-types';
 import { ErrorHandlingService } from './error-handling.service';
-import { LaboratorySpecimen, SpecimenProcessing, SpecimenContainer } from '../types/fhir-types';
 
 export interface SpecimenAccessionData {
   specimen: Specimen;
@@ -269,7 +268,7 @@ export class SpecimenService {
       }
 
       // Create the specimen resource
-      const createdSpecimen = await this.medplumService.createResource(specimen as any);
+      const createdSpecimen = await this.medplumService.createResource(specimen);
       
       // Get patient information for label
       const patient = await this.medplumService.readResource<Patient>('Patient', patientId);
@@ -281,15 +280,17 @@ export class SpecimenService {
       const labelData = this.createLabelData(createdSpecimen, patient, accessionNumber);
       
       // Initialize chain of custody
-      await this.addChainOfCustodyEntry(createdSpecimen.id!, {
-        timestamp: new Date().toISOString(),
-        action: 'received',
-        location: 'Accessioning Station',
-        performer: {
-          display: 'Lab Technician' // In real implementation, get current user
-        },
-        notes: 'Specimen received and accessioned'
-      });
+      if (createdSpecimen.id) {
+        await this.addChainOfCustodyEntry(createdSpecimen.id, {
+          timestamp: new Date().toISOString(),
+          action: 'received',
+          location: 'Accessioning Station',
+          performer: {
+            display: 'Lab Technician' // In real implementation, get current user
+          },
+          notes: 'Specimen received and accessioned'
+        });
+      }
 
       return {
         specimen: createdSpecimen,
@@ -355,7 +356,7 @@ export class SpecimenService {
       specimen.status = status;
       
       if (notes) {
-        if (!specimen.note) specimen.note = [];
+        if (!specimen.note) { specimen.note = []; }
         specimen.note.push({
           text: `Status updated to ${status}: ${notes}`,
           time: new Date().toISOString()
@@ -372,7 +373,7 @@ export class SpecimenService {
         performer: {
           display: 'Lab Technician'
         },
-        notes: `Status updated to ${status}${notes ? ': ' + notes : ''}`
+        notes: `Status updated to ${status}${notes ? `: ${notes}` : ''}`
       });
 
       return updatedSpecimen;
@@ -394,10 +395,10 @@ export class SpecimenService {
       // For now, we'll add it as a note to the specimen
       const specimen = await this.medplumService.readResource<Specimen>('Specimen', specimenId);
       
-      if (!specimen.note) specimen.note = [];
+      if (!specimen.note) { specimen.note = []; }
       
       specimen.note.push({
-        text: `Chain of Custody: ${entry.action} at ${entry.location} by ${entry.performer.display}${entry.notes ? ' - ' + entry.notes : ''}`,
+        text: `Chain of Custody: ${entry.action} at ${entry.location} by ${entry.performer.display}${entry.notes ? ` - ${entry.notes}` : ''}`,
         time: entry.timestamp
       });
 
@@ -436,16 +437,20 @@ export class SpecimenService {
       
       if (criteria.dateFrom || criteria.dateTo) {
         let dateRange = '';
-        if (criteria.dateFrom) dateRange += `ge${criteria.dateFrom}`;
+        if (criteria.dateFrom) { dateRange += `ge${criteria.dateFrom}`; }
         if (criteria.dateTo) {
-          if (dateRange) dateRange += '&';
+          if (dateRange) { dateRange += '&'; }
           dateRange += `le${criteria.dateTo}`;
         }
         searchParams.collected = dateRange;
       }
 
       const results = await this.medplumService.searchResources<Specimen>('Specimen', searchParams);
-      return results.entry?.map(entry => entry.resource!).filter(Boolean) || [];
+      return (
+        results.entry
+          ?.map((entry) => entry.resource)
+          .filter((resource): resource is Specimen => !!resource) || []
+      );
     } catch (error) {
       this.errorHandlingService.handleError(error, 'specimen-search');
       return [];

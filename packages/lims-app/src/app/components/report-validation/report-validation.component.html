@@ -440,7 +440,7 @@
         <select 
           class="form-control form-control-sm"
           [value]="pageSize"
-          (change)="onPageSizeChange(+$event.target.value)">
+          (change)="onPageSizeChange($event)">
           <option value="10">10</option>
           <option value="20">20</option>
           <option value="50">50</option>
@@ -468,7 +468,7 @@
     <h4 class="modal-title">Digital Signature Required</h4>
   </div>
   <div class="modal-body">
-    <form [formGroup]="validationForm.get('digitalSignature')" class="signature-form">
+    <form [formGroup]="getValidationFormGroup()" class="signature-form">
       <div class="form-group">
         <label>Signature Method</label>
         <select class="form-control" formControlName="method">

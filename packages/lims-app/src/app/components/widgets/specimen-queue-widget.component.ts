@@ -1,9 +1,6 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
-import { MedplumService } from '../../medplum.service';
-import { Specimen } from '@medplum/fhirtypes';
 
 interface SpecimenQueueItem {
   id: string;
@@ -285,8 +282,6 @@ export class SpecimenQueueWidgetComponent implements OnInit, OnDestroy {
     { key: 'urgent', label: 'Urgent' },
     { key: 'routine', label: 'Routine' }
   ];
-
-  constructor(private medplumService: MedplumService) {}
 
   ngOnInit(): void {
     this.loadSpecimens();

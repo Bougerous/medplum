@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing';
+import { Bundle, DiagnosticReport, Patient, ServiceRequest, Specimen } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
 import { ErrorHandlingService } from '../services/error-handling.service';
 import { RetryService } from '../services/retry.service';
-import { Patient, Specimen, ServiceRequest, DiagnosticReport, Bundle } from '@medplum/fhirtypes';
 
 // Integration test configuration
 const INTEGRATION_TEST_CONFIG = {

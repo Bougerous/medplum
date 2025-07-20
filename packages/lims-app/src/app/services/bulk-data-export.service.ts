@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Resource } from '@medplum/fhirtypes';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
-import { ErrorHandlingService } from './error-handling.service';
-import { Bundle, Resource } from '@medplum/fhirtypes';
 import { SearchParams } from '../types/fhir-types';
+import { ErrorHandlingService } from './error-handling.service';
 
 export interface ExportRequest {
   id: string;
@@ -109,7 +109,7 @@ export class BulkDataExportService {
       since: options.since,
       until: options.until,
       format: options.format || 'json',
-      deIdentify: options.deIdentify || false,
+      deIdentify: options.deIdentify,
       status: 'pending',
       createdAt: new Date(),
       progress: 0
@@ -165,17 +165,19 @@ export class BulkDataExportService {
           type: 'application/json'
         });
         break;
-      case 'csv':
+      case 'csv': {
         const csv = this.convertToCSV(job.data);
         blob = new Blob([csv], { type: 'text/csv' });
         break;
-      case 'xlsx':
+      }
+      case 'xlsx': {
         // This would require a library like xlsx or exceljs
         const xlsx = await this.convertToXLSX(job.data);
         blob = new Blob([xlsx], {
           type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         break;
+      }
       default:
         throw new Error(`Unsupported format: ${format}`);
     }
@@ -245,7 +247,7 @@ export class BulkDataExportService {
       console.log('Connecting to data warehouse:', connection);
 
       // Validate connection parameters
-      if (!connection.host || !connection.database) {
+      if (!(connection.host && connection.database)) {
         throw new Error('Invalid connection parameters');
       }
 
@@ -377,7 +379,7 @@ export class BulkDataExportService {
     }
 
     // Set reasonable limits for bulk export
-    params['_count'] = '1000';
+    params._count = '1000';
 
     return params;
   }
@@ -410,7 +412,7 @@ export class BulkDataExportService {
   }
 
   private fieldAppliesTo(field: string, resourceType: string): boolean {
-    return field.startsWith(resourceType + '.');
+    return field.startsWith(`${resourceType}.`);
   }
 
   private applyDeIdentificationRule(resource: any, rule: DeIdentificationRule): void {
@@ -459,7 +461,7 @@ export class BulkDataExportService {
       return { state: value.state };
     }
     if (parameters?.precision === 'year' && typeof value === 'string') {
-      return value.substring(0, 4) + '-01-01';
+      return `${value.substring(0, 4)}-01-01`;
     }
     return value;
   }
@@ -498,7 +500,7 @@ export class BulkDataExportService {
   }
 
   private convertToCSV(data: any[]): string {
-    if (data.length === 0) return '';
+    if (data.length === 0) { return ''; }
 
     // Flatten the data for CSV export
     const flatData = data.map(item => this.flattenObject(item));
@@ -521,7 +523,7 @@ export class BulkDataExportService {
     return csvRows.join('\n');
   }
 
-  private async convertToXLSX(data: any[]): Promise<ArrayBuffer> {
+  private async convertToXLSX(_data: any[]): Promise<ArrayBuffer> {
     // This would require a library like xlsx
     // For now, return a mock buffer
     const mockData = new ArrayBuffer(1024);

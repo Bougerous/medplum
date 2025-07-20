@@ -1,21 +1,21 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule, TitleCasePipe } from '@angular/common';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import {
+  Appointment,
+  Communication, 
+  DiagnosticReport,
+  Patient
+} from '@medplum/fhirtypes';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import {
-  Patient,
-  DiagnosticReport,
-  Appointment,
-  Communication
-} from '@medplum/fhirtypes';
-import { AuthService } from '../../services/auth.service';
 import { MedplumService } from '../../medplum.service';
+import { AuditService } from '../../services/audit.service';
+import { AuthService } from '../../services/auth.service';
 import { ErrorHandlingService } from '../../services/error-handling.service';
 import { NotificationService } from '../../services/notification.service';
-import { AuditService } from '../../services/audit.service';
-import { UserProfile, LIMSErrorType } from '../../types/fhir-types';
+import { LIMSErrorType, UserProfile } from '../../types/fhir-types';
 
 interface PatientPortalData {
   patient: Patient;
@@ -170,7 +170,7 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
 
       // Alternative: Look for Patient with same identifier or email
       const practitioner = this.currentUser?.practitioner;
-      if (practitioner.telecom) {
+      if (practitioner?.telecom) {
         const email = practitioner.telecom.find(t => t.system === 'email')?.value;
         if (email) {
           const emailBundle = await this.medplumService.searchResources<Patient>(
@@ -282,7 +282,7 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
     return communications.some(comm => {
       // Check if communication is marked as unread
       const status = comm.status;
-      return status === 'received' || status === 'in-progress';
+      return status === 'completed' || status === 'in-progress';
     });
   }
 

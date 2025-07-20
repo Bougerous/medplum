@@ -81,8 +81,8 @@
         (click)="setActiveTab('orders')">
         <i class="icon-orders"></i>
         Orders
-        <span class="count" *ngIf="providerData?.pendingOrders?.length > 0">
-          {{ providerData?.pendingOrders?.length }}
+        <span class="count" *ngIf="(providerData?.pendingOrders?.length || 0) > 0">
+          {{ providerData?.pendingOrders?.length || 0 }}
         </span>
       </button>
       
@@ -109,8 +109,8 @@
         (click)="setActiveTab('notifications')">
         <i class="icon-notifications"></i>
         Notifications
-        <span class="badge" *ngIf="providerData?.notifications?.length > 0">
-          {{ providerData?.notifications?.length }}
+        <span class="badge" *ngIf="(providerData?.notifications?.length || 0) > 0">
+          {{ providerData?.notifications?.length || 0 }}
         </span>
       </button>
     </nav>
