@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild, inject } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { combineLatest, Observable, Subject } from 'rxjs';
 import { debounceTime, distinctUntilChanged, map, startWith, takeUntil } from 'rxjs/operators';
@@ -335,6 +335,12 @@ import {
   styleUrls: ['./specimen-tracking.component.scss']
 })
 export class SpecimenTrackingComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private specimenTrackingService = inject(SpecimenTrackingService);
+  private qrScannerService = inject(QrScannerService);
+  private notificationService = inject(NotificationService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   @ViewChild('barcodeInput') barcodeInput!: ElementRef<HTMLInputElement>;
 
   private destroy$ = new Subject<void>();
@@ -369,13 +375,10 @@ export class SpecimenTrackingComponent implements OnInit, OnDestroy {
   checkInMode = true;
   selectedTracking: SpecimenTrackingData | null = null;
 
-  constructor(
-    private fb: FormBuilder,
-    private specimenTrackingService: SpecimenTrackingService,
-    private qrScannerService: QrScannerService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     // Initialize form controls after FormBuilder is injected
     this.searchControl = this.fb.control('');
     this.locationFilter = this.fb.control('');

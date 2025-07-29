@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { 
   Questionnaire,
   QuestionnaireResponse,
@@ -68,13 +68,16 @@ export interface AskOnOrderEntryData {
   providedIn: 'root'
 })
 export class TestOrderingService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private testCategories$ = new BehaviorSubject<TestCategory[]>([]);
   private availableTests$ = new BehaviorSubject<LabTest[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.loadTestCatalog();
   }
 

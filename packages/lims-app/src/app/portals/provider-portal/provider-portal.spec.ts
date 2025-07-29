@@ -166,18 +166,22 @@ describe('ProviderPortalComponent', () => {
       // Mock all search operations
       const patientBundle: Bundle<Patient> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockPatient }]
       };
       const orderBundle: Bundle<ServiceRequest> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockServiceRequest }]
       };
       const reportBundle: Bundle<DiagnosticReport> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockDiagnosticReport }]
       };
       const taskBundle: Bundle<Task> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockTask }]
       };
 
@@ -186,7 +190,7 @@ describe('ProviderPortalComponent', () => {
         Promise.resolve(orderBundle),
         Promise.resolve(reportBundle),
         Promise.resolve(taskBundle),
-        Promise.resolve({ resourceType: 'Bundle', entry: [] }) // For statistics
+        Promise.resolve({ resourceType: 'Bundle', type: 'searchset', entry: [] }) // For statistics
       );
 
       await component.ngOnInit();
@@ -309,7 +313,7 @@ describe('ProviderPortalComponent', () => {
         Promise.resolve(mockServiceRequest)
       );
       mockMedplumService.searchResources.and.returnValue(
-        Promise.resolve({ resourceType: 'Bundle', entry: [] })
+        Promise.resolve({ resourceType: 'Bundle', type: 'searchset', entry: [] })
       );
 
       await component.submitOrder();

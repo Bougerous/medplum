@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Claim,
   ClaimResponse,
@@ -103,14 +103,17 @@ export interface BillingContext {
   providedIn: 'root'
 })
 export class BillingService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private currencyService = inject(CurrencyService);
+
   private billingRules$ = new BehaviorSubject<BillingRule[]>([]);
   private pendingClaims$ = new BehaviorSubject<Claim[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private currencyService: CurrencyService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.loadBillingRules().catch(console.error);
   }
 

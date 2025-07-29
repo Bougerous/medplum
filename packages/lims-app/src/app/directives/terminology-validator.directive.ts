@@ -1,4 +1,4 @@
-import { Directive, ElementRef, Input, OnDestroy, OnInit, Renderer2 } from '@angular/core';
+import { Directive, ElementRef, Input, OnDestroy, OnInit, Renderer2, inject } from '@angular/core';
 import { AbstractControl, NG_VALIDATORS, ValidationErrors, Validator } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { debounceTime, switchMap, takeUntil } from 'rxjs/operators';
@@ -16,6 +16,10 @@ import { SNOMED_CT_SYSTEM, TerminologyService, ValidationResult } from '../servi
   standalone: true
 })
 export class TerminologyValidatorDirective implements Validator, OnInit, OnDestroy {
+  private terminologyService = inject(TerminologyService);
+  private elementRef = inject(ElementRef);
+  private renderer = inject(Renderer2);
+
   @Input() terminologySystem: string = SNOMED_CT_SYSTEM;
   @Input() conceptType: 'specimen' | 'diagnosis' | 'procedure' | 'any' = 'any';
   @Input() required: boolean = false;
@@ -25,11 +29,10 @@ export class TerminologyValidatorDirective implements Validator, OnInit, OnDestr
   private validationSubject$ = new Subject<string>();
   private currentValidationResult: ValidationResult | null = null;
 
-  constructor(
-    private terminologyService: TerminologyService,
-    private elementRef: ElementRef,
-    private renderer: Renderer2
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.setupValidation();

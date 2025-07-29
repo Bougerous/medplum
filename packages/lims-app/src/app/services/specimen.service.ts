@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { 
   CodeableConcept,
   Identifier,
@@ -40,14 +40,17 @@ export interface ChainOfCustodyEntry {
   providedIn: 'root'
 })
 export class SpecimenService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private specimenTypes$ = new BehaviorSubject<CodeableConcept[]>([]);
   private containerTypes$ = new BehaviorSubject<CodeableConcept[]>([]);
   private accessionCounter = 1;
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.loadSpecimenTypes();
     this.loadContainerTypes();
   }

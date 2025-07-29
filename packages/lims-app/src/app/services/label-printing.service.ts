@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import * as QRCode from 'qrcode';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { MedplumService } from '../medplum.service';
@@ -116,17 +116,20 @@ export interface LabelInventory {
   providedIn: 'root'
 })
 export class LabelPrintingService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private notificationService = inject(NotificationService);
+
   private templates$ = new BehaviorSubject<LabelTemplate[]>([]);
   private printJobs$ = new BehaviorSubject<PrintJob[]>([]);
   private printers$ = new BehaviorSubject<PrinterInfo[]>([]);
   private inventory$ = new BehaviorSubject<Map<string, LabelInventory>>(new Map());
   private printJobUpdates$ = new Subject<PrintJob>();
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeDefaultTemplates();
     this.initializePrinters();
   }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   DiagnosticReport,
   Reference,
@@ -105,16 +105,19 @@ export interface Amendment {
   providedIn: 'root'
 })
 export class ReportValidationService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private authService = inject(AuthService);
+  private auditService = inject(AuditService);
+
   private validationWorkflows$ = new BehaviorSubject<ValidationWorkflow[]>([]);
   private validationBots$ = new BehaviorSubject<ValidationBot[]>([]);
   private pendingReviews$ = new BehaviorSubject<DiagnosticReport[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private authService: AuthService,
-    private auditService: AuditService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeService();
   }
 

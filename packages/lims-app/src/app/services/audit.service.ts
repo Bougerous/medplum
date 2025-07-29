@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { AuditEvent, } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
@@ -33,17 +33,20 @@ export enum SecurityEventType {
   providedIn: 'root',
 })
 export class AuditService implements OnDestroy {
+  private medplumService = inject(MedplumService);
+  private authService = inject(AuthService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private securityEvents$ = new BehaviorSubject<SecurityEvent[]>([]);
   private eventQueue: SecurityEvent[] = [];
   private batchSize = 10;
   private batchTimeout = 5000; // 5 seconds
   private batchTimer: any;
 
-  constructor(
-    private medplumService: MedplumService,
-    private authService: AuthService,
-    private errorHandlingService: ErrorHandlingService,
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.startBatchProcessor();
   }
 

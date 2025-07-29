@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { SearchParams, UserRole } from '../types/fhir-types';
@@ -24,6 +24,8 @@ export interface FilteredData<T> {
   providedIn: 'root',
 })
 export class DataFilterService {
+  private authService = inject(AuthService);
+
   private readonly dataFilterRules: DataFilterRule[] = [
     // Patient data filtering
     {
@@ -160,7 +162,10 @@ export class DataFilterService {
     },
   ];
 
-  constructor(private authService: AuthService) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   /**
    * Apply data filters based on user roles and permissions

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { interval, Subject } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
@@ -88,6 +88,8 @@ interface SpecimenQueueItem {
   styleUrl: './specimen-queue-widget.scss'
 })
 export class SpecimenQueueWidget implements OnInit, OnDestroy {
+  private medplumService = inject(MedplumService);
+
   @Input() config: any = {};
   
   private destroy$ = new Subject<void>();
@@ -96,7 +98,10 @@ export class SpecimenQueueWidget implements OnInit, OnDestroy {
   isLoading = true;
   urgentCount = 0;
 
-  constructor(private medplumService: MedplumService) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadSpecimens();

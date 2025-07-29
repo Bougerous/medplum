@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   ChargeItem,
   ClaimResponse,
@@ -90,17 +90,20 @@ export interface ServiceTypeCollection {
   providedIn: 'root'
 })
 export class PaymentReconciliationService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private candidHealthService = inject(CandidHealthService);
+  private stripePaymentService = inject(StripePaymentService);
+  private currencyService = inject(CurrencyService);
+
   private paymentAllocations$ = new BehaviorSubject<PaymentAllocation[]>([]);
   private accountBalances$ = new BehaviorSubject<AccountBalance[]>([]);
   private paymentReports$ = new BehaviorSubject<PaymentReport[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private candidHealthService: CandidHealthService,
-    private stripePaymentService: StripePaymentService,
-    private currencyService: CurrencyService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeReconciliation();
   }
 

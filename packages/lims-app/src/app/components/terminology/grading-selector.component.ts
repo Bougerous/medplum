@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CodeableConcept } from '@medplum/fhirtypes';
 import { BehaviorSubject, Subject } from 'rxjs';
@@ -121,6 +121,8 @@ export interface GradingSelection {
   standalone: true
 })
 export class GradingSelectorComponent implements OnInit, OnDestroy {
+  private terminologyService = inject(TerminologyService);
+
   @Input() initialGrading?: GradingSelection;
   @Input() required: boolean = false;
   @Input() disabled: boolean = false;
@@ -135,7 +137,10 @@ export class GradingSelectorComponent implements OnInit, OnDestroy {
   private destroy$ = new Subject<void>();
   private gradesSubject$ = new BehaviorSubject<GradingConcept[]>([]);
 
-  constructor(private terminologyService: TerminologyService) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

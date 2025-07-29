@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { 
   ActivatedRouteSnapshot, 
   CanActivate, 
@@ -16,12 +16,15 @@ import { UserRole } from '../types/fhir-types';
   providedIn: 'root'
 })
 export class RoleGuard implements CanActivate, CanActivateChild {
+  private authService = inject(AuthService);
+  private roleService = inject(RoleService);
+  private router = inject(Router);
 
-  constructor(
-    private authService: AuthService,
-    private roleService: RoleService,
-    private router: Router
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+
+  constructor() {}
 
   canActivate(
     route: ActivatedRouteSnapshot,

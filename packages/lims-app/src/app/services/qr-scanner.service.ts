@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Html5Qrcode, Html5QrcodeScanner, Html5QrcodeScannerState } from 'html5-qrcode';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { QRCodeData } from '../types/fhir-types';
@@ -40,6 +40,10 @@ export interface CameraDevice {
   providedIn: 'root'
 })
 export class QrScannerService {
+  private specimenService = inject(SpecimenService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private notificationService = inject(NotificationService);
+
   private isScanning$ = new BehaviorSubject<boolean>(false);
   private scanResults$ = new Subject<ScanResult>();
   private html5QrCode: Html5Qrcode | null = null;
@@ -47,11 +51,10 @@ export class QrScannerService {
   private currentCameraId: string | null = null;
   private availableCameras: CameraDevice[] = [];
 
-  constructor(
-    private specimenService: SpecimenService,
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   /**
    * Get scanning status observable

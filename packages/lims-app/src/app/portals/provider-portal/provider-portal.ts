@@ -1,5 +1,5 @@
 import { CommonModule, TitleCasePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -63,6 +63,14 @@ interface OrderFormData {
   ]
 })
 export class ProviderPortalComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private notificationService = inject(NotificationService);
+  private auditService = inject(AuditService);
+  private testOrderingService = inject(TestOrderingService);
+  private router = inject(Router);
+
   private destroy$ = new Subject<void>();
   private subscriptions: Subscription[] = [];
 
@@ -87,15 +95,10 @@ export class ProviderPortalComponent implements OnInit, OnDestroy {
   realTimeUpdatesEnabled = true;
   lastUpdateTime: Date = new Date();
 
-  constructor(
-    private authService: AuthService,
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService,
-    private auditService: AuditService,
-    private testOrderingService: TestOrderingService,
-    private router: Router
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   async ngOnInit(): Promise<void> {
     try {

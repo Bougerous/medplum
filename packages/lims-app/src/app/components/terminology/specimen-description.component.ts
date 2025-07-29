@@ -1,12 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnDestroy,
-  OnInit,
-  Output,
-} from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CodeableConcept } from '@medplum/fhirtypes';
 import { Subject } from 'rxjs';
@@ -344,6 +337,8 @@ export interface SpecimenDescription {
   standalone: true
 })
 export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
+  private terminologyService = inject(TerminologyService);
+
   @Input() initialDescription?: SpecimenDescription;
   @Input() required: boolean = false;
   @Input() disabled: boolean = false;
@@ -370,7 +365,10 @@ export class SpecimenDescriptionComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(private terminologyService: TerminologyService) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

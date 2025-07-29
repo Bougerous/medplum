@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Bundle,
   DiagnosticReport,
@@ -49,14 +49,17 @@ export interface TrendData {
   providedIn: 'root'
 })
 export class AnalyticsService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private metricsCache$ = new BehaviorSubject<PerformanceMetrics | null>(null);
   private refreshInterval = 5 * 60 * 1000; // 5 minutes
   private isRefreshing$ = new BehaviorSubject<boolean>(false);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeRealTimeUpdates();
   }
 

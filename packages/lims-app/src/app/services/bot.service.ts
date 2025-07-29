@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Bot,
   DiagnosticReport,
@@ -47,14 +47,17 @@ export interface BotExecution {
   providedIn: 'root'
 })
 export class BotService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private billingService = inject(BillingService);
+
   private bots$ = new BehaviorSubject<BotConfiguration[]>([]);
   private executions$ = new BehaviorSubject<BotExecution[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private billingService: BillingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeBots();
   }
 

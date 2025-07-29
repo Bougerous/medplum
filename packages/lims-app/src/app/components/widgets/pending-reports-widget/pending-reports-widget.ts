@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { interval, Subject } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
@@ -99,6 +99,8 @@ interface PendingReportItem {
   styleUrl: './pending-reports-widget.scss'
 })
 export class PendingReportsWidget implements OnInit, OnDestroy {
+  private medplumService = inject(MedplumService);
+
   @Input() config: any = {};
   
   private destroy$ = new Subject<void>();
@@ -107,7 +109,10 @@ export class PendingReportsWidget implements OnInit, OnDestroy {
   isLoading = true;
   overdueCount = 0;
 
-  constructor(private medplumService: MedplumService) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.loadReports();

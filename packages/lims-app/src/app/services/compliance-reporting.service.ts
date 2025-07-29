@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { AuditEvent, } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
@@ -98,13 +98,16 @@ export interface ClinicalOutcome {
   providedIn: 'root'
 })
 export class ComplianceReportingService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private complianceReports$ = new BehaviorSubject<ComplianceReport[]>([]);
   private auditTrail$ = new BehaviorSubject<AuditTrailEntry[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   /**
    * Generate compliance report

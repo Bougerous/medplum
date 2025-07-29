@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, ViewChild, inject as inject_1 } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Binary, ImagingStudy, Specimen } from '@medplum/fhirtypes';
 import { MedplumService } from '../medplum.service';
@@ -25,6 +25,9 @@ import { ErrorHandlingService } from '../services/error-handling.service';
   `
 })
 class TestWsiViewerComponent implements AfterViewInit {
+  private medplumService = inject_1(MedplumService);
+  private errorHandlingService = inject_1(ErrorHandlingService);
+
   @ViewChild('viewerContainer', { static: true }) viewerContainer!: ElementRef;
   @ViewChild('viewerContent', { static: true }) viewerContent!: ElementRef;
 
@@ -44,10 +47,10 @@ class TestWsiViewerComponent implements AfterViewInit {
     tileLoadTimes: [] as number[]
   };
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   async ngAfterViewInit(): Promise<void> {
     await this.initializeViewer();

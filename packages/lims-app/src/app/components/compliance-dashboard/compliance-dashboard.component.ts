@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { combineLatest, Observable, of, Subject } from 'rxjs';
 import { map, startWith, takeUntil } from 'rxjs/operators';
@@ -520,6 +520,11 @@ import {
   styleUrls: ['./compliance-dashboard.component.scss']
 })
 export class ComplianceDashboardComponent implements OnInit, OnDestroy {
+  private fb = inject(FormBuilder);
+  private specimenAuditService = inject(SpecimenAuditService);
+  private notificationService = inject(NotificationService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private destroy$ = new Subject<void>();
 
   // Observables
@@ -551,12 +556,10 @@ export class ComplianceDashboardComponent implements OnInit, OnDestroy {
   violationFilters: FormGroup;
   reportForm: FormGroup;
 
-  constructor(
-    private fb: FormBuilder,
-    private specimenAuditService: SpecimenAuditService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.auditTrails$ = this.specimenAuditService.getAllAuditTrails();
     this.complianceReports$ = this.specimenAuditService.getComplianceReports();
     this.regulatoryRequirements$ = this.specimenAuditService.getRegulatoryRequirements();

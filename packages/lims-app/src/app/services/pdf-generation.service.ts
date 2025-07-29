@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Attachment,
   Binary,
@@ -84,15 +84,18 @@ export interface PDFGenerationResult {
   providedIn: 'root'
 })
 export class PdfGenerationService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private auditService = inject(AuditService);
+  private diagnosticReportService = inject(DiagnosticReportService);
+
   private generationQueue$ = new BehaviorSubject<string[]>([]);
   private documentVersions$ = new BehaviorSubject<Map<string, DocumentVersion[]>>(new Map());
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private auditService: AuditService,
-    private diagnosticReportService: DiagnosticReportService
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   // Main PDF Generation Method
   async generateReportPDF(

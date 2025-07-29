@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   ActivatedRouteSnapshot,
   CanActivate,
@@ -24,13 +24,16 @@ export interface PortalGuardConfig {
   providedIn: 'root'
 })
 export class PortalGuard implements CanActivate, CanActivateChild {
+  private authService = inject(AuthService);
+  private portalSecurityService = inject(PortalSecurityService);
+  private auditService = inject(AuditService);
+  private router = inject(Router);
 
-  constructor(
-    private authService: AuthService,
-    private portalSecurityService: PortalSecurityService,
-    private auditService: AuditService,
-    private router: Router
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+
+  constructor() { }
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -208,8 +211,13 @@ export class PortalGuard implements CanActivate, CanActivateChild {
   providedIn: 'root'
 })
 export class PatientPortalGuard implements CanActivate, CanActivateChild {
+  private portalGuard = inject(PortalGuard);
 
-  constructor(private portalGuard: PortalGuard) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+
+  constructor() { }
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -243,8 +251,13 @@ export class PatientPortalGuard implements CanActivate, CanActivateChild {
   providedIn: 'root'
 })
 export class ProviderPortalGuard implements CanActivate, CanActivateChild {
+  private portalGuard = inject(PortalGuard);
 
-  constructor(private portalGuard: PortalGuard) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+
+  constructor() { }
 
   canActivate(
     route: ActivatedRouteSnapshot,

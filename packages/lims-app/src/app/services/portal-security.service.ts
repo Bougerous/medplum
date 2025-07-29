@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import {
   AccessPolicy, 
   AuditEvent,
@@ -86,6 +86,12 @@ export interface SessionActivity {
   providedIn: 'root'
 })
 export class PortalSecurityService implements OnDestroy {
+  private medplumService = inject(MedplumService);
+  private authService = inject(AuthService);
+  private auditService = inject(AuditService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private sessionService = inject(SessionService);
+
   private patientProviderRelationships$ = new BehaviorSubject<PatientProviderRelationship[]>([]);
   private securityAlerts$ = new BehaviorSubject<SecurityAlert[]>([]);
   private activeSessions$ = new BehaviorSubject<SessionMonitoring[]>([]);
@@ -98,13 +104,10 @@ export class PortalSecurityService implements OnDestroy {
   private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
   private readonly SUSPICIOUS_ACTIVITY_THRESHOLD = 10;
 
-  constructor(
-    private medplumService: MedplumService,
-    private authService: AuthService,
-    private auditService: AuditService,
-    private errorHandlingService: ErrorHandlingService,
-    private sessionService: SessionService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializePortalSecurity();
   }
 

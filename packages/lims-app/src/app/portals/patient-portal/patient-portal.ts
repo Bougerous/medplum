@@ -1,5 +1,5 @@
 import { CommonModule, TitleCasePipe } from '@angular/common';
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -38,6 +38,13 @@ interface PatientPortalData {
   ]
 })
 export class PatientPortalComponent implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private notificationService = inject(NotificationService);
+  private auditService = inject(AuditService);
+  private router = inject(Router);
+
   private destroy$ = new Subject<void>();
 
   currentUser: UserProfile | null = null;
@@ -59,14 +66,10 @@ export class PatientPortalComponent implements OnInit, OnDestroy {
     content: ''
   };
 
-  constructor(
-    private authService: AuthService,
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private notificationService: NotificationService,
-    private auditService: AuditService,
-    private router: Router
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   async ngOnInit(): Promise<void> {
     try {

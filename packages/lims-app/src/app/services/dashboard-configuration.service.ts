@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { MedplumService } from '../medplum.service';
 import { DashboardWidget, UserRole } from '../types/fhir-types';
 import { Basic } from '@medplum/fhirtypes';
@@ -27,6 +27,8 @@ export interface DashboardLayout {
   providedIn: 'root'
 })
 export class DashboardConfigurationService {
+  private medplumService = inject(MedplumService);
+
 
   private readonly defaultConfigurations: Record<UserRole, DashboardConfiguration> = {
     'admin': {
@@ -381,7 +383,10 @@ export class DashboardConfigurationService {
     }
   };
 
-  constructor(private medplumService: MedplumService) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   /**
    * Get dashboard configuration for specific roles

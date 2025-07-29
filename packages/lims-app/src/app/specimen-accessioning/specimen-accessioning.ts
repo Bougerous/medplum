@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { 
   CodeableConcept, 
@@ -20,6 +20,12 @@ import { RouterModule } from '@angular/router';
   styleUrl: './specimen-accessioning.scss'
 })
 export class SpecimenAccessioning implements OnInit, OnDestroy {
+  private formBuilder = inject(FormBuilder);
+  private medplumService = inject(MedplumService);
+  private specimenService = inject(SpecimenService);
+  private notificationService = inject(NotificationService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   specimenForm!: FormGroup;
   isSubmitting = false;
   searchResults: Patient[] = [];
@@ -31,13 +37,10 @@ export class SpecimenAccessioning implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private medplumService: MedplumService,
-    private specimenService: SpecimenService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

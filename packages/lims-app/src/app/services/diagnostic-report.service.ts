@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   CodeableConcept,
   DiagnosticReport,
@@ -91,17 +91,20 @@ export interface ReportMetrics {
   providedIn: 'root'
 })
 export class DiagnosticReportService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private retryService = inject(RetryService);
+  private authService = inject(AuthService);
+  private auditService = inject(AuditService);
+
   private reportTemplates$ = new BehaviorSubject<ReportTemplate[]>([]);
   private pendingReports$ = new BehaviorSubject<DiagnosticReport[]>([]);
   private reportMetrics$ = new BehaviorSubject<ReportMetrics | null>(null);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService,
-    private authService: AuthService,
-    private auditService: AuditService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeService();
   }
 

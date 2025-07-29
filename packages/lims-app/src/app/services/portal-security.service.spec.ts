@@ -84,6 +84,7 @@ describe('PortalSecurityService', () => {
       // Mock patient search
       const patientBundle: Bundle<Patient> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockPatient }]
       };
       mockMedplumService.searchResources.and.returnValue(Promise.resolve(patientBundle));

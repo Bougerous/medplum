@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { 
   AccessPolicy, 
   AuditEvent, 
@@ -27,16 +27,19 @@ export interface PermissionContext {
   providedIn: 'root'
 })
 export class AuthService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private currentUser$ = new BehaviorSubject<UserProfile | null>(null);
   private isAuthenticated$ = new BehaviorSubject<boolean>(false);
   private permissions$ = new BehaviorSubject<AccessPolicy[]>([]);
   private sessionTimeout: any;
-  private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+  private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000;
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]); // 30 minutes
+
+  constructor() {
     this.initializeAuthState();
   }
 

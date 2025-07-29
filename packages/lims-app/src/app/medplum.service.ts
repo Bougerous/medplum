@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { 
   Bundle, 
   DiagnosticReport,
@@ -52,14 +52,17 @@ interface LoginAuthenticationResponse {
   providedIn: 'root'
 })
 export class MedplumService {
+  private errorHandlingService = inject(ErrorHandlingService);
+  private retryService = inject(RetryService);
+
   private medplum: MockMedplumClient;
   private currentUser$ = new BehaviorSubject<Practitioner | null>(null);
   private isAuthenticated$ = new BehaviorSubject<boolean>(false);
 
-  constructor(
-    private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     // Initialize with mock client for now
     this.medplum = this.createMockClient();
 

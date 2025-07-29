@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuditService } from '../../services/audit.service';
 import { AuthService } from '../../services/auth.service';
@@ -13,18 +13,21 @@ import { UserProfile } from '../../types/fhir-types';
   imports: [CommonModule]
 })
 export class AccessDeniedComponent implements OnInit {
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private auditService = inject(AuditService);
+
   currentUser: UserProfile | null = null;
   attemptedUrl: string = '';
   reason: string = '';
   canRequestAccess: boolean = false;
   contactInfo: string = '';
 
-  constructor(
-    private route: ActivatedRoute,
-    private router: Router,
-    private authService: AuthService,
-    private auditService: AuditService
-  ) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   async ngOnInit(): Promise<void> {
     // Get current user

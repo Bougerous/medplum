@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { DashboardWidget, UserRole } from '../types/fhir-types';
@@ -30,6 +30,8 @@ export interface NavigationItem {
   providedIn: 'root'
 })
 export class RoleService {
+  private authService = inject(AuthService);
+
   
   private readonly rolePermissions: Record<UserRole, RolePermissions> = {
     'admin': {
@@ -355,7 +357,10 @@ export class RoleService {
     }
   ];
 
-  constructor(private authService: AuthService) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   /**
    * Get permissions for current user

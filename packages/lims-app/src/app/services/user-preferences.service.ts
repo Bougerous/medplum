@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
 import { Basic } from '@medplum/fhirtypes';
@@ -61,10 +61,15 @@ export interface AccessibilityPreferences {
   providedIn: 'root'
 })
 export class UserPreferencesService {
+  private medplumService = inject(MedplumService);
+
   private preferencesCache = new Map<string, UserPreferences>();
   private preferencesSubject = new BehaviorSubject<UserPreferences | null>(null);
 
-  constructor(private medplumService: MedplumService) { }
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() { }
 
   /**
    * Get user preferences

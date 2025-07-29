@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Resource } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
@@ -64,6 +64,9 @@ export interface ScheduledReport {
   providedIn: 'root'
 })
 export class BulkDataExportService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private exportJobs$ = new BehaviorSubject<ExportJob[]>([]);
   private scheduledReports$ = new BehaviorSubject<ScheduledReport[]>([]);
   private activeExports = new Map<string, ExportJob>();
@@ -82,10 +85,10 @@ export class BulkDataExportService {
     { field: 'Specimen.receivedTime', action: 'shift', parameters: { maxDays: 30 } }
   ];
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeScheduledReports();
   }
 

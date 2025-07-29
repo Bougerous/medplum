@@ -1,5 +1,5 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Claim, ClaimResponse, Coverage, Patient, Practitioner } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { MedplumService } from '../medplum.service';
@@ -210,17 +210,20 @@ export interface CandidHealthPaymentInfo {
   providedIn: 'root'
 })
 export class CandidHealthService {
+  private http = inject(HttpClient);
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private retryService = inject(RetryService);
+  private currencyService = inject(CurrencyService);
+
   private config: CandidHealthConfig;
   private accessToken$ = new BehaviorSubject<string | null>(null);
   private submittedClaims$ = new BehaviorSubject<CandidHealthClaimResponse[]>([]);
 
-  constructor(
-    private http: HttpClient,
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private retryService: RetryService,
-    private currencyService: CurrencyService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.config = this.getDefaultConfig();
     this.initializeAuthentication();
   }

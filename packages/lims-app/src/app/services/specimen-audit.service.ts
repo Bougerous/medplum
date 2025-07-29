@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, combineLatest, Observable, Subject } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { MedplumService } from '../medplum.service';
@@ -171,16 +171,19 @@ export interface RegulatoryRequirement {
   providedIn: 'root'
 })
 export class SpecimenAuditService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+  private authService = inject(AuthService);
+
   private auditTrails$ = new BehaviorSubject<Map<string, SpecimenAuditTrail>>(new Map());
   private complianceReports$ = new BehaviorSubject<ComplianceReport[]>([]);
   private regulatoryRequirements$ = new BehaviorSubject<RegulatoryRequirement[]>([]);
   private auditEventStream$ = new Subject<AuditEventSummary>();
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService,
-    private authService: AuthService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeRegulatoryRequirements();
   }
 

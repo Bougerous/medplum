@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormControl, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import {
   Patient,
@@ -20,6 +20,11 @@ import { RouterModule } from '@angular/router';
   styleUrl: './patient-registration.scss'
 })
 export class PatientRegistration implements OnInit, OnDestroy {
+  private formBuilder = inject(FormBuilder);
+  private questionnaireService = inject(QuestionnaireService);
+  private notificationService = inject(NotificationService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   patientForm!: FormGroup;
   isSubmitting = false;
   availableQuestionnaires: Questionnaire[] = [];
@@ -30,12 +35,10 @@ export class PatientRegistration implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private questionnaireService: QuestionnaireService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

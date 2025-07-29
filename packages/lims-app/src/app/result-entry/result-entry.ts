@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 
@@ -32,6 +32,8 @@ interface TestParameter {
   styleUrl: './result-entry.scss'
 })
 export class ResultEntry implements OnInit {
+  private fb = inject(FormBuilder);
+
   // Search and filtering
   searchTerm = '';
   selectedStatus = '';
@@ -47,7 +49,10 @@ export class ResultEntry implements OnInit {
   currentResult: TestResult | null = null;
   resultForm!: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

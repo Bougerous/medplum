@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 
 interface ReportData {
@@ -47,6 +47,8 @@ interface PreviewData {
   styleUrl: './reports.scss'
 })
 export class Reports implements OnInit {
+  private fb = inject(FormBuilder);
+
   // Form state
   reportForm!: FormGroup;
   showReportBuilder = false;
@@ -60,7 +62,10 @@ export class Reports implements OnInit {
   reportTemplates: ReportTemplate[] = [];
   scheduledReports: ScheduledReport[] = [];
 
-  constructor(private fb: FormBuilder) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

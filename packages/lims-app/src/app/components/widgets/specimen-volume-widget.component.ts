@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input, OnDestroy, OnInit } from '@angular/core';
+import { Component, Input, OnDestroy, OnInit, inject } from '@angular/core';
 import { interval, Subject } from 'rxjs';
 import { startWith, switchMap, takeUntil } from 'rxjs/operators';
 import { AnalyticsService } from '../../services/analytics.service';
@@ -541,6 +541,8 @@ interface VolumeData {
   `]
 })
 export class SpecimenVolumeWidgetComponent implements OnInit, OnDestroy {
+  private analyticsService = inject(AnalyticsService);
+
   private destroy$ = new Subject<void>();
 
   @Input() config: any = { refreshInterval: 300000 }; // 5 minutes
@@ -562,7 +564,10 @@ export class SpecimenVolumeWidgetComponent implements OnInit, OnDestroy {
     { key: '90d', label: '90 Days' }
   ];
 
-  constructor(private analyticsService: AnalyticsService) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.initializeData();

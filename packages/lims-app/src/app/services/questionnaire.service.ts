@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Consent,
   Coverage,
@@ -21,12 +21,15 @@ export interface PatientRegistrationData {
   providedIn: 'root'
 })
 export class QuestionnaireService {
+  private medplumService = inject(MedplumService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private availableQuestionnaires$ = new BehaviorSubject<Questionnaire[]>([]);
 
-  constructor(
-    private medplumService: MedplumService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.loadAvailableQuestionnaires();
   }
 

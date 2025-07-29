@@ -1,11 +1,4 @@
-import { 
-  Directive, 
-  Input, 
-  OnDestroy, 
-  OnInit, 
-  TemplateRef, 
-  ViewContainerRef 
-} from '@angular/core';
+import { Directive, Input, OnDestroy, OnInit, TemplateRef, ViewContainerRef, inject } from '@angular/core';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { AuthService, PermissionContext } from '../services/auth.service';
@@ -16,6 +9,10 @@ import { UserRole } from '../types/fhir-types';
   standalone: true
 })
 export class HasPermissionDirective implements OnInit, OnDestroy {
+  private templateRef = inject<TemplateRef<any>>(TemplateRef);
+  private viewContainer = inject(ViewContainerRef);
+  private authService = inject(AuthService);
+
   private destroy$ = new Subject<void>();
   private hasView = false;
   
@@ -50,11 +47,10 @@ export class HasPermissionDirective implements OnInit, OnDestroy {
   private action: 'create' | 'read' | 'update' | 'delete' | 'search' | undefined;
   private elseTemplate: TemplateRef<any> | undefined;
 
-  constructor(
-    private templateRef: TemplateRef<any>,
-    private viewContainer: ViewContainerRef,
-    private authService: AuthService
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     // Subscribe to authentication changes
@@ -181,6 +177,10 @@ export class HasPermissionDirective implements OnInit, OnDestroy {
   standalone: true
 })
 export class HasRoleDirective implements OnInit, OnDestroy {
+  private templateRef = inject<TemplateRef<any>>(TemplateRef);
+  private viewContainer = inject(ViewContainerRef);
+  private authService = inject(AuthService);
+
   private destroy$ = new Subject<void>();
   private hasView = false;
   
@@ -197,11 +197,10 @@ export class HasRoleDirective implements OnInit, OnDestroy {
   private requiredRoles: UserRole[] = [];
   private elseTemplate: TemplateRef<any> | undefined;
 
-  constructor(
-    private templateRef: TemplateRef<any>,
-    private viewContainer: ViewContainerRef,
-    private authService: AuthService
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.authService.getCurrentUser()
@@ -243,6 +242,8 @@ export class HasRoleDirective implements OnInit, OnDestroy {
   standalone: true
 })
 export class DisableIfNoPermissionDirective implements OnInit, OnDestroy {
+  private authService = inject(AuthService);
+
   private destroy$ = new Subject<void>();
   
   @Input() set disableIfNoPermission(permission: string | PermissionContext) {
@@ -258,9 +259,10 @@ export class DisableIfNoPermissionDirective implements OnInit, OnDestroy {
   private permission: string | PermissionContext | undefined;
   private requiredRoles: UserRole[] = [];
 
-  constructor(
-    private authService: AuthService
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {}
 
   ngOnInit(): void {
     this.authService.getCurrentUser()

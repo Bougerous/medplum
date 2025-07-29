@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy, inject } from '@angular/core';
 import { BehaviorSubject, fromEvent, merge, Observable } from 'rxjs';
 import { debounceTime, filter } from 'rxjs/operators';
 import { AuditService } from './audit.service';
@@ -17,6 +17,10 @@ export interface SessionInfo {
   providedIn: 'root'
 })
 export class SessionService implements OnDestroy {
+  private authService = inject(AuthService);
+  private auditService = inject(AuditService);
+  private notificationService = inject(NotificationService);
+
   private readonly SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
   private readonly WARNING_TIME_MS = 5 * 60 * 1000; // 5 minutes before timeout
   private readonly ACTIVITY_DEBOUNCE_MS = 1000; // 1 second
@@ -33,11 +37,10 @@ export class SessionService implements OnDestroy {
   private warningTimer: any;
   private activitySubscription: any;
 
-  constructor(
-    private authService: AuthService,
-    private auditService: AuditService,
-    private notificationService: NotificationService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeSessionTracking();
   }
 

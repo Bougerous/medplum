@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe, TitleCasePipe } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, TemplateRef, ViewChild } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, TemplateRef, ViewChild, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import {
@@ -48,6 +48,14 @@ export interface BatchValidationItem {
   providers: [DatePipe, TitleCasePipe]
 })
 export class ReportValidationComponent implements OnInit, OnDestroy {
+  private formBuilder = inject(FormBuilder);
+  private diagnosticReportService = inject(DiagnosticReportService);
+  private validationService = inject(ReportValidationService);
+  private pdfService = inject(PdfGenerationService);
+  private authService = inject(AuthService);
+  private notificationService = inject(NotificationService);
+  private medplumService = inject(MedplumService);
+
   @Input() reportId?: string;
   @Input() mode: 'single' | 'batch' | 'queue' = 'queue';
   @Output() reportValidated = new EventEmitter<string>();
@@ -89,15 +97,10 @@ export class ReportValidationComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private diagnosticReportService: DiagnosticReportService,
-    private validationService: ReportValidationService,
-    private pdfService: PdfGenerationService,
-    private authService: AuthService,
-    private notificationService: NotificationService,
-    private medplumService: MedplumService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.validationForm = this.createValidationForm();
     this.filterForm = this.createFilterForm();
 

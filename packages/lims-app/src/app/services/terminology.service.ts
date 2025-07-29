@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { CodeableConcept, ValueSet } from '@medplum/fhirtypes';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ErrorHandlingService } from './error-handling.service';
@@ -90,6 +90,8 @@ export interface ValidationResult {
   providedIn: 'root'
 })
 export class TerminologyService {
+  private errorHandlingService = inject(ErrorHandlingService);
+
   private conceptCache = new Map<string, SnomedConcept>();
   private valueSetCache = new Map<string, ValueSet>();
   private isInitialized$ = new BehaviorSubject<boolean>(false);
@@ -182,9 +184,10 @@ export class TerminologyService {
     }
   ];
 
-  constructor(
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeService();
   }
 

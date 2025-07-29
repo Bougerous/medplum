@@ -1,5 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 
 interface TimelineEvent {
@@ -32,6 +32,8 @@ interface Sample {
   styleUrl: './sample-tracking.scss'
 })
 export class SampleTracking implements OnInit {
+  private fb = inject(FormBuilder);
+
   // Search and filtering
   searchTerm = '';
   barcodeInput = '';
@@ -50,7 +52,10 @@ export class SampleTracking implements OnInit {
   selectedSample: Sample | null = null;
   locationForm!: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeLocationForm();
   }
 

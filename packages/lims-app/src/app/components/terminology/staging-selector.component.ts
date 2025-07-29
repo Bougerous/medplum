@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, inject } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CodeableConcept } from '@medplum/fhirtypes';
 import { Subject } from 'rxjs';
@@ -177,6 +177,8 @@ export interface StagingSelection {
   standalone: true
 })
 export class StagingSelectorComponent implements OnInit, OnDestroy {
+  private terminologyService = inject(TerminologyService);
+
   @Input() initialStaging?: StagingSelection;
   @Input() required: boolean = false;
   @Input() disabled: boolean = false;
@@ -235,7 +237,10 @@ export class StagingSelectorComponent implements OnInit, OnDestroy {
     }
   ];
 
-  constructor(private terminologyService: TerminologyService) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

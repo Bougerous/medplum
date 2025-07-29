@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { 
   Patient, 
@@ -26,6 +26,12 @@ import { RouterModule } from '@angular/router';
   styleUrl: './test-ordering.scss'
 })
 export class TestOrdering implements OnInit, OnDestroy {
+  private formBuilder = inject(FormBuilder);
+  private medplumService = inject(MedplumService);
+  private testOrderingService = inject(TestOrderingService);
+  private notificationService = inject(NotificationService);
+  private errorHandlingService = inject(ErrorHandlingService);
+
   orderForm!: FormGroup;
   isSubmitting = false;
   searchResults: Patient[] = [];
@@ -42,13 +48,10 @@ export class TestOrdering implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  constructor(
-    private formBuilder: FormBuilder,
-    private medplumService: MedplumService,
-    private testOrderingService: TestOrderingService,
-    private notificationService: NotificationService,
-    private errorHandlingService: ErrorHandlingService
-  ) {
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+  constructor() {
     this.initializeForm();
   }
 

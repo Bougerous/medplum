@@ -171,20 +171,24 @@ describe('PatientPortalComponent', () => {
       // Mock patient search
       const patientBundle: Bundle<Patient> = {
         resourceType: 'Bundle',
+        type: 'searchset',
         entry: [{ resource: mockPatient }],
       };
       mockMedplumService.searchResources.and.returnValues(
         Promise.resolve(patientBundle),
         Promise.resolve({
           resourceType: 'Bundle',
+          type: 'searchset',
           entry: [{ resource: mockDiagnosticReport }],
         }),
         Promise.resolve({
           resourceType: 'Bundle',
+          type: 'searchset',
           entry: [{ resource: mockAppointment }],
         }),
         Promise.resolve({
           resourceType: 'Bundle',
+          type: 'searchset',
           entry: [{ resource: mockCommunication }],
         }),
       );
@@ -284,7 +288,7 @@ describe('PatientPortalComponent', () => {
         Promise.resolve(mockCommunication),
       );
       mockMedplumService.searchResources.and.returnValue(
-        Promise.resolve({ resourceType: 'Bundle', entry: [] }),
+        Promise.resolve({ resourceType: 'Bundle', type: 'searchset', entry: [] }),
       );
 
       await component.submitMessage();

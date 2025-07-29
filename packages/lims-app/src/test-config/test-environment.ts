@@ -300,8 +300,7 @@ export const TestEnvironmentUtils = {
         console.log(`   - ${error}`);
       }
     }
-    console.log('=====================================
-');
+    console.log('=====================================');
   }
 };
 

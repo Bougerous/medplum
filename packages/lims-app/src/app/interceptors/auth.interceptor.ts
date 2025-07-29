@@ -5,7 +5,7 @@ import {
   HttpInterceptor,
   HttpRequest
 } from '@angular/common/http';
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap, take } from 'rxjs/operators';
@@ -15,12 +15,15 @@ import { LIMSErrorType } from '../types/fhir-types';
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
+  private authService = inject(AuthService);
+  private router = inject(Router);
+  private errorHandlingService = inject(ErrorHandlingService);
 
-  constructor(
-    private authService: AuthService,
-    private router: Router,
-    private errorHandlingService: ErrorHandlingService
-  ) {}
+  /** Inserted by Angular inject() migration for backwards compatibility */
+  constructor(...args: unknown[]);
+
+
+  constructor() {}
 
   intercept(
     request: HttpRequest<any>,
